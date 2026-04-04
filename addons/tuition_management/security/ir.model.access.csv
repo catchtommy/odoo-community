@@ -20,3 +20,4 @@ access_course_assignment_user,course_assignment user,model_course_assignment,bas
 access_assignment_submission_user,assignment_submission user,model_assignment_submission,base.group_user,1,1,1,1
 access_mark_attendance_wizard_user,mark_attendance_wizard user,model_mark_attendance_wizard,base.group_user,1,1,1,1
 access_mark_attendance_wizard_line_user,mark_attendance_wizard_line user,model_mark_attendance_wizard_line,base.group_user,1,1,1,1
+access_portal_access_wizard_user,portal_access_wizard user,model_portal_access_wizard,base.group_user,1,1,1,1

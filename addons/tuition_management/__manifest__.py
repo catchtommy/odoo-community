@@ -6,10 +6,17 @@
     "author": "Auto Generated",
     "website": "",
     "license": "LGPL-3",
-    "depends": ["base", "mail", "calendar"],
+    "depends": [
+        "base",
+        "portal",
+        "website",
+        "account",
+        "sale",
+    ],
     "data": [
         "security/ir.model.access.csv",
         "views/tuition_views.xml",
+        "views/portal_templates.xml",
     ],
     "installable": True,
     "application": True,

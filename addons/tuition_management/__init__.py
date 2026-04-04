@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from . import models
+from . import controllers
 
 
 def _create_default_enquiry_stages(env):

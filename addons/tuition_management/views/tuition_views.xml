@@ -100,7 +100,16 @@
 <field name="model">student.profile</field>
 <field name="arch" type="xml">
 <form>
+<header>
+<button name="action_invite_to_portal" type="object" string="Invite to Portal" class="btn-primary" icon="fa-globe" invisible="has_portal_access or not id"/>
+</header>
 <sheet>
+<div class="oe_button_box" name="button_box">
+<button class="oe_stat_button" icon="fa-globe" invisible="not has_portal_access" disabled="1">
+<span class="o_stat_text text-success">Portal Active</span>
+</button>
+</div>
+<field name="has_portal_access" invisible="1"/>
 <group string="Personal Information">
 <field name="name" string="Full Name"/>
 <field name="email"/>
@@ -161,6 +170,50 @@
 </field>
 </record>
 
+<!-- Tutor Profile Form View -->
+<record id="view_tutor_profile_form" model="ir.ui.view">
+<field name="name">tutor.profile.form</field>
+<field name="model">tutor.profile</field>
+<field name="arch" type="xml">
+<form>
+<header>
+<button name="action_invite_to_portal" type="object" string="Invite to Portal" class="btn-primary" icon="fa-globe" invisible="has_portal_access or not id"/>
+</header>
+<sheet>
+<div class="oe_button_box" name="button_box">
+<button class="oe_stat_button" icon="fa-globe" invisible="not has_portal_access" disabled="1">
+<span class="o_stat_text text-success">Portal Active</span>
+</button>
+</div>
+<field name="has_portal_access" invisible="1"/>
+<group string="Personal Information">
+<field name="name" string="Full Name"/>
+<field name="email"/>
+<label for="phone" string="Phone Number"/>
+<div style="display: grid; grid-template-columns: 25% 75%; gap: 8px;">
+<field name="country_code" placeholder="Country Code"/>
+<field name="phone" class="o_field_char" placeholder="Phone Number"/>
+</div>
+</group>
+<group string="Subjects">
+<field name="subject_ids" widget="many2many_tags"/>
+</group>
+<notebook>
+<page string="Availability">
+<field name="availability_ids">
+<list string="Availability" editable="bottom">
+<field name="day_of_week"/>
+<field name="start_time" widget="float_time"/>
+<field name="end_time" widget="float_time"/>
+</list>
+</field>
+</page>
+</notebook>
+</sheet>
+</form>
+</field>
+</record>
+
 <!-- Parent Profile Views -->
 <record id="view_parent_profile_list" model="ir.ui.view">
 <field name="name">parent.profile.list</field>
@@ -179,7 +232,16 @@
 <field name="model">parent.profile</field>
 <field name="arch" type="xml">
 <form>
+<header>
+<button name="action_invite_to_portal" type="object" string="Invite to Portal" class="btn-primary" icon="fa-globe" invisible="has_portal_access or not id"/>
+</header>
 <sheet>
+<div class="oe_button_box" name="button_box">
+<button class="oe_stat_button" icon="fa-globe" invisible="not has_portal_access" disabled="1">
+<span class="o_stat_text text-success">Portal Active</span>
+</button>
+</div>
+<field name="has_portal_access" invisible="1"/>
 <group string="Personal Information">
 <field name="name" string="Full Name"/>
 <field name="email"/>
@@ -291,6 +353,15 @@
 <field name="start_date"/>
 <field name="end_date"/>
 <field name="status"/>
+</group>
+</group>
+<group>
+<group string="Virtual Classroom">
+<field name="virtual_class_platform"/>
+<field name="virtual_class_url" widget="url" placeholder="https://..."/>
+<field name="virtual_class_meeting_id" invisible="not virtual_class_platform"/>
+<field name="virtual_class_passcode" invisible="not virtual_class_platform"/>
+<field name="virtual_class_notes" invisible="not virtual_class_platform"/>
 </group>
 </group>
 <notebook>
@@ -533,6 +604,29 @@ Create your first class schedule
 <field name="name">Schedule Calendar</field>
 <field name="res_model">class.schedule.occurrence</field>
 <field name="view_mode">calendar,list,form</field>
+</record>
+
+<!-- Portal Access Wizard -->
+<record id="view_portal_access_wizard_form" model="ir.ui.view">
+<field name="name">portal.access.wizard.form</field>
+<field name="model">portal.access.wizard</field>
+<field name="arch" type="xml">
+<form string="Set Portal Access">
+<group>
+<field name="profile_model" invisible="1"/>
+<field name="profile_id" invisible="1"/>
+<field name="name" readonly="1"/>
+<field name="email" readonly="1"/>
+<field name="login"/>
+<field name="password" password="True"/>
+<field name="confirm_password" password="True"/>
+</group>
+<footer>
+<button name="action_create_portal_user" type="object" string="Activate Portal Access" class="btn-primary"/>
+<button string="Cancel" class="btn-secondary" special="cancel"/>
+</footer>
+</form>
+</field>
 </record>
 
 <!-- Mark Attendance Wizard -->
