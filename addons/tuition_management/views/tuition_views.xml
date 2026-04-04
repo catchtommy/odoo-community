@@ -261,26 +261,87 @@
 <field name="arch" type="xml">
 <form string="Course">
 <header>
-<button name="action_enroll_student" string="Enroll Student" type="object" class="btn-primary"/>
+<button name="action_enroll_student" string="Enroll Student" type="object" class="btn-primary" icon="fa-user-plus"/>
 <field name="status" widget="statusbar"/>
 </header>
 <sheet>
+<div class="oe_button_box" name="button_box">
+<button name="action_view_enrolled_students" type="object" class="oe_stat_button" icon="fa-users">
+<field name="student_count" string="Students" widget="statinfo"/>
+</button>
+<button name="action_view_schedule_calendar" type="object" class="oe_stat_button" icon="fa-calendar">
+<span>Course Calendar</span>
+</button>
+<button name="action_view_assignments" type="object" class="oe_stat_button" icon="fa-file-text">
+<span>Assignments</span>
+</button>
+<button name="action_view_progress_reports" type="object" class="oe_stat_button" icon="fa-bar-chart">
+<span>Progress Reports</span>
+</button>
+</div>
 <group>
+<group string="Course Information">
 <field name="name"/>
 <field name="subject_id"/>
 <field name="grade_id"/>
-<field name="status"/>
-<field name="start_date"/>
-<field name="end_date"/>
 <field name="tutor_id"/>
 <field name="coordinator_id"/>
 </group>
+<group string="Course Dates">
+<field name="start_date"/>
+<field name="end_date"/>
+<field name="status"/>
+</group>
+</group>
 <notebook>
-<page string="Schedules">
+<page string="Lessons" name="lessons">
+<field name="occurrence_ids" readonly="1">
+<list string="Lessons" create="false" delete="false">
+<field name="start_datetime" string="Lesson Time"/>
+<field name="tutor_id" string="Teacher"/>
+<field name="lesson_status" string="Status"/>
+<field name="attendance_marked" string="Attendance Marked"/>
+<button name="action_mark_attendance" type="object" string="Mark Attendance" class="btn-link" icon="fa-check-square-o"/>
+</list>
+</field>
+</page>
+<page string="Students" name="students">
+<field name="enrollment_ids">
+<list string="Enrolled Students">
+<field name="student_id" string="Student Name"/>
+<field name="fee"/>
+<field name="status"/>
+</list>
+</field>
+</page>
+<page string="Schedules" name="schedules">
 <field name="schedule_ids"/>
 </page>
-<page string="Enrollments">
-<field name="enrollment_ids"/>
+<page string="Progress Reports" name="progress_reports">
+<div class="mb-2">
+<button name="action_add_progress_report" type="object" string="Add Progress Report" class="btn-primary" icon="fa-plus"/>
+</div>
+<field name="progress_report_ids">
+<list string="Progress Reports" create="false">
+<field name="report_date"/>
+<field name="student_id"/>
+<field name="overall_rating"/>
+<field name="score"/>
+<field name="max_score"/>
+<field name="tutor_id"/>
+</list>
+</field>
+</page>
+<page string="Assignments" name="assignments">
+<field name="assignment_ids">
+<list string="Assignments">
+<field name="name"/>
+<field name="assignment_type"/>
+<field name="assigned_date"/>
+<field name="due_date"/>
+<field name="status"/>
+</list>
+</field>
 </page>
 </notebook>
 </sheet>
@@ -308,6 +369,7 @@
 </group>
 <group>
 <field name="fee"/>
+<field name="fee_type"/>
 <field name="currency_id"/>
 <field name="discount_amount"/>
 <field name="net_fee"/>
@@ -332,6 +394,7 @@
 <field name="course_id"/>
 <field name="student_id" string="Student Name"/>
 <field name="fee"/>
+<field name="fee_type"/>
 <field name="status"/>
 </list>
 </field>
@@ -349,7 +412,6 @@
 <field name="model">class.schedule</field>
 <field name="arch" type="xml">
 <list string="Class Schedules">
-<field name="name"/>
 <field name="course_id"/>
 <field name="schedule_type"/>
 <field name="schedule_hour"/>
@@ -364,10 +426,9 @@
 <field name="name">class.schedule.form</field>
 <field name="model">class.schedule</field>
 <field name="arch" type="xml">
-<form string="Class Schedule" edit="false" create="false">
+<form string="Class Schedule">
 <sheet>
 <group>
-<field name="name"/>
 <field name="course_id"/>
 <field name="tutor_id" string="Tutor (First Name, Last Name)"/>
 <field name="schedule_type"/>
@@ -395,23 +456,123 @@
 </field>
 </record>
 
+<!-- Class Schedule Occurrence Calendar View -->
+<record id="view_class_schedule_occurrence_calendar" model="ir.ui.view">
+<field name="name">class.schedule.occurrence.calendar</field>
+<field name="model">class.schedule.occurrence</field>
+<field name="arch" type="xml">
+<calendar string="Class Schedules" date_start="start_datetime" date_stop="stop_datetime" color="course_id" mode="month" event_open_popup="true" quick_create="false">
+<field name="name"/>
+<field name="course_id"/>
+<field name="tutor_id"/>
+</calendar>
+</field>
+</record>
+
+<!-- Class Schedule Occurrence List View -->
+<record id="view_class_schedule_occurrence_list" model="ir.ui.view">
+<field name="name">class.schedule.occurrence.list</field>
+<field name="model">class.schedule.occurrence</field>
+<field name="arch" type="xml">
+<list string="Schedule Occurrences" create="false" edit="false">
+<field name="name"/>
+<field name="course_id"/>
+<field name="tutor_id"/>
+<field name="start_datetime"/>
+<field name="stop_datetime"/>
+<field name="lesson_status"/>
+<field name="attendance_marked"/>
+</list>
+</field>
+</record>
+
+<!-- Action to create a new class schedule (must be defined before the form that references it) -->
+<record id="action_new_class_schedule" model="ir.actions.act_window">
+<field name="name">New Schedule</field>
+<field name="res_model">class.schedule</field>
+<field name="view_mode">form</field>
+<field name="target">new</field>
+</record>
+
+<!-- Class Schedule Occurrence Form View -->
+<record id="view_class_schedule_occurrence_form" model="ir.ui.view">
+<field name="name">class.schedule.occurrence.form</field>
+<field name="model">class.schedule.occurrence</field>
+<field name="arch" type="xml">
+<form string="Schedule Occurrence" create="false" edit="false">
+<header>
+<button name="%(action_new_class_schedule)d" type="action" string="New Schedule" class="btn-primary" icon="fa-plus"/>
+</header>
+<sheet>
+<group>
+<field name="name"/>
+<field name="schedule_id"/>
+<field name="course_id"/>
+<field name="tutor_id"/>
+<field name="start_datetime"/>
+<field name="stop_datetime"/>
+</group>
+</sheet>
+</form>
+</field>
+</record>
+
 <record id="action_class_schedules" model="ir.actions.act_window">
 <field name="name">Class Schedules</field>
 <field name="res_model">class.schedule</field>
 <field name="view_mode">list,form</field>
-<field name="context">{'create': False}</field>
+<field name="help" type="html">
+<p class="o_view_nocontent_smiling_face">
+Create your first class schedule
+</p>
+</field>
 </record>
 
-<!-- Attendance Record Views - Read Only -->
+<!-- Class Schedule Occurrences Calendar Action -->
+<record id="action_class_schedule_calendar" model="ir.actions.act_window">
+<field name="name">Schedule Calendar</field>
+<field name="res_model">class.schedule.occurrence</field>
+<field name="view_mode">calendar,list,form</field>
+</record>
+
+<!-- Mark Attendance Wizard -->
+<record id="view_mark_attendance_wizard_form" model="ir.ui.view">
+<field name="name">mark.attendance.wizard.form</field>
+<field name="model">mark.attendance.wizard</field>
+<field name="arch" type="xml">
+<form string="Mark Attendance">
+<group>
+<field name="occurrence_id" readonly="1"/>
+<field name="lesson_status"/>
+</group>
+<separator string="Student Attendance"/>
+<field name="line_ids">
+<list string="Students" editable="bottom">
+<field name="student_id" readonly="1"/>
+<field name="status"/>
+<field name="billable"/>
+<field name="remarks"/>
+</list>
+</field>
+<footer>
+<button name="action_confirm" type="object" string="Confirm Attendance" class="btn-primary"/>
+<button string="Cancel" class="btn-secondary" special="cancel"/>
+</footer>
+</form>
+</field>
+</record>
+
+<!-- Attendance Record Views -->
 <record id="view_attendance_record_list" model="ir.ui.view">
 <field name="name">attendance.record.list</field>
 <field name="model">attendance.record</field>
 <field name="arch" type="xml">
-<list string="Attendance Records">
-<field name="class_schedule_id"/>
+<list string="Attendance Records" create="true">
+<field name="class_schedule_occurrence_id"/>
 <field name="student_id"/>
 <field name="attendance_date"/>
 <field name="status"/>
+<field name="billable"/>
 </list>
 </field>
 </record>
@@ -420,13 +581,16 @@
 <field name="name">attendance.record.form</field>
 <field name="model">attendance.record</field>
 <field name="arch" type="xml">
-<form string="Attendance Record" edit="false" create="false">
+<form string="Attendance Record">
 <sheet>
 <group>
-<field name="class_schedule_id"/>
+<field name="class_schedule_occurrence_id"/>
+<field name="course_id" readonly="1"/>
+<field name="tutor_id" readonly="1"/>
 <field name="student_id"/>
 <field name="attendance_date"/>
 <field name="status"/>
+<field name="billable"/>
 <field name="remarks"/>
 </group>
 </sheet>
@@ -434,11 +598,146 @@
 </field>
 </record>
 
+<!-- Action for Attendance -->
 <record id="action_attendance_records" model="ir.actions.act_window">
 <field name="name">Attendance</field>
 <field name="res_model">attendance.record</field>
 <field name="view_mode">list,form</field>
-<field name="context">{'create': False}</field>
+<field name="context">{'create': True}</field>
+<field name="help" type="html">
+<p class="o_view_nocontent_smiling_face">
+Create your first attendance record
+</p>
+</field>
+</record>
+
+<!-- Subject Master Action -->
+
+<!-- Progress Report Views -->
+<record id="view_progress_report_list" model="ir.ui.view">
+<field name="name">progress.report.list</field>
+<field name="model">progress.report</field>
+<field name="arch" type="xml">
+<list string="Progress Reports">
+<field name="report_date"/>
+<field name="course_id"/>
+<field name="student_id"/>
+<field name="overall_rating"/>
+<field name="score"/>
+<field name="max_score"/>
+<field name="tutor_id"/>
+</list>
+</field>
+</record>
+
+<record id="view_progress_report_form" model="ir.ui.view">
+<field name="name">progress.report.form</field>
+<field name="model">progress.report</field>
+<field name="arch" type="xml">
+<form string="Progress Report">
+<sheet>
+<group>
+<group string="Session Details">
+<field name="name"/>
+<field name="course_id"/>
+<field name="class_schedule_occurrence_id" domain="[('course_id', '=', course_id)]"/>
+<field name="student_id"/>
+<field name="tutor_id"/>
+<field name="report_date"/>
+</group>
+<group string="Evaluation">
+<field name="overall_rating"/>
+<field name="score"/>
+<field name="max_score"/>
+</group>
+</group>
+<notebook>
+<page string="Feedback">
+<group>
+<field name="strengths" placeholder="What the student did well..."/>
+<field name="areas_for_improvement" placeholder="Areas that need work..."/>
+<field name="comments" placeholder="Additional comments..."/>
+<field name="homework_notes" placeholder="Homework or next steps..."/>
+</group>
+</page>
+</notebook>
+</sheet>
+</form>
+</field>
+</record>
+
+<record id="action_progress_reports" model="ir.actions.act_window">
+<field name="name">Progress Reports</field>
+<field name="res_model">progress.report</field>
+<field name="view_mode">list,form</field>
+</record>
+
+<!-- Course Assignment Views -->
+<record id="view_course_assignment_list" model="ir.ui.view">
+<field name="name">course.assignment.list</field>
+<field name="model">course.assignment</field>
+<field name="arch" type="xml">
+<list string="Assignments">
+<field name="name"/>
+<field name="course_id"/>
+<field name="assignment_type"/>
+<field name="assigned_date"/>
+<field name="due_date"/>
+<field name="status"/>
+</list>
+</field>
+</record>
+
+<record id="view_course_assignment_form" model="ir.ui.view">
+<field name="name">course.assignment.form</field>
+<field name="model">course.assignment</field>
+<field name="arch" type="xml">
+<form string="Assignment">
+<header>
+<field name="status" widget="statusbar"/>
+</header>
+<sheet>
+<group>
+<group>
+<field name="name"/>
+<field name="course_id"/>
+<field name="assignment_type"/>
+</group>
+<group>
+<field name="assigned_date"/>
+<field name="due_date"/>
+<field name="status"/>
+</group>
+</group>
+<notebook>
+<page string="Description">
+<field name="description"/>
+</page>
+<page string="Attachments">
+<field name="attachment_ids" widget="many2many_binary"/>
+</page>
+<page string="Submissions">
+<field name="submission_ids">
+<list string="Submissions">
+<field name="student_id"/>
+<field name="submission_date"/>
+<field name="status"/>
+<field name="score"/>
+<field name="max_score"/>
+<field name="feedback"/>
+</list>
+</field>
+</page>
+</notebook>
+</sheet>
+</form>
+</field>
+</record>
+
+<record id="action_course_assignments" model="ir.actions.act_window">
+<field name="name">Assignments</field>
+<field name="res_model">course.assignment</field>
+<field name="view_mode">list,form</field>
 </record>
 
 <!-- Subject Master Action -->
@@ -709,8 +1008,11 @@
 <menuitem id="menu_tuition_courses" name="Courses" parent="menu_tuition_scheduling" action="action_course_masters"/>
 <menuitem id="menu_tuition_enrollments" name="Enrollments" parent="menu_tuition_scheduling" action="action_course_enrollments"/>
 <menuitem id="menu_tuition_class_schedules" name="Class Schedules" parent="menu_tuition_scheduling" action="action_class_schedules"/>
+<menuitem id="menu_tuition_schedule_calendar" name="Schedule Calendar" parent="menu_tuition_scheduling" action="action_class_schedule_calendar"/>
 <menuitem id="menu_tuition_demo_sessions" name="Demo Sessions" parent="menu_tuition_scheduling" action="action_demo_sessions"/>
 <menuitem id="menu_tuition_attendance" name="Attendance" parent="menu_tuition_scheduling" action="action_attendance_records"/>
+<menuitem id="menu_tuition_progress_reports" name="Progress Reports" parent="menu_tuition_scheduling" action="action_progress_reports"/>
+<menuitem id="menu_tuition_assignments" name="Assignments" parent="menu_tuition_scheduling" action="action_course_assignments"/>
 <menuitem id="menu_tuition_tutor_availability" name="Tutor Availability" parent="menu_tuition_scheduling" action="action_tutor_availability"/>
 
 <!-- Enquiries Menu -->
