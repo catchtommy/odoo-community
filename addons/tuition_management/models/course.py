@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
+from odoo.exceptions import UserError
 from datetime import timedelta, date
 import pytz
 
@@ -43,37 +44,47 @@ class ParentProfile(models.Model):
     address_line_4 = fields.Char(string='Address Line 4')
     zip_code = fields.Char(string='Zip Code')
     partner_id = fields.Many2one('res.partner', string='Contact')
-    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_user', store=False)
-    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_user', store=False)
+    notes = fields.Html(string='Notes')
 
-    def _compute_portal_user(self):
+    # Portal access info (computed)
+    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
+    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
+    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+
+    @api.depends('partner_id')
+    def _compute_portal_access(self):
         for rec in self:
-            if rec.partner_id:
-                user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1)
-                rec.portal_user_id = user.id if user else False
-                rec.has_portal_access = bool(user)
-            else:
-                rec.portal_user_id = False
-                rec.has_portal_access = False
+            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
+            rec.portal_user_id = user.id if user else False
+            rec.portal_login = user.login if user else ''
+            rec.has_portal_access = bool(user)
 
     def action_invite_to_portal(self):
-        """Open wizard to set portal credentials for this parent."""
+        """Open wizard to set or update portal credentials for this parent."""
         self.ensure_one()
         if not self.email:
-            raise models.UserError("Email is required to create a portal login.")
+            raise UserError("Email is required to create a portal login.")
+        ctx = {
+            'default_profile_model': 'parent.profile',
+            'default_profile_id': self.id,
+            'default_name': self.name,
+            'default_email': self.email,
+            'default_login': self.email,
+        }
+        # Check for existing portal user
+        if self.partner_id:
+            user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
+            if user:
+                ctx['default_is_existing_user'] = True
+                ctx['default_existing_user_id'] = user.id
+                ctx['default_login'] = user.login
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Set Portal Access',
+            'name': 'Manage Portal Access',
             'res_model': 'portal.access.wizard',
             'view_mode': 'form',
             'target': 'new',
-            'context': {
-                'default_profile_model': 'parent.profile',
-                'default_profile_id': self.id,
-                'default_name': self.name,
-                'default_email': self.email,
-                'default_login': self.email,
-            },
+            'context': ctx,
         }
 
 
@@ -94,37 +105,46 @@ class StudentProfile(models.Model):
     address_line_3 = fields.Char(string='Address Line 3')
     address_line_4 = fields.Char(string='Address Line 4')
     zip_code = fields.Char(string='Zip Code')
-    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_user', store=False)
-    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_user', store=False)
+    active = fields.Boolean(default=True)
 
-    def _compute_portal_user(self):
+    # Portal access info (computed)
+    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
+    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
+    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+
+    @api.depends('partner_id')
+    def _compute_portal_access(self):
         for rec in self:
-            if rec.partner_id:
-                user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1)
-                rec.portal_user_id = user.id if user else False
-                rec.has_portal_access = bool(user)
-            else:
-                rec.portal_user_id = False
-                rec.has_portal_access = False
+            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
+            rec.portal_user_id = user.id if user else False
+            rec.portal_login = user.login if user else ''
+            rec.has_portal_access = bool(user)
 
     def action_invite_to_portal(self):
-        """Open wizard to set portal credentials for this student."""
+        """Open wizard to set or update portal credentials for this student."""
         self.ensure_one()
         if not self.email:
-            raise models.UserError("Email is required to create a portal login.")
+            raise UserError("Email is required to create a portal login.")
+        ctx = {
+            'default_profile_model': 'student.profile',
+            'default_profile_id': self.id,
+            'default_name': self.name,
+            'default_email': self.email,
+            'default_login': self.email,
+        }
+        if self.partner_id:
+            user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
+            if user:
+                ctx['default_is_existing_user'] = True
+                ctx['default_existing_user_id'] = user.id
+                ctx['default_login'] = user.login
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Set Portal Access',
+            'name': 'Manage Portal Access',
             'res_model': 'portal.access.wizard',
             'view_mode': 'form',
             'target': 'new',
-            'context': {
-                'default_profile_model': 'student.profile',
-                'default_profile_id': self.id,
-                'default_name': self.name,
-                'default_email': self.email,
-                'default_login': self.email,
-            },
+            'context': ctx,
         }
 
     def action_view_parent(self):
@@ -150,37 +170,44 @@ class TutorProfile(models.Model):
     subject_ids = fields.Many2many('subject.master', string='Subjects')
     availability_ids = fields.One2many('tutor.availability', 'tutor_id', string='Availability')
     partner_id = fields.Many2one('res.partner', string='Contact')
-    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_user', store=False)
-    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_user', store=False)
+    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
+    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
+    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+    active = fields.Boolean(default=True)
 
-    def _compute_portal_user(self):
+    @api.depends('partner_id')
+    def _compute_portal_access(self):
         for rec in self:
-            if rec.partner_id:
-                user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1)
-                rec.portal_user_id = user.id if user else False
-                rec.has_portal_access = bool(user)
-            else:
-                rec.portal_user_id = False
-                rec.has_portal_access = False
+            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
+            rec.portal_user_id = user.id if user else False
+            rec.portal_login = user.login if user else ''
+            rec.has_portal_access = bool(user)
 
     def action_invite_to_portal(self):
-        """Open wizard to set portal credentials for this tutor."""
+        """Open wizard to set or update portal credentials for this tutor."""
         self.ensure_one()
         if not self.email:
-            raise models.UserError("Email is required to create a portal login.")
+            raise UserError("Email is required to create a portal login.")
+        ctx = {
+            'default_profile_model': 'tutor.profile',
+            'default_profile_id': self.id,
+            'default_name': self.name,
+            'default_email': self.email,
+            'default_login': self.email,
+        }
+        if self.partner_id:
+            user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
+            if user:
+                ctx['default_is_existing_user'] = True
+                ctx['default_existing_user_id'] = user.id
+                ctx['default_login'] = user.login
         return {
             'type': 'ir.actions.act_window',
-            'name': 'Set Portal Access',
+            'name': 'Manage Portal Access',
             'res_model': 'portal.access.wizard',
             'view_mode': 'form',
             'target': 'new',
-            'context': {
-                'default_profile_model': 'tutor.profile',
-                'default_profile_id': self.id,
-                'default_name': self.name,
-                'default_email': self.email,
-                'default_login': self.email,
-            },
+            'context': ctx,
         }
 
 
@@ -526,11 +553,21 @@ class ClassScheduleOccurrence(models.Model):
         for rec in self:
             rec.attendance_marked = bool(rec.attendance_ids)
 
+    def write(self, vals):
+        # Only admin/managers can cancel a lesson
+        if vals.get('lesson_status') == 'cancelled':
+            if not self.env.user.has_group('base.group_system') and not self.env.user.has_group('base.group_erp_manager'):
+                raise UserError(
+                    "Only administrators or managers can cancel a lesson. "
+                    "Please contact your administrator."
+                )
+        return super().write(vals)
+
     def unlink(self):
         """Prevent deletion of lessons that have a status other than scheduled."""
         protected = self.filtered(lambda r: r.lesson_status and r.lesson_status != 'scheduled')
         if protected:
-            raise models.UserError(
+            raise UserError(
                 "Cannot delete lessons that have been completed, cancelled, or marked as no-show. "
                 "You can only delete lessons with 'Scheduled' status."
             )
@@ -738,19 +775,81 @@ class PortalAccessWizard(models.TransientModel):
     login = fields.Char(string='Login (Username)', required=True)
     password = fields.Char(string='Password', required=True)
     confirm_password = fields.Char(string='Confirm Password', required=True)
+    is_existing_user = fields.Boolean(string='Existing User', readonly=True)
+    existing_user_id = fields.Many2one('res.users', string='Existing Portal User', readonly=True)
+
+    @api.model
+    def default_get(self, fields_list):
+        res = super().default_get(fields_list)
+        # Auto-detect existing portal user
+        profile_model = res.get('profile_model') or self.env.context.get('default_profile_model')
+        profile_id = res.get('profile_id') or self.env.context.get('default_profile_id')
+        if profile_model and profile_id:
+            profile = self.env[profile_model].browse(profile_id)
+            if profile.exists() and profile.partner_id:
+                user = self.env['res.users'].sudo().search([
+                    ('partner_id', '=', profile.partner_id.id)
+                ], limit=1)
+                if user:
+                    res['is_existing_user'] = True
+                    res['existing_user_id'] = user.id
+                    res['login'] = user.login
+        return res
+
+    def _assign_portal_group(self, user):
+        """Force user to be portal-only: remove ALL groups, add only portal group using ORM."""
+        group_portal = self.env.ref('base.group_portal')
+        user.sudo().write({'group_ids': [(6, 0, [group_portal.id])]})
+        self.env.invalidate_all()
 
     def action_create_portal_user(self):
-        """Create portal user with admin-set password."""
+        """Create or update portal user with admin-set credentials."""
         self.ensure_one()
         if self.password != self.confirm_password:
-            raise models.UserError("Passwords do not match.")
+            raise UserError("Passwords do not match.")
         if len(self.password) < 6:
-            raise models.UserError("Password must be at least 6 characters.")
+            raise UserError("Password must be at least 6 characters.")
 
         # Get the profile record
         profile = self.env[self.profile_model].browse(self.profile_id)
         if not profile.exists():
-            raise models.UserError("Profile record not found.")
+            raise UserError("Profile record not found.")
+
+        # Check login uniqueness (for both create and update)
+        domain = [('login', '=', self.login)]
+        if self.is_existing_user and self.existing_user_id:
+            domain.append(('id', '!=', self.existing_user_id.id))
+        duplicate = self.env['res.users'].sudo().with_context(active_test=False).search(domain, limit=1)
+        if duplicate:
+            raise UserError(f"The username '{self.login}' is already taken by another user ({duplicate.name}). Please choose a different username.")
+
+        # If existing user, update login + password
+        if self.is_existing_user and self.existing_user_id:
+            user = self.existing_user_id.sudo()
+            update_vals = {'password': self.password, 'active': True}
+            # Allow changing login/username
+            if self.login and self.login != user.login:
+                update_vals['login'] = self.login
+                # Also update partner email if login changed
+                if user.partner_id:
+                    user.partner_id.sudo().write({'email': self.login})
+                if hasattr(profile, 'email'):
+                    profile.sudo().write({'email': self.login})
+            user.write(update_vals)
+            # Ensure portal group (and remove internal group)
+            self._assign_portal_group(user)
+
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Portal Access Updated',
+                    'message': f'Login and password updated for {self.name}. Login: {self.login}',
+                    'type': 'success',
+                    'sticky': False,
+                    'next': {'type': 'ir.actions.act_window_close'},
+                },
+            }
 
         # Create or find partner
         if not profile.partner_id:
@@ -765,33 +864,26 @@ class PortalAccessWizard(models.TransientModel):
             if not partner.email:
                 partner.email = profile.email
 
-        # Check if user already exists
-        existing_user = self.env['res.users'].sudo().search([
-            '|',
+        # Check if user already exists for this partner
+        existing_user = self.env['res.users'].sudo().with_context(active_test=False).search([
             ('partner_id', '=', partner.id),
-            ('login', '=', self.login),
         ], limit=1)
 
-        group_portal = self.env.ref('base.group_portal')
-
         if existing_user:
-            # Update existing user
             existing_user.sudo().write({
+                'login': self.login,
                 'password': self.password,
                 'active': True,
             })
-            # Ensure portal group is assigned
-            if group_portal not in existing_user.sudo().mapped('group_ids'):
-                existing_user.sudo().write({'group_ids': [(4, group_portal.id)]})
+            self._assign_portal_group(existing_user.sudo())
         else:
-            # Create new portal user
-            self.env['res.users'].sudo().with_context(no_reset_password=True).create({
+            new_user = self.env['res.users'].sudo().with_context(no_reset_password=True).create({
                 'partner_id': partner.id,
                 'login': self.login,
                 'password': self.password,
-                'group_ids': [(6, 0, [group_portal.id])],
                 'active': True,
             })
+            self._assign_portal_group(new_user)
 
         return {
             'type': 'ir.actions.client',
@@ -805,3 +897,58 @@ class PortalAccessWizard(models.TransientModel):
             },
         }
 
+    def action_deactivate_portal_user(self):
+        """Deactivate the portal user (disable access without deleting)."""
+        self.ensure_one()
+        if self.is_existing_user and self.existing_user_id:
+            user = self.existing_user_id.sudo()
+            user.write({'active': False})
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': 'Portal Access Deactivated',
+                    'message': f'Portal access has been disabled for {self.name}.',
+                    'type': 'warning',
+                    'sticky': False,
+                    'next': {'type': 'ir.actions.act_window_close'},
+                },
+            }
+        raise UserError("No existing portal user found to deactivate.")
+
+    def action_fix_portal_users(self):
+        """Admin utility: fix all portal profile users to ensure they only have portal group."""
+        group_portal = self.env.ref('base.group_portal')
+        group_public = self.env.ref('base.group_public')
+
+        for model_name in ['student.profile', 'tutor.profile', 'parent.profile']:
+            profiles = self.env[model_name].sudo().search([('partner_id', '!=', False)])
+            for profile in profiles:
+                user = self.env['res.users'].sudo().search([
+                    ('partner_id', '=', profile.partner_id.id)
+                ], limit=1)
+                if user and user.id != self.env.ref('base.user_admin').id:
+                    # Strip all groups, add only portal
+                    self.env.cr.execute("""
+                        DELETE FROM res_groups_users_rel
+                        WHERE uid = %s AND gid != %s
+                    """, (user.id, group_portal.id))
+                    self.env.cr.execute("""
+                        INSERT INTO res_groups_users_rel (gid, uid)
+                        SELECT %s, %s WHERE NOT EXISTS (
+                            SELECT 1 FROM res_groups_users_rel WHERE gid = %s AND uid = %s
+                        )
+                    """, (group_portal.id, user.id, group_portal.id, user.id))
+
+        self.env.invalidate_all()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Portal Users Fixed',
+                'message': 'All student/tutor/parent portal users have been corrected to portal-only access.',
+                'type': 'success',
+                'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }

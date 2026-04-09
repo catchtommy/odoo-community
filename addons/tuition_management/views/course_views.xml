@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+<!-- Looking for portal access inherited views and wizard form -->
+
+<!-- Portal Access Wizard Form -->
+<record id="view_portal_access_wizard_form" model="ir.ui.view">
+    <field name="name">portal.access.wizard.form</field>
+    <field name="model">portal.access.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Manage Portal Access">
+            <sheet>
+                <field name="is_existing_user" invisible="1"/>
+                <field name="existing_user_id" invisible="1"/>
+                <field name="profile_model" invisible="1"/>
+                <field name="profile_id" invisible="1"/>
+                <div class="oe_title mb-3">
+                    <h2 invisible="is_existing_user">
+                        <i class="fa fa-user-plus text-success"/> Create Portal Access
+                    </h2>
+                    <h2 invisible="not is_existing_user">
+                        <i class="fa fa-key text-primary"/> Update Portal Credentials
+                    </h2>
+                </div>
+                <div invisible="not is_existing_user" class="alert alert-info" role="alert">
+                    <i class="fa fa-info-circle"/> This user already has portal access. You can change their login (username) and/or set a new password.
+                </div>
+                <group>
+                    <group string="User Information">
+                        <field name="name"/>
+                        <field name="email"/>
+                    </group>
+                    <group string="Portal Credentials">
+                        <field name="login" string="Login (Username)"/>
+                        <field name="password" password="True" string="New Password"/>
+                        <field name="confirm_password" password="True" string="Confirm Password"/>
+                    </group>
+                </group>
+            </sheet>
+            <footer>
+                <button name="action_create_portal_user" type="object" class="btn-primary"
+                        invisible="is_existing_user" string="Create Portal Access"/>
+                <button name="action_create_portal_user" type="object" class="btn-primary"
+                        invisible="not is_existing_user" string="Update Credentials"/>
+                <button name="action_deactivate_portal_user" type="object" class="btn-danger"
+                        invisible="not is_existing_user" string="Deactivate Portal Access"
+                        confirm="Are you sure you want to deactivate this user's portal access?"/>
+                <button name="action_fix_portal_users" type="object" class="btn-secondary"
+                        string="Fix All Portal Users"
+                        confirm="This will reset all student/tutor/parent users to portal-only access. Continue?"
+                        invisible="not is_existing_user"/>
+                <button string="Cancel" class="btn-secondary" special="cancel"/>
+            </footer>
+        </form>
+    </field>
+</record>
+
+<!-- Update Parent Profile form to show portal info -->
+<record id="view_parent_profile_form" model="ir.ui.view">
+    <field name="name">parent.profile.form</field>
+    <field name="model">parent.profile</field>
+    <field name="arch" type="xml">
+        <form string="Parent Profile">
+            <header>
+                <field name="has_portal_access" invisible="1"/>
+                <button name="action_invite_to_portal" type="object" class="oe_highlight" icon="fa-user-plus" string="Create Portal Access" invisible="has_portal_access"/>
+                <button name="action_invite_to_portal" type="object" class="btn-warning" icon="fa-key" string="Manage Portal Access" invisible="not has_portal_access"/>
+            </header>
+            <sheet>
+                <!-- ...existing fields... -->
+                <field name="partner_id"/>
+                <field name="portal_login" string="Portal Login" readonly="1" invisible="not has_portal_access"/>
+                <field name="portal_user_id" string="Portal User" readonly="1" invisible="not has_portal_access"/>
+                <!-- ...existing fields... -->
+            </sheet>
+        </form>
+    </field>
+</record>
+
+<!-- Student Profile: Add portal access section -->
+<record id="view_student_profile_form" model="ir.ui.view">
+    <field name="name">student.profile.form</field>
+    <field name="model">student.profile</field>
+    <field name="arch" type="xml">
+        <form string="Student Profile">
+            <header>
+                <field name="has_portal_access" invisible="1"/>
+                <button name="action_invite_to_portal" type="object" class="oe_highlight" icon="fa-user-plus" string="Create Portal Access" invisible="has_portal_access"/>
+                <button name="action_invite_to_portal" type="object" class="btn-warning" icon="fa-key" string="Manage Portal Access" invisible="not has_portal_access"/>
+            </header>
+            <sheet>
+                <!-- ...existing fields... -->
+                <field name="partner_id"/>
+                <field name="portal_login" string="Portal Login" readonly="1" invisible="not has_portal_access"/>
+                <field name="portal_user_id" string="Portal User" readonly="1" invisible="not has_portal_access"/>
+                <!-- ...existing fields... -->
+            </sheet>
+        </form>
+    </field>
+</record>
+
+<!-- Tutor Profile: Add portal access section -->
+<record id="view_tutor_profile_form" model="ir.ui.view">
+    <field name="name">tutor.profile.form</field>
+    <field name="model">tutor.profile</field>
+    <field name="arch" type="xml">
+        <form string="Tutor Profile">
+            <header>
+                <field name="has_portal_access" invisible="1"/>
+                <button name="action_invite_to_portal" type="object" class="oe_highlight" icon="fa-user-plus" string="Create Portal Access" invisible="has_portal_access"/>
+                <button name="action_invite_to_portal" type="object" class="btn-warning" icon="fa-key" string="Manage Portal Access" invisible="not has_portal_access"/>
+            </header>
+            <sheet>
+                <!-- ...existing fields... -->
+                <field name="partner_id"/>
+                <field name="portal_login" string="Portal Login" readonly="1" invisible="not has_portal_access"/>
+                <field name="portal_user_id" string="Portal User" readonly="1" invisible="not has_portal_access"/>
+                <!-- ...existing fields... -->
+            </sheet>
+        </form>
+    </field>
+</record>
+
+<!-- ...existing code... -->
+</odoo>

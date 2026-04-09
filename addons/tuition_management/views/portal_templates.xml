@@ -2,18 +2,171 @@
 <odoo>
 
 <!-- ═══════════════════════════════════════════════ -->
-<!-- HIDE INVOICES & ORDERS FROM PORTAL             -->
+<!-- HIDE INVOICES, ORDERS, QUOTATIONS               -->
 <!-- ═══════════════════════════════════════════════ -->
 <template id="portal_hide_invoices" inherit_id="account.portal_my_home_invoice" name="Hide Invoices">
     <xpath expr="//t[@t-call='portal.portal_docs_entry']" position="replace">
-        <!-- Hidden: invoices not relevant for tuition portal users -->
+        <!-- Hidden -->
     </xpath>
 </template>
 
 <template id="portal_hide_sale_orders" inherit_id="sale.portal_my_home_sale" name="Hide Sale Orders">
     <xpath expr="//t[@t-call='portal.portal_docs_entry']" position="replace">
-        <!-- Hidden: sale orders not relevant for tuition portal users -->
+        <!-- Hidden -->
     </xpath>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- USER PROFILE: VIEW & UPDATE                     -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_user_profile" name="Portal: User Profile">
+    <t t-call="portal.portal_layout">
+        <t t-call="tuition_management.portal_tuition_css"/>
+        <div class="tm-page mt-3">
+            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="tm-avatar" style="width:56px;height:56px;font-size:22px;background:rgba(255,255,255,0.2);color:#fff;">
+                            <t t-esc="(profile.name or user.name or 'U')[:1].upper()"/>
+                        </div>
+                        <div>
+                            <h2 class="mb-0"><t t-esc="profile.name if profile else user.name"/></h2>
+                            <p class="mb-0"><span class="tm-badge" style="background:rgba(255,255,255,0.2); color:#fff;"><t t-esc="role"/></span>
+                                <span style="opacity:0.7; margin-left:8px; font-size:12px;"><t t-esc="user.login"/></span>
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <t t-if="is_tutor"><a href="/my/tutor/courses" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);"><i class="fa fa-arrow-left"/> Dashboard</a></t>
+                        <t t-elif="is_student"><a href="/my/courses" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);"><i class="fa fa-arrow-left"/> Dashboard</a></t>
+                        <t t-elif="is_parent"><a href="/my/parent/children" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);"><i class="fa fa-arrow-left"/> Dashboard</a></t>
+                    </div>
+                </div>
+            </div>
+
+            <t t-if="success">
+                <div class="alert d-flex align-items-center gap-2" style="border-radius:10px; border:none; background:#EDF7ED; color:#4a8a4e;">
+                    <i class="fa fa-check-circle" style="font-size:16px;"/> Profile updated successfully!
+                </div>
+            </t>
+            <t t-if="error">
+                <div class="alert d-flex align-items-center gap-2" style="border-radius:10px; border:none; background:#FDEAEA; color:#c05050;">
+                    <i class="fa fa-exclamation-circle" style="font-size:16px;"/> <t t-esc="error"/>
+                </div>
+            </t>
+
+            <form action="/my/profile/save" method="POST">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <div class="row">
+                    <!-- Personal Information -->
+                    <div class="col-lg-6">
+                        <div class="tm-card">
+                            <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-blue), var(--tm-blue-dark));">
+                                <span><i class="fa fa-user me-2"/>Personal Information</span>
+                            </div>
+                            <div class="tm-card-body">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Full Name *</label>
+                                    <input type="text" name="name" class="form-control" required="required"
+                                           style="border-radius:8px; font-size:13px;"
+                                           t-att-value="profile.name if profile else user.name"/>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Email</label>
+                                    <input type="email" name="email" class="form-control"
+                                           style="border-radius:8px; font-size:13px;"
+                                           t-att-value="profile.email if profile and hasattr(profile, 'email') else partner.email"/>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Phone</label>
+                                    <input type="text" name="phone" class="form-control"
+                                           style="border-radius:8px; font-size:13px;"
+                                           t-att-value="profile.phone if profile and hasattr(profile, 'phone') else partner.phone"/>
+                                </div>
+                                <div class="mb-0">
+                                    <div class="tm-label">Login (Username)</div>
+                                    <div class="tm-value" style="font-size:13px; color:var(--tm-grey);">
+                                        <i class="fa fa-lock me-1" style="font-size:11px;"/>
+                                        <t t-esc="user.login"/>
+                                        <small class="ms-2" style="color:var(--tm-text-light);">(cannot be changed)</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Change Password -->
+                    <div class="col-lg-6">
+                        <div class="tm-card">
+                            <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-orange), #E07040);">
+                                <span><i class="fa fa-key me-2"/>Change Password</span>
+                            </div>
+                            <div class="tm-card-body">
+                                <div class="p-2 mb-3" style="background:var(--tm-bg); border-radius:8px; font-size:12px; color:var(--tm-text-light);">
+                                    <i class="fa fa-info-circle me-1"/> Leave blank to keep your current password.
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold" style="font-size:12px;">New Password</label>
+                                    <input type="password" name="new_password" class="form-control"
+                                           style="border-radius:8px; font-size:13px;"
+                                           placeholder="Min. 6 characters" autocomplete="new-password"/>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Confirm Password</label>
+                                    <input type="password" name="confirm_password" class="form-control"
+                                           style="border-radius:8px; font-size:13px;"
+                                           placeholder="Re-enter new password" autocomplete="new-password"/>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Account Info (read-only) -->
+                        <div class="tm-card">
+                            <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-grey), #607D8B);">
+                                <span><i class="fa fa-info-circle me-2"/>Account Info</span>
+                            </div>
+                            <div class="tm-card-body">
+                                <div class="tm-label">Account Type</div>
+                                <div class="tm-value"><span class="tm-badge tm-badge-blue"><t t-esc="role"/></span></div>
+                                <t t-if="profile">
+                                    <t t-if="is_student and profile.grade_id">
+                                        <div class="tm-label">Grade</div>
+                                        <div class="tm-value" t-esc="profile.grade_id.name"/>
+                                    </t>
+                                    <t t-if="is_student and profile.parent_id">
+                                        <div class="tm-label">Parent</div>
+                                        <div class="tm-value" t-esc="profile.parent_id.name"/>
+                                    </t>
+                                    <t t-if="is_parent and profile.student_ids">
+                                        <div class="tm-label">Children</div>
+                                        <div class="tm-value">
+                                            <t t-foreach="profile.student_ids" t-as="child">
+                                                <span class="tm-badge tm-badge-teal me-1 mb-1"><t t-esc="child.name"/></span>
+                                            </t>
+                                        </div>
+                                    </t>
+                                    <t t-if="is_tutor and profile.subject_ids">
+                                        <div class="tm-label">Subjects</div>
+                                        <div class="tm-value">
+                                            <t t-foreach="profile.subject_ids" t-as="subj">
+                                                <span class="tm-badge tm-badge-purple me-1 mb-1"><t t-esc="subj.name"/></span>
+                                            </t>
+                                        </div>
+                                    </t>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end gap-2 mb-4">
+                    <button type="submit" class="tm-btn tm-btn-green" style="padding: 10px 28px;">
+                        <i class="fa fa-save"/> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </t>
 </template>
 
 <!-- ═══════════════════════════════════════════════ -->
@@ -24,7 +177,6 @@
         <h4 class="mt-3">My Tuition</h4>
     </xpath>
     <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
-        <!-- Student links -->
         <t t-if="is_student">
             <t t-call="portal.portal_docs_entry">
                 <t t-set="title">My Courses</t>
@@ -39,7 +191,6 @@
                 <t t-set="placeholder_count" t-value="'assignment_count'"/>
             </t>
         </t>
-        <!-- Tutor links -->
         <t t-if="is_tutor">
             <t t-call="portal.portal_docs_entry">
                 <t t-set="title">My Classes</t>
@@ -48,7 +199,6 @@
                 <t t-set="placeholder_count" t-value="'tutor_course_count'"/>
             </t>
         </t>
-        <!-- Parent links -->
         <t t-if="is_parent">
             <t t-call="portal.portal_docs_entry">
                 <t t-set="title">My Children</t>
@@ -61,86 +211,102 @@
 </template>
 
 <!-- ═══════════════════════════════════════════════ -->
-<!-- SHARED CSS                                      -->
+<!-- SHARED CSS — SOFTER PALETTE                     -->
 <!-- ═══════════════════════════════════════════════ -->
 <template id="portal_tuition_css" name="Tuition Portal CSS">
     <style>
         :root {
-            --tm-blue: #1565C0;
-            --tm-blue-light: #1E88E5;
-            --tm-indigo: #283593;
-            --tm-teal: #00838F;
-            --tm-teal-light: #00ACC1;
-            --tm-green: #2E7D32;
-            --tm-green-light: #43A047;
-            --tm-orange: #E65100;
-            --tm-red: #C62828;
-            --tm-purple: #6A1B9A;
-            --tm-grey: #546E7A;
+            --tm-blue: #4A7CC9;
+            --tm-blue-dark: #3A6AB5;
+            --tm-indigo: #5C6BC0;
+            --tm-indigo-dark: #4A5AB0;
+            --tm-teal: #4DB6AC;
+            --tm-teal-dark: #3A9E94;
+            --tm-green: #66BB6A;
+            --tm-green-dark: #4CAF50;
+            --tm-orange: #FF8A65;
+            --tm-red: #E57373;
+            --tm-purple: #9575CD;
+            --tm-grey: #78909C;
+            --tm-rose: #E07092;
+            --tm-rose-dark: #C75B7E;
+            --tm-text: #37474F;
+            --tm-text-light: #90A4AE;
+            --tm-bg: #F5F7FA;
+            --tm-border: #E8ECF0;
         }
-        .tm-page { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
-        .tm-hero { background: linear-gradient(135deg, var(--tm-blue), var(--tm-indigo)); color: #fff; padding: 28px 32px; border-radius: 16px; margin-bottom: 24px; }
-        .tm-hero h2 { font-weight: 700; margin: 0 0 4px; font-size: 22px; }
-        .tm-hero p { margin: 0; opacity: 0.85; font-size: 14px; }
-        .tm-hero-stat { background: rgba(255,255,255,0.15); border-radius: 10px; padding: 14px 18px; text-align: center; min-width: 100px; }
-        .tm-hero-stat .num { font-size: 28px; font-weight: 800; line-height: 1; }
-        .tm-hero-stat .lbl { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; }
-        .tm-card { border: none; border-radius: 12px; box-shadow: 0 1px 6px rgba(0,0,0,0.06); overflow: hidden; margin-bottom: 20px; background: #fff; }
-        .tm-card-header { padding: 14px 20px; font-weight: 700; font-size: 14px; color: #fff; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .tm-card-header i.tm-chevron { transition: transform 0.25s; }
+        .tm-page { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--tm-text); }
+        .tm-hero { padding: 24px 28px; border-radius: 14px; margin-bottom: 20px; color: #fff; }
+        .tm-hero h2 { font-weight: 700; margin: 0 0 4px; font-size: 20px; }
+        .tm-hero p { margin: 0; opacity: 0.85; font-size: 13px; }
+        .tm-hero-stat { background: rgba(255,255,255,0.18); border-radius: 10px; padding: 12px 16px; text-align: center; min-width: 90px; backdrop-filter: blur(4px); }
+        .tm-hero-stat .num { font-size: 24px; font-weight: 800; line-height: 1; }
+        .tm-hero-stat .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; margin-top: 2px; }
+        .tm-card { border: 1px solid var(--tm-border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; background: #fff; }
+        .tm-card-header { padding: 12px 18px; font-weight: 600; font-size: 13px; color: #fff; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .tm-card-header i.tm-chevron { transition: transform 0.25s; font-size: 12px; }
         .tm-card-header.collapsed i.tm-chevron { transform: rotate(-90deg); }
-        .tm-card-body { padding: 20px; }
-        .tm-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: #90a4ae; font-weight: 700; margin-bottom: 2px; }
-        .tm-value { font-size: 14px; color: #263238; font-weight: 500; margin-bottom: 14px; }
-        .tm-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.3px; }
-        .tm-badge-blue { background: #E3F2FD; color: var(--tm-blue); }
-        .tm-badge-green { background: #E8F5E9; color: var(--tm-green); }
-        .tm-badge-orange { background: #FFF3E0; color: var(--tm-orange); }
-        .tm-badge-red { background: #FFEBEE; color: var(--tm-red); }
+        .tm-card-body { padding: 18px; }
+        .tm-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tm-text-light); font-weight: 700; margin-bottom: 2px; }
+        .tm-value { font-size: 13px; color: var(--tm-text); font-weight: 500; margin-bottom: 12px; }
+        .tm-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+        .tm-badge-blue { background: #E8EEF7; color: var(--tm-blue); }
+        .tm-badge-green { background: #EDF7ED; color: #4a8a4e; }
+        .tm-badge-orange { background: #FFF0E8; color: #c26030; }
+        .tm-badge-red { background: #FDEAEA; color: #c05050; }
         .tm-badge-grey { background: #ECEFF1; color: var(--tm-grey); }
-        .tm-badge-purple { background: #F3E5F5; color: var(--tm-purple); }
-        .tm-badge-teal { background: #E0F7FA; color: var(--tm-teal); }
-        .tm-btn { display: inline-flex; align-items: center; gap: 6px; padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: all 0.15s; }
-        .tm-btn:hover { filter: brightness(0.92); text-decoration: none; }
+        .tm-badge-purple { background: #F0ECF7; color: #7554a8; }
+        .tm-badge-teal { background: #E5F5F3; color: #3a8a80; }
+        .tm-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: all 0.15s; }
+        .tm-btn:hover { filter: brightness(0.94); text-decoration: none; }
         .tm-btn-blue { background: var(--tm-blue); color: #fff; }
         .tm-btn-blue:hover { color: #fff; }
-        .tm-btn-green { background: var(--tm-green-light); color: #fff; }
+        .tm-btn-green { background: var(--tm-green-dark); color: #fff; }
         .tm-btn-green:hover { color: #fff; }
-        .tm-btn-teal { background: var(--tm-teal-light); color: #fff; }
+        .tm-btn-teal { background: var(--tm-teal); color: #fff; }
         .tm-btn-teal:hover { color: #fff; }
-        .tm-btn-outline { background: transparent; border: 1.5px solid #cfd8dc; color: #546E7A; }
-        .tm-btn-sm { padding: 5px 12px; font-size: 12px; border-radius: 6px; }
+        .tm-btn-outline { background: transparent; border: 1.5px solid var(--tm-border); color: var(--tm-grey); }
+        .tm-btn-sm { padding: 5px 12px; font-size: 11px; border-radius: 6px; }
         .tm-table { width: 100%; border-collapse: separate; border-spacing: 0; }
-        .tm-table thead th { background: #f8f9fa; padding: 10px 16px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #78909c; font-weight: 700; border-bottom: 2px solid #eceff1; }
-        .tm-table tbody td { padding: 12px 16px; font-size: 13px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
+        .tm-table thead th { background: var(--tm-bg); padding: 9px 14px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tm-text-light); font-weight: 700; border-bottom: 1px solid var(--tm-border); }
+        .tm-table tbody td { padding: 10px 14px; font-size: 13px; border-bottom: 1px solid #f5f5f5; vertical-align: middle; }
         .tm-table tbody tr:hover { background: #fafbfc; }
-        .tm-empty { text-align: center; padding: 40px 20px; color: #b0bec5; }
-        .tm-empty i { font-size: 48px; margin-bottom: 12px; display: block; }
-        .tm-empty p { font-size: 14px; margin: 0; }
-        .tm-avatar { width: 44px; height: 44px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; }
-        .tm-avatar-blue { background: #E3F2FD; color: var(--tm-blue); }
-        .tm-avatar-green { background: #E8F5E9; color: var(--tm-green); }
-        .tm-avatar-teal { background: #E0F7FA; color: var(--tm-teal); }
-        .tm-avatar-purple { background: #F3E5F5; color: var(--tm-purple); }
-        .tm-course-card { border: none; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); overflow: hidden; height: 100%; transition: transform 0.15s, box-shadow 0.15s; background: #fff; }
-        .tm-course-card:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
-        .tm-course-card .card-top { padding: 20px; position: relative; color: #fff; }
-        .tm-course-card .card-top h6 { font-weight: 700; font-size: 15px; margin: 0; }
-        .tm-course-card .card-middle { padding: 16px 20px; }
-        .tm-course-card .card-bottom { padding: 12px 20px; border-top: 1px solid #f0f0f0; }
-        .tm-course-card .meta-row { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #546E7A; margin-bottom: 8px; }
-        .tm-course-card .meta-row i { width: 16px; text-align: center; color: #90a4ae; }
-        .tm-pill-tab { display: inline-block; padding: 7px 18px; border-radius: 20px; font-size: 12px; font-weight: 600; text-decoration: none; margin-right: 6px; transition: all 0.15s; }
+        .tm-empty { text-align: center; padding: 36px 20px; color: #b0bec5; }
+        .tm-empty i { font-size: 40px; margin-bottom: 10px; display: block; opacity: 0.5; }
+        .tm-empty p { font-size: 13px; margin: 0; }
+        .tm-avatar { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 15px; flex-shrink: 0; }
+        .tm-avatar-blue { background: #E8EEF7; color: var(--tm-blue); }
+        .tm-avatar-green { background: #EDF7ED; color: #4a8a4e; }
+        .tm-avatar-teal { background: #E5F5F3; color: #3a8a80; }
+        .tm-avatar-purple { background: #F0ECF7; color: #7554a8; }
+        .tm-avatar-rose { background: #FCEDF1; color: var(--tm-rose); }
+        .tm-course-card { border: 1px solid var(--tm-border); border-radius: 10px; overflow: hidden; height: 100%; transition: transform 0.15s, box-shadow 0.15s; background: #fff; }
+        .tm-course-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.06); }
+        .tm-course-card .card-top { padding: 18px; color: #fff; }
+        .tm-course-card .card-top h6 { font-weight: 700; font-size: 14px; margin: 0; }
+        .tm-course-card .card-middle { padding: 14px 18px; }
+        .tm-course-card .card-bottom { padding: 10px 18px; border-top: 1px solid var(--tm-border); }
+        .tm-course-card .meta-row { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--tm-grey); margin-bottom: 6px; }
+        .tm-course-card .meta-row i { width: 14px; text-align: center; color: var(--tm-text-light); }
+        .tm-pill-tab { display: inline-block; padding: 6px 16px; border-radius: 20px; font-size: 11px; font-weight: 600; text-decoration: none; margin-right: 6px; transition: all 0.15s; }
         .tm-pill-tab.active { background: var(--tm-indigo); color: #fff; }
-        .tm-pill-tab:not(.active) { background: #eceff1; color: #546E7A; }
+        .tm-pill-tab:not(.active) { background: #eceff1; color: var(--tm-grey); }
         .tm-pill-tab:hover { text-decoration: none; }
         .tm-progress-item { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #f5f5f5; }
         .tm-progress-item:last-child { border-bottom: none; }
         .tm-assignment-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid #f5f5f5; transition: background 0.1s; }
         .tm-assignment-row:last-child { border-bottom: none; }
         .tm-assignment-row:hover { background: #fafbfc; }
-        .tm-file-link { font-size: 13px; display: flex; align-items: center; gap: 6px; color: var(--tm-blue); text-decoration: none; padding: 4px 0; }
-        .tm-file-link:hover { color: var(--tm-indigo); }
+        .tm-file-link { font-size: 12px; display: flex; align-items: center; gap: 6px; color: var(--tm-blue); text-decoration: none; padding: 3px 0; }
+        .tm-file-link:hover { color: var(--tm-blue-dark); }
+        .tm-quick-tile { border: 1px solid var(--tm-border); border-radius: 10px; text-align: center; padding: 20px 14px; background: #fff; transition: box-shadow 0.15s; display: block; text-decoration: none; color: inherit; }
+        .tm-quick-tile:hover { box-shadow: 0 2px 12px rgba(0,0,0,0.06); text-decoration: none; color: inherit; }
+        .tm-quick-tile i { font-size: 24px; margin-bottom: 6px; }
+        .tm-quick-tile .tile-label { font-size: 12px; font-weight: 600; color: var(--tm-text); }
+        .tm-quick-tile .tile-sub { font-size: 10px; color: var(--tm-text-light); }
+        .tm-course-row { display: flex; align-items: center; gap: 14px; padding: 14px 18px; border-bottom: 1px solid #f5f5f5; text-decoration: none; color: inherit; transition: background 0.1s; }
+        .tm-course-row:hover { background: var(--tm-bg); text-decoration: none; color: inherit; }
+        .tm-course-row:last-child { border-bottom: none; }
     </style>
 </template>
 
@@ -151,23 +317,24 @@
     <t t-call="portal.portal_layout">
         <t t-call="tuition_management.portal_tuition_css"/>
         <div class="tm-page mt-3">
-            <!-- Hero -->
-            <div class="tm-hero">
+            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-blue), var(--tm-indigo));">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div>
                         <h2><i class="fa fa-graduation-cap me-2"/>Welcome back, <t t-esc="student.name"/>!</h2>
                         <p>Here are your enrolled courses</p>
                     </div>
-                    <div class="d-flex gap-3">
+                    <div class="d-flex gap-3 align-items-center">
                         <div class="tm-hero-stat">
                             <div class="num"><t t-esc="len(enrollments)"/></div>
                             <div class="lbl">Courses</div>
                         </div>
+                        <a href="/my/profile" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-user-circle"/> Profile
+                        </a>
                     </div>
                 </div>
             </div>
 
-            <!-- Course Cards -->
             <t t-if="not enrollments">
                 <div class="tm-card">
                     <div class="tm-empty">
@@ -179,11 +346,11 @@
             <div class="row" t-if="enrollments">
                 <t t-foreach="enrollments" t-as="enr">
                     <t t-set="c" t-value="enr.course_id"/>
-                    <t t-set="colors" t-value="['#1565C0,#0D47A1', '#00838F,#006064', '#283593,#1A237E', '#4527A0,#311B92', '#2E7D32,#1B5E20', '#AD1457,#880E4F']"/>
-                    <t t-set="color_pair" t-value="colors[enr_index % len(colors)]"/>
-                    <div class="col-lg-4 col-md-6 mb-4">
+                    <t t-set="grad_colors" t-value="['var(--tm-blue),var(--tm-blue-dark)', 'var(--tm-teal),var(--tm-teal-dark)', 'var(--tm-indigo),var(--tm-indigo-dark)', 'var(--tm-purple),#6A4FA0', 'var(--tm-green),var(--tm-green-dark)', 'var(--tm-rose),var(--tm-rose-dark)']"/>
+                    <t t-set="gc" t-value="grad_colors[enr_index % len(grad_colors)]"/>
+                    <div class="col-lg-4 col-md-6 mb-3">
                         <div class="tm-course-card">
-                            <div class="card-top" t-attf-style="background: linear-gradient(135deg, ##{color_pair.split(',')[0]}, ##{color_pair.split(',')[1]});">
+                            <div class="card-top" t-attf-style="background: linear-gradient(135deg, #{gc.split(',')[0]}, #{gc.split(',')[1]});">
                                 <h6><i class="fa fa-book me-2"/><t t-esc="c.name"/></h6>
                             </div>
                             <div class="card-middle">
@@ -198,12 +365,6 @@
                                     <t t-esc="c.start_date" t-options='{"widget": "date"}'/>
                                     <t t-if="c.end_date"> — <t t-esc="c.end_date" t-options='{"widget": "date"}'/></t>
                                 </div>
-                                <t t-if="c.virtual_class_platform">
-                                    <span class="tm-badge tm-badge-teal mt-1">
-                                        <i class="fa fa-video-camera me-1"/>
-                                        <t t-esc="dict(c._fields['virtual_class_platform'].selection).get(c.virtual_class_platform, '')"/>
-                                    </span>
-                                </t>
                             </div>
                             <div class="card-bottom text-center">
                                 <a t-attf-href="/my/courses/#{c.id}" class="tm-btn tm-btn-blue w-100 justify-content-center">
@@ -225,8 +386,7 @@
     <t t-call="portal.portal_layout">
         <t t-call="tuition_management.portal_tuition_css"/>
         <div class="tm-page mt-3">
-            <!-- Hero -->
-            <div class="tm-hero">
+            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-blue), var(--tm-indigo));">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div>
                         <h2><i class="fa fa-book me-2"/><t t-esc="course.name"/></h2>
@@ -238,13 +398,13 @@
                         <t t-if="next_lesson">
                             <div class="tm-hero-stat">
                                 <div class="lbl">Next Lesson</div>
-                                <div style="font-size:13px; font-weight:600; margin-top:4px;">
+                                <div style="font-size:12px; font-weight:600; margin-top:4px;">
                                     <t t-esc="next_lesson.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM hh:mm a"}'/>
                                 </div>
                             </div>
                         </t>
                         <t t-if="course.virtual_class_url">
-                            <a t-att-href="course.virtual_class_url" target="_blank" class="tm-btn tm-btn-green align-self-center" style="font-size:14px; padding: 12px 24px;">
+                            <a t-att-href="course.virtual_class_url" target="_blank" class="tm-btn tm-btn-green align-self-center" style="padding: 10px 20px;">
                                 <i class="fa fa-video-camera"/> Launch Classroom
                             </a>
                         </t>
@@ -252,12 +412,11 @@
                 </div>
             </div>
 
-            <!-- Row 1: Course Info + Tutor + Progress -->
+            <!-- Row 1 -->
             <div class="row">
-                <!-- Course Information -->
                 <div class="col-lg-4 col-md-6">
                     <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-blue), var(--tm-indigo));"
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-blue), var(--tm-blue-dark));"
                              data-bs-toggle="collapse" data-bs-target="#secCourseInfo">
                             <span><i class="fa fa-info-circle me-2"/>Course Information</span>
                             <i class="fa fa-chevron-down tm-chevron"/>
@@ -265,13 +424,13 @@
                         <div id="secCourseInfo" class="collapse show">
                             <div class="tm-card-body">
                                 <t t-if="course.tutor_id">
-                                    <div class="d-flex align-items-center gap-3 mb-3 pb-3" style="border-bottom:1px solid #f0f0f0;">
+                                    <div class="d-flex align-items-center gap-3 mb-3 pb-3" style="border-bottom:1px solid var(--tm-border);">
                                         <div class="tm-avatar tm-avatar-blue">
                                             <t t-esc="course.tutor_id.name[:1].upper()"/>
                                         </div>
                                         <div>
-                                            <div class="fw-bold" style="font-size:14px;" t-esc="course.tutor_id.name"/>
-                                            <div style="font-size:12px; color:#90a4ae;">Tutor</div>
+                                            <div class="fw-bold" style="font-size:13px;" t-esc="course.tutor_id.name"/>
+                                            <div style="font-size:11px; color:var(--tm-text-light);">Tutor</div>
                                         </div>
                                     </div>
                                 </t>
@@ -280,10 +439,6 @@
                                 <t t-if="course.subject_id">
                                     <div class="tm-label">Subject</div>
                                     <div class="tm-value" t-esc="course.subject_id.name"/>
-                                </t>
-                                <t t-if="course.grade_id">
-                                    <div class="tm-label">Grade</div>
-                                    <div class="tm-value" t-esc="course.grade_id.name"/>
                                 </t>
                                 <div class="tm-label">Course Dates</div>
                                 <div class="tm-value">
@@ -295,43 +450,35 @@
                                 </a>
                                 <t t-if="course.virtual_class_url">
                                     <a t-att-href="course.virtual_class_url" target="_blank" class="tm-btn tm-btn-green w-100 justify-content-center">
-                                        <i class="fa fa-external-link"/> Launch Virtual Classroom
+                                        <i class="fa fa-external-link"/> Virtual Classroom
                                     </a>
-                                    <t t-if="course.virtual_class_meeting_id">
-                                        <div class="mt-2" style="font-size:12px; color:#78909c;">
-                                            Meeting ID: <span class="fw-bold" t-esc="course.virtual_class_meeting_id"/>
-                                            <t t-if="course.virtual_class_passcode"> · Passcode: <span class="fw-bold" t-esc="course.virtual_class_passcode"/></t>
-                                        </div>
-                                    </t>
                                 </t>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Student Info -->
                 <div class="col-lg-4 col-md-6">
                     <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal), #006064);"
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal), var(--tm-teal-dark));"
                              data-bs-toggle="collapse" data-bs-target="#secStudents">
                             <span><i class="fa fa-users me-2"/>Student(s)</span>
                             <i class="fa fa-chevron-down tm-chevron"/>
                         </div>
                         <div id="secStudents" class="collapse show">
                             <div class="tm-card-body">
-                                <div class="text-end mb-3">
-                                    <span class="tm-badge tm-badge-red" style="font-size:12px;">
+                                <div class="text-end mb-2">
+                                    <span class="tm-badge tm-badge-red" style="font-size:11px;">
                                         Total: <t t-esc="len(course.enrollment_ids.filtered(lambda e: e.status == 'active'))"/>
                                     </span>
                                 </div>
                                 <t t-foreach="course.enrollment_ids.filtered(lambda e: e.status == 'active')" t-as="enr">
                                     <div class="d-flex align-items-center gap-3 py-2" style="border-bottom:1px solid #f5f5f5;">
-                                        <div class="tm-avatar tm-avatar-teal">
+                                        <div class="tm-avatar tm-avatar-teal" style="width:34px;height:34px;font-size:13px;">
                                             <t t-esc="enr.student_id.name[:1].upper()"/>
                                         </div>
                                         <div>
                                             <div class="fw-bold" style="font-size:13px;" t-esc="enr.student_id.name"/>
-                                            <div style="font-size:11px; color:#90a4ae;" t-if="enr.student_id.grade_id" t-esc="enr.student_id.grade_id.name"/>
                                         </div>
                                     </div>
                                 </t>
@@ -340,10 +487,9 @@
                     </div>
                 </div>
 
-                <!-- Progress Reports -->
                 <div class="col-lg-4 col-md-12">
                     <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-purple), #4A148C);"
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-purple), #7E57C2);"
                              data-bs-toggle="collapse" data-bs-target="#secProgress">
                             <span><i class="fa fa-line-chart me-2"/>Progress Reports</span>
                             <i class="fa fa-chevron-down tm-chevron"/>
@@ -351,27 +497,22 @@
                         <div id="secProgress" class="collapse show">
                             <div class="tm-card-body">
                                 <t t-if="not student_reports">
-                                    <div class="tm-empty" style="padding:30px 10px;">
-                                        <i class="fa fa-bar-chart" style="font-size:36px;"/>
+                                    <div class="tm-empty" style="padding:24px 10px;">
+                                        <i class="fa fa-bar-chart" style="font-size:32px;"/>
                                         <p>No reports yet</p>
                                     </div>
                                 </t>
                                 <t t-foreach="student_reports" t-as="rpt">
                                     <div class="tm-progress-item">
-                                        <div class="tm-avatar tm-avatar-purple" style="width:36px;height:36px;font-size:13px;">
-                                            <i class="fa fa-file-text"/>
-                                        </div>
                                         <div style="flex:1; min-width:0;">
-                                            <div class="fw-bold text-truncate" style="font-size:13px;" t-esc="rpt.name"/>
-                                            <div style="font-size:11px; color:#90a4ae;" t-esc="rpt.report_date" t-options='{"widget": "date"}'/>
+                                            <div class="fw-bold text-truncate" style="font-size:12px;" t-esc="rpt.name"/>
+                                            <div style="font-size:10px; color:var(--tm-text-light);" t-esc="rpt.report_date" t-options='{"widget": "date"}'/>
                                         </div>
-                                        <div>
-                                            <span t-if="rpt.overall_rating == 'excellent'" class="tm-badge tm-badge-green">Excellent</span>
-                                            <span t-if="rpt.overall_rating == 'good'" class="tm-badge tm-badge-blue">Good</span>
-                                            <span t-if="rpt.overall_rating == 'satisfactory'" class="tm-badge tm-badge-orange">Satisfactory</span>
-                                            <span t-if="rpt.overall_rating == 'needs_improvement'" class="tm-badge tm-badge-orange">Needs Improvement</span>
-                                            <span t-if="rpt.overall_rating == 'poor'" class="tm-badge tm-badge-red">Poor</span>
-                                        </div>
+                                        <span t-if="rpt.overall_rating == 'excellent'" class="tm-badge tm-badge-green">Excellent</span>
+                                        <span t-if="rpt.overall_rating == 'good'" class="tm-badge tm-badge-blue">Good</span>
+                                        <span t-if="rpt.overall_rating == 'satisfactory'" class="tm-badge tm-badge-orange">Satisfactory</span>
+                                        <span t-if="rpt.overall_rating == 'needs_improvement'" class="tm-badge tm-badge-orange">Needs Improvement</span>
+                                        <span t-if="rpt.overall_rating == 'poor'" class="tm-badge tm-badge-red">Poor</span>
                                     </div>
                                 </t>
                             </div>
@@ -380,12 +521,11 @@
                 </div>
             </div>
 
-            <!-- Row 2: Lessons + Assignments -->
+            <!-- Row 2 -->
             <div class="row">
-                <!-- Lessons -->
                 <div class="col-lg-8 col-md-12">
                     <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), #1A237E);"
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));"
                              data-bs-toggle="collapse" data-bs-target="#secLessons">
                             <span><i class="fa fa-calendar-check-o me-2"/>Lessons — This Week</span>
                             <i class="fa fa-chevron-down tm-chevron"/>
@@ -401,30 +541,15 @@
                                 <t t-if="this_week_lessons">
                                     <div class="table-responsive">
                                         <table class="tm-table">
-                                            <thead>
-                                                <tr>
-                                                    <th>Lesson Time</th>
-                                                    <th>Teacher</th>
-                                                    <th>Status</th>
-                                                    <th>Attendance</th>
-                                                    <th></th>
-                                                </tr>
-                                            </thead>
+                                            <thead><tr><th>Lesson Time</th><th>Teacher</th><th>Status</th><th>Attendance</th><th></th></tr></thead>
                                             <tbody>
                                                 <t t-foreach="this_week_lessons" t-as="lesson">
                                                     <tr>
                                                         <td>
-                                                            <div class="fw-bold" style="font-size:13px;">
-                                                                <t t-esc="lesson.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM"}'/>
-                                                            </div>
-                                                            <div style="font-size:12px; color:#90a4ae;">
-                                                                <t t-esc="lesson.start_datetime" t-options='{"widget": "datetime", "format": "hh:mm a"}'/>
-                                                            </div>
+                                                            <div class="fw-bold" style="font-size:12px;"><t t-esc="lesson.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM"}'/></div>
+                                                            <div style="font-size:11px; color:var(--tm-text-light);"><t t-esc="lesson.start_datetime" t-options='{"widget": "datetime", "format": "hh:mm a"}'/></div>
                                                         </td>
-                                                        <td style="font-size:13px;">
-                                                            <t t-if="lesson.tutor_id" t-esc="lesson.tutor_id.name"/>
-                                                            <t t-else=""><span class="text-muted">—</span></t>
-                                                        </td>
+                                                        <td style="font-size:12px;"><t t-if="lesson.tutor_id" t-esc="lesson.tutor_id.name"/><t t-else="">—</t></td>
                                                         <td>
                                                             <span t-if="lesson.lesson_status == 'scheduled'" class="tm-badge tm-badge-blue">Scheduled</span>
                                                             <span t-if="lesson.lesson_status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
@@ -437,13 +562,11 @@
                                                             <span t-elif="att and att[0].status == 'absent'" class="tm-badge tm-badge-red">Absent</span>
                                                             <span t-elif="att and att[0].status == 'late'" class="tm-badge tm-badge-orange">Late</span>
                                                             <span t-elif="att and att[0].status == 'excused'" class="tm-badge tm-badge-grey">Excused</span>
-                                                            <span t-else="" class="text-muted" style="font-size:12px;">—</span>
+                                                            <span t-else="" style="font-size:11px; color:var(--tm-text-light);">—</span>
                                                         </td>
                                                         <td>
                                                             <t t-if="course.virtual_class_url and lesson.lesson_status == 'scheduled'">
-                                                                <a t-att-href="course.virtual_class_url" target="_blank" class="tm-btn tm-btn-green tm-btn-sm">
-                                                                    <i class="fa fa-video-camera"/> Join
-                                                                </a>
+                                                                <a t-att-href="course.virtual_class_url" target="_blank" class="tm-btn tm-btn-green tm-btn-sm"><i class="fa fa-video-camera"/> Join</a>
                                                             </t>
                                                         </td>
                                                     </tr>
@@ -452,27 +575,24 @@
                                         </table>
                                     </div>
                                 </t>
-                                <div class="text-center py-3" style="border-top:1px solid #f0f0f0;">
-                                    <a t-attf-href="/my/courses/#{course.id}/lessons" class="tm-btn tm-btn-outline tm-btn-sm">
-                                        <i class="fa fa-calendar"/> View Full Schedule
-                                    </a>
+                                <div class="text-center py-3" style="border-top:1px solid var(--tm-border);">
+                                    <a t-attf-href="/my/courses/#{course.id}/lessons" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-calendar"/> View Full Schedule</a>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Assignments -->
                 <div class="col-lg-4 col-md-12">
                     <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal-light), var(--tm-teal));"
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal), var(--tm-teal-dark));"
                              data-bs-toggle="collapse" data-bs-target="#secAssignments">
                             <span><i class="fa fa-tasks me-2"/>Online Assignments</span>
                             <i class="fa fa-chevron-down tm-chevron"/>
                         </div>
                         <div id="secAssignments" class="collapse show">
                             <t t-if="not course_assignments">
-                                <div class="tm-empty" style="padding:30px;">
+                                <div class="tm-empty" style="padding:24px;">
                                     <i class="fa fa-folder-open-o"/>
                                     <p>No assignments yet</p>
                                 </div>
@@ -480,7 +600,7 @@
                             <t t-if="course_assignments">
                                 <t t-foreach="course_assignments" t-as="asgn">
                                     <div class="tm-assignment-row">
-                                        <a t-attf-href="/my/assignments/#{asgn.id}" class="d-flex align-items-center gap-2" style="text-decoration:none; color:#263238; font-size:13px; font-weight:500; flex:1; min-width:0;">
+                                        <a t-attf-href="/my/assignments/#{asgn.id}" class="d-flex align-items-center gap-2" style="text-decoration:none; color:var(--tm-text); font-size:12px; font-weight:500; flex:1; min-width:0;">
                                             <i class="fa fa-file-text" style="color:var(--tm-teal); flex-shrink:0;"/>
                                             <span class="text-truncate"><t t-esc="asgn.name"/></span>
                                         </a>
@@ -497,9 +617,7 @@
             </div>
 
             <div class="text-center mb-4">
-                <a href="/my/courses" class="tm-btn tm-btn-outline">
-                    <i class="fa fa-arrow-left"/> Back to My Courses
-                </a>
+                <a href="/my/courses" class="tm-btn tm-btn-outline"><i class="fa fa-arrow-left"/> Back to My Courses</a>
             </div>
         </div>
     </t>
@@ -513,12 +631,8 @@
         <t t-call="tuition_management.portal_tuition_css"/>
         <div class="tm-page mt-3">
             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-                <h5 class="mb-0 fw-bold" style="color:var(--tm-indigo);">
-                    <i class="fa fa-calendar me-2"/><t t-esc="course.name"/> — Lessons
-                </h5>
-                <a t-attf-href="/my/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm">
-                    <i class="fa fa-arrow-left"/> Dashboard
-                </a>
+                <h5 class="mb-0 fw-bold" style="color:var(--tm-indigo);"><i class="fa fa-calendar me-2"/><t t-esc="course.name"/> — Lessons</h5>
+                <a t-attf-href="/my/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Dashboard</a>
             </div>
             <div class="mb-3">
                 <a t-attf-href="/my/courses/#{course.id}/lessons?week=this" t-attf-class="tm-pill-tab #{'active' if current_week == 'this' else ''}">This Week</a>
@@ -526,36 +640,17 @@
                 <a t-attf-href="/my/courses/#{course.id}/lessons?week=all" t-attf-class="tm-pill-tab #{'active' if current_week == 'all' else ''}">All Upcoming</a>
             </div>
             <div class="tm-card">
-                <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), #1A237E);">
-                    <span><i class="fa fa-list me-2"/>Schedule</span>
-                </div>
-                <t t-if="not occurrences">
-                    <div class="tm-empty">
-                        <i class="fa fa-calendar-o"/>
-                        <p>No lessons found for this period</p>
-                    </div>
-                </t>
+                <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));"><span><i class="fa fa-list me-2"/>Schedule</span></div>
+                <t t-if="not occurrences"><div class="tm-empty"><i class="fa fa-calendar-o"/><p>No lessons found</p></div></t>
                 <t t-if="occurrences">
                     <div class="table-responsive">
                         <table class="tm-table">
-                            <thead>
-                                <tr>
-                                    <th>Date</th>
-                                    <th>Time</th>
-                                    <th>Tutor</th>
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>Date</th><th>Time</th><th>Tutor</th><th>Status</th><th></th></tr></thead>
                             <tbody>
                                 <t t-foreach="occurrences" t-as="occ">
                                     <tr>
-                                        <td class="fw-bold">
-                                            <t t-esc="occ.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM yyyy"}'/>
-                                        </td>
-                                        <td>
-                                            <t t-esc="occ.start_datetime" t-options='{"widget": "datetime", "format": "hh:mm a"}'/>
-                                        </td>
+                                        <td class="fw-bold" style="font-size:12px;"><t t-esc="occ.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM yyyy"}'/></td>
+                                        <td style="font-size:12px;"><t t-esc="occ.start_datetime" t-options='{"widget": "datetime", "format": "hh:mm a"}'/></td>
                                         <td>
                                             <t t-if="occ.tutor_id" t-esc="occ.tutor_id.name"/>
                                             <t t-else=""><span class="text-muted">—</span></t>
@@ -591,58 +686,32 @@
     <t t-call="portal.portal_layout">
         <t t-call="tuition_management.portal_tuition_css"/>
         <div class="tm-page mt-3">
-            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-teal-light), var(--tm-teal));">
+            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-teal), var(--tm-teal-dark));">
                 <h2><i class="fa fa-tasks me-2"/>My Assignments</h2>
                 <p>View and submit your course assignments</p>
             </div>
             <t t-if="not assignments">
-                <div class="tm-card">
-                    <div class="tm-empty">
-                        <i class="fa fa-check-circle"/>
-                        <p>No assignments at this time</p>
-                    </div>
-                </div>
+                <div class="tm-card"><div class="tm-empty"><i class="fa fa-check-circle"/><p>No assignments at this time</p></div></div>
             </t>
             <t t-if="assignments">
                 <div class="tm-card">
                     <div class="table-responsive">
                         <table class="tm-table">
-                            <thead>
-                                <tr>
-                                    <th>Assignment</th>
-                                    <th>Course</th>
-                                    <th>Type</th>
-                                    <th>Due Date</th>
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
+                            <thead><tr><th>Assignment</th><th>Course</th><th>Type</th><th>Due Date</th><th>Status</th><th></th></tr></thead>
                             <tbody>
                                 <t t-foreach="assignments" t-as="asgn">
                                     <tr>
-                                        <td class="fw-bold">
-                                            <i class="fa fa-file-text me-1" style="color:var(--tm-teal);"/>
-                                            <t t-esc="asgn.name"/>
-                                        </td>
-                                        <td t-esc="asgn.course_id.name"/>
-                                        <td>
-                                            <span class="tm-badge tm-badge-grey" t-esc="dict(asgn._fields['assignment_type'].selection).get(asgn.assignment_type, '')"/>
-                                        </td>
-                                        <td>
-                                            <t t-if="asgn.due_date" t-esc="asgn.due_date" t-options='{"widget": "date"}'/>
-                                            <t t-else="">—</t>
-                                        </td>
+                                        <td class="fw-bold" style="font-size:12px;"><i class="fa fa-file-text me-1" style="color:var(--tm-teal);"/><t t-esc="asgn.name"/></td>
+                                        <td style="font-size:12px;" t-esc="asgn.course_id.name"/>
+                                        <td><span class="tm-badge tm-badge-grey" t-esc="dict(asgn._fields['assignment_type'].selection).get(asgn.assignment_type, '')"/></td>
+                                        <td style="font-size:12px;"><t t-if="asgn.due_date" t-esc="asgn.due_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
                                         <td>
                                             <t t-set="sub" t-value="asgn.submission_ids.filtered(lambda s: s.student_id.id == student.id)"/>
                                             <span t-if="sub and sub[0].status == 'submitted'" class="tm-badge tm-badge-green">Submitted</span>
                                             <span t-elif="sub and sub[0].status == 'graded'" class="tm-badge tm-badge-blue">Graded</span>
                                             <span t-else="" class="tm-badge tm-badge-orange">Pending</span>
                                         </td>
-                                        <td>
-                                            <a t-attf-href="/my/assignments/#{asgn.id}" class="tm-btn tm-btn-teal tm-btn-sm">
-                                                <i class="fa fa-eye"/> View
-                                            </a>
-                                        </td>
+                                        <td><a t-attf-href="/my/assignments/#{asgn.id}" class="tm-btn tm-btn-teal tm-btn-sm"><i class="fa fa-eye"/> View</a></td>
                                     </tr>
                                 </t>
                             </tbody>
@@ -662,65 +731,36 @@
         <t t-call="tuition_management.portal_tuition_css"/>
         <div class="tm-page mt-3">
             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-                <h5 class="mb-0 fw-bold" style="color:var(--tm-teal);">
-                    <i class="fa fa-file-text me-2"/><t t-esc="assignment.name"/>
-                </h5>
+                <h5 class="mb-0 fw-bold" style="color:var(--tm-teal);"><i class="fa fa-file-text me-2"/><t t-esc="assignment.name"/></h5>
                 <div class="d-flex gap-2">
-                    <a href="/my/assignments" class="tm-btn tm-btn-outline tm-btn-sm">
-                        <i class="fa fa-arrow-left"/> Assignments
-                    </a>
-                    <a t-attf-href="/my/courses/#{assignment.course_id.id}" class="tm-btn tm-btn-outline tm-btn-sm">
-                        <i class="fa fa-book"/> Course
-                    </a>
+                    <a href="/my/assignments" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Assignments</a>
+                    <a t-attf-href="/my/courses/#{assignment.course_id.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-book"/> Course</a>
                 </div>
             </div>
-
             <t t-if="request.params.get('submitted')">
-                <div class="alert alert-success d-flex align-items-center gap-2" style="border-radius:10px; border:none; background:#E8F5E9; color:#2E7D32;">
-                    <i class="fa fa-check-circle" style="font-size:18px;"/> Your submission has been recorded!
+                <div class="alert alert-success d-flex align-items-center gap-2" style="border-radius:10px; border:none; background:#EDF7ED; color:#4a8a4e;">
+                    <i class="fa fa-check-circle" style="font-size:16px;"/> Your submission has been recorded!
                 </div>
             </t>
-
             <div class="row">
                 <div class="col-lg-7">
-                    <!-- Details -->
                     <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal-light), var(--tm-teal));">
-                            <span><i class="fa fa-info-circle me-2"/>Assignment Details</span>
-                        </div>
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal), var(--tm-teal-dark));"><span><i class="fa fa-info-circle me-2"/>Details</span></div>
                         <div class="tm-card-body">
-                            <div class="tm-label">Course</div>
-                            <div class="tm-value" t-esc="assignment.course_id.name"/>
-                            <div class="tm-label">Type</div>
-                            <div class="tm-value" t-esc="dict(assignment._fields['assignment_type'].selection).get(assignment.assignment_type, '')"/>
-                            <t t-if="assignment.due_date">
-                                <div class="tm-label">Due Date</div>
-                                <div class="tm-value fw-bold" style="color:var(--tm-red);" t-esc="assignment.due_date" t-options='{"widget": "date"}'/>
-                            </t>
-                            <t t-if="assignment.description">
-                                <div class="tm-label">Description</div>
-                                <div class="tm-value" t-raw="assignment.description"/>
-                            </t>
+                            <div class="tm-label">Course</div><div class="tm-value" t-esc="assignment.course_id.name"/>
+                            <div class="tm-label">Type</div><div class="tm-value" t-esc="dict(assignment._fields['assignment_type'].selection).get(assignment.assignment_type, '')"/>
+                            <t t-if="assignment.due_date"><div class="tm-label">Due Date</div><div class="tm-value fw-bold" style="color:var(--tm-red);" t-esc="assignment.due_date" t-options='{"widget": "date"}'/></t>
+                            <t t-if="assignment.description"><div class="tm-label">Description</div><div class="tm-value" t-raw="assignment.description"/></t>
                             <t t-if="assignment.attachment_ids">
                                 <div class="tm-label">Attached Files</div>
-                                <div class="mb-2">
-                                    <t t-foreach="assignment.attachment_ids" t-as="att">
-                                        <a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link">
-                                            <i class="fa fa-download"/> <t t-esc="att.name"/>
-                                        </a>
-                                    </t>
-                                </div>
+                                <t t-foreach="assignment.attachment_ids" t-as="att"><a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link"><i class="fa fa-download"/> <t t-esc="att.name"/></a></t>
                             </t>
                         </div>
                     </div>
                 </div>
-
                 <div class="col-lg-5">
-                    <!-- Submission -->
                     <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-green-light), var(--tm-green));">
-                            <span><i class="fa fa-upload me-2"/>My Submission</span>
-                        </div>
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-green), var(--tm-green-dark));"><span><i class="fa fa-upload me-2"/>My Submission</span></div>
                         <div class="tm-card-body">
                             <t t-if="submission">
                                 <div class="tm-label">Status</div>
@@ -729,46 +769,21 @@
                                     <span t-if="submission.status == 'graded'" class="tm-badge tm-badge-blue">Graded</span>
                                     <span t-if="submission.status == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
                                 </div>
-                                <t t-if="submission.submission_date">
-                                    <div class="tm-label">Submitted On</div>
-                                    <div class="tm-value" t-esc="submission.submission_date" t-options='{"widget": "datetime"}'/>
-                                </t>
-                                <t t-if="submission.status == 'graded'">
-                                    <div class="tm-label">Score</div>
-                                    <div class="tm-value fw-bold" style="font-size:18px; color:var(--tm-blue);">
-                                        <t t-esc="submission.score"/> / <t t-esc="submission.max_score"/>
-                                    </div>
-                                </t>
-                                <t t-if="submission.feedback">
-                                    <div class="tm-label">Feedback</div>
-                                    <div class="tm-value" t-esc="submission.feedback"/>
-                                </t>
+                                <t t-if="submission.submission_date"><div class="tm-label">Submitted On</div><div class="tm-value" t-esc="submission.submission_date" t-options='{"widget": "datetime"}'/></t>
+                                <t t-if="submission.status == 'graded'"><div class="tm-label">Score</div><div class="tm-value fw-bold" style="font-size:16px; color:var(--tm-blue);"><t t-esc="submission.score"/> / <t t-esc="submission.max_score"/></div></t>
+                                <t t-if="submission.feedback"><div class="tm-label">Feedback</div><div class="tm-value" t-esc="submission.feedback"/></t>
                                 <t t-if="submission.attachment_ids">
                                     <div class="tm-label">Your Files</div>
-                                    <t t-foreach="submission.attachment_ids" t-as="att">
-                                        <a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link">
-                                            <i class="fa fa-file"/> <t t-esc="att.name"/>
-                                        </a>
-                                    </t>
+                                    <t t-foreach="submission.attachment_ids" t-as="att"><a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link"><i class="fa fa-file"/> <t t-esc="att.name"/></a></t>
                                 </t>
                             </t>
-
                             <t t-if="assignment.status == 'assigned'">
-                                <hr t-if="submission" style="border-color:#e0e0e0;"/>
-                                <div class="fw-bold mb-2" style="font-size:14px; color:var(--tm-green);">
-                                    <t t-if="submission">Re-submit</t>
-                                    <t t-else="">Submit Your Work</t>
-                                </div>
+                                <hr t-if="submission" style="border-color:var(--tm-border);"/>
+                                <div class="fw-bold mb-2" style="font-size:13px; color:var(--tm-green);"><t t-if="submission">Re-submit</t><t t-else="">Submit Your Work</t></div>
                                 <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                    <div class="mb-3">
-                                        <input type="file" class="form-control" name="submission_file" style="border-radius:8px; font-size:13px;"/>
-                                    </div>
-                                    <button type="submit" class="tm-btn tm-btn-green w-100 justify-content-center">
-                                        <i class="fa fa-upload"/>
-                                        <t t-if="submission">Re-submit</t>
-                                        <t t-else="">Submit</t>
-                                    </button>
+                                    <div class="mb-3"><input type="file" class="form-control" name="submission_file" style="border-radius:8px; font-size:12px;"/></div>
+                                    <button type="submit" class="tm-btn tm-btn-green w-100 justify-content-center"><i class="fa fa-upload"/><t t-if="submission">Re-submit</t><t t-else="">Submit</t></button>
                                 </form>
                             </t>
                         </div>
@@ -780,107 +795,161 @@
 </template>
 
 <!-- ═══════════════════════════════════════════════ -->
-<!-- TUTOR: DASHBOARD                                -->
+<!-- TUTOR: DASHBOARD — LIGHTWEIGHT COURSE LIST      -->
 <!-- ═══════════════════════════════════════════════ -->
 <template id="portal_tutor_dashboard" name="Tutor: Dashboard">
     <t t-call="portal.portal_layout">
         <t t-call="tuition_management.portal_tuition_css"/>
         <div class="tm-page mt-3">
-            <div class="tm-hero" style="background: linear-gradient(135deg, #AD1457, #880E4F);">
+            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-rose), var(--tm-rose-dark));">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div>
-                        <h2><i class="fa fa-chalkboard-teacher me-2"/>Welcome, <t t-esc="tutor.name"/>!</h2>
+                        <h2><i class="fa fa-user me-2"/>Welcome, <t t-esc="tutor.name"/>!</h2>
                         <p>Your teaching dashboard</p>
                     </div>
-                    <div class="d-flex gap-3">
+                    <div class="d-flex gap-3 align-items-center">
                         <div class="tm-hero-stat">
                             <div class="num"><t t-esc="len(courses)"/></div>
                             <div class="lbl">Active Courses</div>
                         </div>
                         <div class="tm-hero-stat">
-                            <div class="num"><t t-esc="len(this_week_lessons)"/></div>
+                            <div class="num"><t t-esc="lesson_count"/></div>
                             <div class="lbl">Lessons This Week</div>
                         </div>
+                        <a href="/my/profile" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-user-circle"/> Profile
+                        </a>
                     </div>
                 </div>
             </div>
 
-            <div class="row">
-                <!-- Courses -->
-                <div class="col-lg-5">
-                    <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, #AD1457, #880E4F);"
-                             data-bs-toggle="collapse" data-bs-target="#tutorCourses">
-                            <span><i class="fa fa-book me-2"/>My Courses</span>
-                            <i class="fa fa-chevron-down tm-chevron"/>
+            <div class="tm-card">
+                <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-rose), var(--tm-rose-dark));">
+                    <span><i class="fa fa-book me-2"/>My Courses</span>
+                </div>
+                <t t-if="not course_data">
+                    <div class="tm-empty"><i class="fa fa-book"/><p>No active courses</p></div>
+                </t>
+                <t t-foreach="course_data" t-as="cd">
+                    <a t-attf-href="/my/tutor/courses/#{cd['course'].id}" class="tm-course-row">
+                        <div class="tm-avatar tm-avatar-rose">
+                            <t t-esc="cd['course'].name[:1].upper()"/>
                         </div>
-                        <div id="tutorCourses" class="collapse show">
-                            <t t-if="not courses">
-                                <div class="tm-empty">
-                                    <i class="fa fa-book"/>
-                                    <p>No active courses</p>
-                                </div>
-                            </t>
-                            <t t-foreach="courses" t-as="c">
-                                <div class="d-flex align-items-center gap-3 px-3 py-3" style="border-bottom:1px solid #f5f5f5;">
-                                    <div class="tm-avatar" style="background:#FCE4EC; color:#AD1457;">
-                                        <t t-esc="c.name[:1].upper()"/>
-                                    </div>
-                                    <div style="flex:1; min-width:0;">
-                                        <div class="fw-bold text-truncate" style="font-size:13px;" t-esc="c.name"/>
-                                        <div style="font-size:11px; color:#90a4ae;">
-                                            <t t-if="c.subject_id" t-esc="c.subject_id.name"/>
-                                            <t t-if="c.grade_id"> · <t t-esc="c.grade_id.name"/></t>
-                                        </div>
-                                    </div>
-                                    <span class="tm-badge tm-badge-grey"><t t-esc="c.student_count"/> students</span>
+                        <div style="flex:1; min-width:0;">
+                            <div class="fw-bold text-truncate" style="font-size:13px;" t-esc="cd['course'].name"/>
+                            <div style="font-size:11px; color:var(--tm-text-light);">
+                                <t t-if="cd['course'].subject_id" t-esc="cd['course'].subject_id.name"/>
+                                <t t-if="cd['course'].grade_id"> · <t t-esc="cd['course'].grade_id.name"/></t>
+                            </div>
+                        </div>
+                        <div class="d-flex gap-2 flex-shrink-0">
+                            <span class="tm-badge tm-badge-blue"><t t-esc="cd['student_count']"/> students</span>
+                            <span class="tm-badge tm-badge-teal"><t t-esc="cd['assignment_count']"/> assignments</span>
+                        </div>
+                        <i class="fa fa-chevron-right" style="color:#ccc; flex-shrink:0;"/>
+                    </a>
+                </t>
+            </div>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: COURSE DETAIL                            -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_course_detail" name="Tutor: Course Detail">
+    <t t-call="portal.portal_layout">
+        <t t-call="tuition_management.portal_tuition_css"/>
+        <div class="tm-page mt-3">
+            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-rose), var(--tm-rose-dark));">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <h2><i class="fa fa-book me-2"/><t t-esc="course.name"/></h2>
+                        <p><t t-if="course.subject_id" t-esc="course.subject_id.name"/><t t-if="course.grade_id"> · <t t-esc="course.grade_id.name"/></t></p>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <t t-if="course.virtual_class_url">
+                            <a t-att-href="course.virtual_class_url" target="_blank" class="tm-btn tm-btn-green" style="padding: 10px 20px;">
+                                <i class="fa fa-video-camera"/> Launch Classroom
+                            </a>
+                        </t>
+                        <a href="/my/tutor/courses" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-arrow-left"/> Back
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Tiles -->
+            <div class="row mb-3">
+                <div class="col-md-3 col-6 mb-2">
+                    <a t-attf-href="/my/tutor/courses/#{course.id}/lessons" class="tm-quick-tile">
+                        <i class="fa fa-calendar" style="color:var(--tm-indigo);"/><div class="tile-label">Lessons</div><div class="tile-sub"><t t-esc="len(this_week_lessons)"/> this week</div>
+                    </a>
+                </div>
+                <div class="col-md-3 col-6 mb-2">
+                    <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-quick-tile">
+                        <i class="fa fa-tasks" style="color:var(--tm-teal);"/><div class="tile-label">Assignments</div><div class="tile-sub"><t t-esc="len(course_assignments)"/> total</div>
+                    </a>
+                </div>
+                <div class="col-md-3 col-6 mb-2">
+                    <div class="tm-quick-tile"><i class="fa fa-users" style="color:var(--tm-green);"/><div class="tile-label">Students</div><div class="tile-sub"><t t-esc="len(enrolled_students)"/> enrolled</div></div>
+                </div>
+                <div class="col-md-3 col-6 mb-2">
+                    <div class="tm-quick-tile"><i class="fa fa-info-circle" style="color:var(--tm-rose);"/><div class="tile-label">Status</div><div class="tile-sub" t-esc="dict(course._fields['status'].selection).get(course.status, '')"/></div>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="tm-card">
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-green), var(--tm-green-dark));" data-bs-toggle="collapse" data-bs-target="#tutorStudents">
+                            <span><i class="fa fa-users me-2"/>Enrolled Students</span><i class="fa fa-chevron-down tm-chevron"/>
+                        </div>
+                        <div id="tutorStudents" class="collapse show">
+                            <t t-if="not enrolled_students"><div class="tm-empty" style="padding:24px;"><i class="fa fa-users"/><p>No students enrolled</p></div></t>
+                            <t t-foreach="enrolled_students" t-as="enr">
+                                <div class="d-flex align-items-center gap-3 px-3 py-2" style="border-bottom:1px solid #f5f5f5;">
+                                    <div class="tm-avatar tm-avatar-green" style="width:32px;height:32px;font-size:12px;"><t t-esc="enr.student_id.name[:1].upper()"/></div>
+                                    <div style="font-size:12px; font-weight:600;" t-esc="enr.student_id.name"/>
                                 </div>
                             </t>
                         </div>
                     </div>
                 </div>
 
-                <!-- This Week Schedule -->
-                <div class="col-lg-7">
+                <div class="col-lg-8">
                     <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), #1A237E);"
-                             data-bs-toggle="collapse" data-bs-target="#tutorLessons">
-                            <span><i class="fa fa-calendar me-2"/>This Week's Lessons</span>
-                            <i class="fa fa-chevron-down tm-chevron"/>
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));" data-bs-toggle="collapse" data-bs-target="#tutorCourseLessons">
+                            <span><i class="fa fa-calendar-check-o me-2"/>This Week's Lessons</span><i class="fa fa-chevron-down tm-chevron"/>
                         </div>
-                        <div id="tutorLessons" class="collapse show">
-                            <t t-if="not this_week_lessons">
-                                <div class="tm-empty">
-                                    <i class="fa fa-calendar-o"/>
-                                    <p>No lessons this week</p>
-                                </div>
-                            </t>
+                        <div id="tutorCourseLessons" class="collapse show">
+                            <t t-if="not this_week_lessons"><div class="tm-empty"><i class="fa fa-calendar-o"/><p>No lessons this week</p></div></t>
                             <t t-if="this_week_lessons">
                                 <div class="table-responsive">
                                     <table class="tm-table">
-                                        <thead>
-                                            <tr>
-                                                <th>Date &amp; Time</th>
-                                                <th>Course</th>
-                                                <th>Status</th>
-                                            </tr>
-                                        </thead>
+                                        <thead><tr><th>Date &amp; Time</th><th>Status</th><th>Attendance</th><th></th></tr></thead>
                                         <tbody>
                                             <t t-foreach="this_week_lessons" t-as="lesson">
                                                 <tr>
                                                     <td>
-                                                        <div class="fw-bold" style="font-size:13px;">
-                                                            <t t-esc="lesson.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM"}'/>
-                                                        </div>
-                                                        <div style="font-size:12px; color:#90a4ae;">
-                                                            <t t-esc="lesson.start_datetime" t-options='{"widget": "datetime", "format": "hh:mm a"}'/>
-                                                        </div>
+                                                        <div class="fw-bold" style="font-size:12px;"><t t-esc="lesson.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM"}'/></div>
+                                                        <div style="font-size:11px; color:var(--tm-text-light);"><t t-esc="lesson.start_datetime" t-options='{"widget": "datetime", "format": "hh:mm a"}'/></div>
                                                     </td>
-                                                    <td style="font-size:13px;" t-esc="lesson.course_id.name"/>
                                                     <td>
                                                         <span t-if="lesson.lesson_status == 'scheduled'" class="tm-badge tm-badge-blue">Scheduled</span>
                                                         <span t-if="lesson.lesson_status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
                                                         <span t-if="lesson.lesson_status == 'cancelled'" class="tm-badge tm-badge-red">Cancelled</span>
+                                                        <span t-if="lesson.lesson_status == 'no_show'" class="tm-badge tm-badge-orange">No Show</span>
+                                                    </td>
+                                                    <td>
+                                                        <span t-if="lesson.attendance_marked" class="tm-badge tm-badge-green">Marked</span>
+                                                        <span t-else="" class="tm-badge tm-badge-grey">Pending</span>
+                                                    </td>
+                                                    <td>
+                                                        <a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-blue tm-btn-sm">
+                                                            <i class="fa fa-check-square-o"/><t t-if="lesson.attendance_marked">Edit</t><t t-else="">Mark</t>
+                                                        </a>
                                                     </td>
                                                 </tr>
                                             </t>
@@ -888,7 +957,250 @@
                                     </table>
                                 </div>
                             </t>
+                            <div class="text-center py-3" style="border-top:1px solid var(--tm-border);">
+                                <a t-attf-href="/my/tutor/courses/#{course.id}/lessons" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-calendar"/> View Full Schedule</a>
+                            </div>
                         </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: MARK ATTENDANCE                          -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_attendance" name="Tutor: Mark Attendance">
+    <t t-call="portal.portal_layout">
+        <t t-call="tuition_management.portal_tuition_css"/>
+        <style>
+            .tm-att-radio { display: flex; gap: 4px; flex-wrap: wrap; }
+            .tm-att-radio label { padding: 4px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; border: 1.5px solid #e0e0e0; transition: all 0.15s; }
+            .tm-att-radio input { display: none; }
+            .tm-att-radio input[value="present"]:checked + label { background: #EDF7ED; border-color: var(--tm-green); color: #4a8a4e; }
+            .tm-att-radio input[value="absent"]:checked + label { background: #FDEAEA; border-color: var(--tm-red); color: #c05050; }
+            .tm-att-radio input[value="late"]:checked + label { background: #FFF0E8; border-color: var(--tm-orange); color: #c26030; }
+            .tm-att-radio input[value="excused"]:checked + label { background: #ECEFF1; border-color: var(--tm-grey); color: #455A64; }
+        </style>
+        <div class="tm-page mt-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <div>
+                    <h5 class="mb-1 fw-bold" style="color:var(--tm-indigo);"><i class="fa fa-check-square-o me-2"/>Mark Attendance</h5>
+                    <p class="mb-0" style="font-size:12px; color:var(--tm-text-light);">
+                        <t t-esc="occurrence.name"/> · <t t-esc="occurrence.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM yyyy hh:mm a"}'/>
+                    </p>
+                </div>
+                <a t-attf-href="/my/tutor/courses/#{course.id}/lessons" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Lessons</a>
+            </div>
+            <form t-attf-action="/my/tutor/lesson/#{occurrence.id}/attendance/save" method="POST">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <div class="tm-card mb-3">
+                    <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));"><span><i class="fa fa-flag me-2"/>Lesson Status</span></div>
+                    <div class="tm-card-body">
+                        <div class="row align-items-center">
+                            <div class="col-md-5">
+                                <select name="lesson_status" class="form-select" style="border-radius:8px; font-size:12px;">
+                                    <option value="completed" t-att-selected="'selected' if occurrence.lesson_status == 'completed' else None">Completed</option>
+                                    <option value="scheduled" t-att-selected="'selected' if occurrence.lesson_status == 'scheduled' else None">Scheduled</option>
+                                    <option value="no_show" t-att-selected="'selected' if occurrence.lesson_status == 'no_show' else None">No Show</option>
+                                </select>
+                            </div>
+                            <div class="col-md-7"><small class="text-muted"><i class="fa fa-info-circle me-1"/>Only administrators can cancel a lesson.</small></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="tm-card">
+                    <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-green), var(--tm-green-dark));"><span><i class="fa fa-users me-2"/>Student Attendance</span></div>
+                    <t t-if="not student_data"><div class="tm-empty"><i class="fa fa-users"/><p>No students enrolled</p></div></t>
+                    <t t-if="student_data">
+                        <div class="table-responsive">
+                            <table class="tm-table">
+                                <thead><tr><th>Student</th><th>Status</th><th style="width:70px;">Billable</th><th>Remarks</th></tr></thead>
+                                <tbody>
+                                    <t t-foreach="student_data" t-as="sd">
+                                        <tr>
+                                            <td>
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <div class="tm-avatar tm-avatar-green" style="width:30px;height:30px;font-size:11px;"><t t-esc="sd['student'].name[:1].upper()"/></div>
+                                                    <span class="fw-bold" style="font-size:12px;" t-esc="sd['student'].name"/>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <div class="tm-att-radio">
+                                                    <input type="radio" t-attf-name="status_#{sd['student'].id}" t-attf-id="present_#{sd['student'].id}" value="present" t-att-checked="'checked' if sd['status'] == 'present' else None"/>
+                                                    <label t-attf-for="present_#{sd['student'].id}">Present</label>
+                                                    <input type="radio" t-attf-name="status_#{sd['student'].id}" t-attf-id="absent_#{sd['student'].id}" value="absent" t-att-checked="'checked' if sd['status'] == 'absent' else None"/>
+                                                    <label t-attf-for="absent_#{sd['student'].id}">Absent</label>
+                                                    <input type="radio" t-attf-name="status_#{sd['student'].id}" t-attf-id="late_#{sd['student'].id}" value="late" t-att-checked="'checked' if sd['status'] == 'late' else None"/>
+                                                    <label t-attf-for="late_#{sd['student'].id}">Late</label>
+                                                    <input type="radio" t-attf-name="status_#{sd['student'].id}" t-attf-id="excused_#{sd['student'].id}" value="excused" t-att-checked="'checked' if sd['status'] == 'excused' else None"/>
+                                                    <label t-attf-for="excused_#{sd['student'].id}">Excused</label>
+                                                </div>
+                                            </td>
+                                            <td class="text-center"><input type="checkbox" t-attf-name="billable_#{sd['student'].id}" class="form-check-input" t-att-checked="'checked' if sd['billable'] else None"/></td>
+                                            <td><input type="text" t-attf-name="remarks_#{sd['student'].id}" class="form-control form-control-sm" style="border-radius:6px; font-size:11px;" t-att-value="sd['remarks'] or ''"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                </div>
+                <div class="d-flex justify-content-end gap-2 mt-3 mb-4">
+                    <a t-attf-href="/my/tutor/courses/#{course.id}/lessons" class="tm-btn tm-btn-outline"><i class="fa fa-times"/> Cancel</a>
+                    <button type="submit" class="tm-btn tm-btn-green"><i class="fa fa-save"/> Save Attendance</button>
+                </div>
+            </form>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: ASSIGNMENTS LIST + CREATE                -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_assignments" name="Tutor: Assignments">
+    <t t-call="portal.portal_layout">
+        <t t-call="tuition_management.portal_tuition_css"/>
+        <div class="tm-page mt-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <h5 class="mb-0 fw-bold" style="color:var(--tm-teal);"><i class="fa fa-tasks me-2"/><t t-esc="course.name"/> — Assignments</h5>
+                <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Course</a>
+            </div>
+            <t t-if="request.params.get('created')">
+                <div class="alert alert-success d-flex align-items-center gap-2" style="border-radius:10px; border:none; background:#EDF7ED; color:#4a8a4e;"><i class="fa fa-check-circle"/> Assignment created!</div>
+            </t>
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="tm-card">
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-green), var(--tm-green-dark));"><span><i class="fa fa-plus me-2"/>New Assignment</span></div>
+                        <div class="tm-card-body">
+                            <form t-attf-action="/my/tutor/courses/#{course.id}/assignments/create" method="POST" enctype="multipart/form-data">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <div class="mb-2"><label class="form-label fw-bold" style="font-size:11px;">Title *</label><input type="text" name="name" class="form-control form-control-sm" required="required" style="border-radius:8px;" placeholder="e.g. Chapter 5 Worksheet"/></div>
+                                <div class="mb-2"><label class="form-label fw-bold" style="font-size:11px;">Type</label>
+                                    <select name="assignment_type" class="form-select form-select-sm" style="border-radius:8px;">
+                                        <option value="homework">Homework</option><option value="quiz">Quiz</option><option value="test">Test</option><option value="project">Project</option><option value="worksheet">Worksheet</option><option value="other">Other</option>
+                                    </select>
+                                </div>
+                                <div class="mb-2"><label class="form-label fw-bold" style="font-size:11px;">Due Date</label><input type="date" name="due_date" class="form-control form-control-sm" style="border-radius:8px;"/></div>
+                                <div class="mb-2"><label class="form-label fw-bold" style="font-size:11px;">Description</label><textarea name="description" class="form-control form-control-sm" rows="3" style="border-radius:8px;" placeholder="Instructions..."/></div>
+                                <div class="mb-3"><label class="form-label fw-bold" style="font-size:11px;">Attachment</label><input type="file" name="attachment" class="form-control form-control-sm" style="border-radius:8px;"/></div>
+                                <button type="submit" class="tm-btn tm-btn-green w-100 justify-content-center"><i class="fa fa-plus"/> Create</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <div class="tm-card">
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal), var(--tm-teal-dark));"><span><i class="fa fa-list me-2"/>All Assignments</span></div>
+                        <t t-if="not assignments"><div class="tm-empty"><i class="fa fa-tasks"/><p>No assignments yet</p></div></t>
+                        <t t-if="assignments">
+                            <div class="table-responsive">
+                                <table class="tm-table">
+                                    <thead><tr><th>Title</th><th>Type</th><th>Due</th><th>Status</th><th>Subs</th><th></th></tr></thead>
+                                    <tbody>
+                                        <t t-foreach="assignments" t-as="asgn">
+                                            <tr>
+                                                <td class="fw-bold" style="font-size:12px;"><i class="fa fa-file-text me-1" style="color:var(--tm-teal);"/><t t-esc="asgn.name"/></td>
+                                                <td><span class="tm-badge tm-badge-grey" t-esc="dict(asgn._fields['assignment_type'].selection).get(asgn.assignment_type, '')"/></td>
+                                                <td style="font-size:12px;"><t t-if="asgn.due_date" t-esc="asgn.due_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
+                                                <td>
+                                                    <span t-if="asgn.status == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
+                                                    <span t-if="asgn.status == 'assigned'" class="tm-badge tm-badge-blue">Assigned</span>
+                                                    <span t-if="asgn.status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
+                                                </td>
+                                                <td style="font-size:12px;"><t t-esc="len(asgn.submission_ids)"/></td>
+                                                <td><a t-attf-href="/my/tutor/assignment/#{asgn.id}" class="tm-btn tm-btn-teal tm-btn-sm"><i class="fa fa-eye"/> Review</a></td>
+                                            </tr>
+                                        </t>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: ASSIGNMENT DETAIL + GRADE                -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_assignment_detail" name="Tutor: Assignment Detail">
+    <t t-call="portal.portal_layout">
+        <t t-call="tuition_management.portal_tuition_css"/>
+        <div class="tm-page mt-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <h5 class="mb-0 fw-bold" style="color:var(--tm-teal);"><i class="fa fa-file-text me-2"/><t t-esc="assignment.name"/></h5>
+                <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Assignments</a>
+            </div>
+            <t t-if="request.params.get('graded')">
+                <div class="alert alert-success d-flex align-items-center gap-2" style="border-radius:10px; border:none; background:#EDF7ED; color:#4a8a4e;"><i class="fa fa-check-circle"/> Graded!</div>
+            </t>
+            <div class="row">
+                <div class="col-lg-4">
+                    <div class="tm-card">
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal), var(--tm-teal-dark));"><span><i class="fa fa-info-circle me-2"/>Details</span></div>
+                        <div class="tm-card-body">
+                            <div class="tm-label">Course</div><div class="tm-value" t-esc="course.name"/>
+                            <div class="tm-label">Type</div><div class="tm-value" t-esc="dict(assignment._fields['assignment_type'].selection).get(assignment.assignment_type, '')"/>
+                            <div class="tm-label">Status</div><div class="tm-value">
+                                <span t-if="assignment.status == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
+                                <span t-if="assignment.status == 'assigned'" class="tm-badge tm-badge-blue">Assigned</span>
+                                <span t-if="assignment.status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
+                            </div>
+                            <t t-if="assignment.due_date"><div class="tm-label">Due Date</div><div class="tm-value fw-bold" style="color:var(--tm-red);" t-esc="assignment.due_date" t-options='{"widget": "date"}'/></t>
+                            <t t-if="assignment.description"><div class="tm-label">Description</div><div class="tm-value" t-raw="assignment.description"/></t>
+                            <t t-if="assignment.attachment_ids"><div class="tm-label">Attachments</div><t t-foreach="assignment.attachment_ids" t-as="att"><a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link"><i class="fa fa-download"/> <t t-esc="att.name"/></a></t></t>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-8">
+                    <div class="tm-card">
+                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-green), var(--tm-green-dark));"><span><i class="fa fa-inbox me-2"/>Submissions (<t t-esc="len(submissions)"/>)</span></div>
+                        <t t-if="not submissions"><div class="tm-empty"><i class="fa fa-inbox"/><p>No submissions yet</p></div></t>
+                        <t t-if="submissions">
+                            <t t-foreach="submissions" t-as="sub">
+                                <div class="px-3 py-3" style="border-bottom: 1px solid #f0f0f0;">
+                                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <div class="tm-avatar tm-avatar-green" style="width:32px;height:32px;font-size:12px;"><t t-esc="sub.student_id.name[:1].upper()"/></div>
+                                            <div>
+                                                <div class="fw-bold" style="font-size:12px;" t-esc="sub.student_id.name"/>
+                                                <div style="font-size:10px; color:var(--tm-text-light);">
+                                                    <t t-esc="sub.submission_date" t-options='{"widget": "datetime", "format": "dd MMM yyyy hh:mm a"}'/>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <span t-if="sub.status == 'submitted'" class="tm-badge tm-badge-blue">Submitted</span>
+                                        <span t-if="sub.status == 'graded'" class="tm-badge tm-badge-green">Graded</span>
+                                        <span t-if="sub.status == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
+                                    </div>
+                                    <t t-if="sub.attachment_ids">
+                                        <div class="mb-2"><t t-foreach="sub.attachment_ids" t-as="att"><a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link"><i class="fa fa-paperclip"/> <t t-esc="att.name"/></a></t></div>
+                                    </t>
+                                    <t t-if="sub.status == 'graded' and sub.feedback">
+                                        <div class="p-2 mb-2" style="background:var(--tm-bg); border-radius:8px; font-size:11px;"><span class="fw-bold">Feedback:</span> <t t-esc="sub.feedback"/></div>
+                                    </t>
+                                    <form t-attf-action="/my/tutor/submission/#{sub.id}/grade" method="POST" class="mt-2">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <div class="row g-2 align-items-end">
+                                            <div class="col-3">
+                                                <label class="form-label fw-bold" style="font-size:10px;">Score</label>
+                                                <div class="input-group input-group-sm">
+                                                    <input type="number" name="score" class="form-control" step="0.1" min="0" t-att-max="sub.max_score" t-att-value="sub.score or ''" style="border-radius:6px 0 0 6px; font-size:11px;"/>
+                                                    <span class="input-group-text" style="font-size:10px;">/<t t-esc="int(sub.max_score)"/></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-6"><label class="form-label fw-bold" style="font-size:10px;">Feedback</label><input type="text" name="feedback" class="form-control form-control-sm" style="border-radius:6px; font-size:11px;" t-att-value="sub.feedback or ''" placeholder="Good work!"/></div>
+                                            <div class="col-3"><button type="submit" class="tm-btn tm-btn-green tm-btn-sm w-100 justify-content-center"><i class="fa fa-check"/><t t-if="sub.status == 'graded'">Update</t><t t-else="">Grade</t></button></div>
+                                        </div>
+                                    </form>
+                                </div>
+                            </t>
+                        </t>
                     </div>
                 </div>
             </div>
@@ -903,53 +1215,38 @@
     <t t-call="portal.portal_layout">
         <t t-call="tuition_management.portal_tuition_css"/>
         <div class="tm-page mt-3">
-            <div class="tm-hero" style="background: linear-gradient(135deg, #00695C, #004D40);">
+            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-teal-dark), #2E7D6F);">
                 <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
                     <div>
                         <h2><i class="fa fa-home me-2"/>Welcome, <t t-esc="parent.name"/>!</h2>
                         <p>Monitor your children's education</p>
                     </div>
-                    <div class="tm-hero-stat">
-                        <div class="num"><t t-esc="len(child_data)"/></div>
-                        <div class="lbl">Children</div>
+                    <div class="d-flex gap-3 align-items-center">
+                        <div class="tm-hero-stat"><div class="num"><t t-esc="len(child_data)"/></div><div class="lbl">Children</div></div>
+                        <a href="/my/profile" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-user-circle"/> Profile
+                        </a>
                     </div>
                 </div>
             </div>
-
-            <t t-if="not child_data">
-                <div class="tm-card">
-                    <div class="tm-empty">
-                        <i class="fa fa-child"/>
-                        <p>No children linked to your account</p>
-                    </div>
-                </div>
-            </t>
-
+            <t t-if="not child_data"><div class="tm-card"><div class="tm-empty"><i class="fa fa-child"/><p>No children linked to your account</p></div></div></t>
             <t t-foreach="child_data" t-as="cd">
                 <div class="tm-card">
-                    <div class="tm-card-header" style="background: linear-gradient(135deg, #00695C, #004D40);"
-                         data-bs-toggle="collapse" t-attf-data-bs-target="#child#{cd['student'].id}">
-                        <span>
-                            <i class="fa fa-child me-2"/>
-                            <t t-esc="cd['student'].name"/>
-                            <t t-if="cd['student'].grade_id">
-                                <span style="opacity:0.7; font-weight:400; margin-left:8px;">— <t t-esc="cd['student'].grade_id.name"/></span>
-                            </t>
-                        </span>
-                        <i class="fa fa-chevron-down tm-chevron"/>
+                    <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal-dark), #2E7D6F);" data-bs-toggle="collapse" t-attf-data-bs-target="#child#{cd['student'].id}">
+                        <span><i class="fa fa-child me-2"/><t t-esc="cd['student'].name"/>
+                            <t t-if="cd['student'].grade_id"><span style="opacity:0.7; font-weight:400; margin-left:8px;">— <t t-esc="cd['student'].grade_id.name"/></span></t>
+                        </span><i class="fa fa-chevron-down tm-chevron"/>
                     </div>
                     <div t-attf-id="child#{cd['student'].id}" class="collapse show">
                         <div class="tm-card-body">
-                            <t t-if="not cd['enrollments']">
-                                <div class="text-muted" style="font-size:13px;">Not enrolled in any courses.</div>
-                            </t>
+                            <t t-if="not cd['enrollments']"><div class="text-muted" style="font-size:12px;">Not enrolled in any courses.</div></t>
                             <t t-if="cd['enrollments']">
                                 <div class="row">
                                     <t t-foreach="cd['enrollments']" t-as="enr">
                                         <div class="col-md-6 col-lg-4 mb-3">
-                                            <div style="border:1px solid #e0e0e0; border-radius:10px; padding:16px;">
-                                                <div class="fw-bold" style="font-size:14px; color:var(--tm-teal);" t-esc="enr.course_id.name"/>
-                                                <div style="font-size:12px; color:#90a4ae; margin-top:4px;">
+                                            <div style="border:1px solid var(--tm-border); border-radius:10px; padding:14px;">
+                                                <div class="fw-bold" style="font-size:13px; color:var(--tm-teal);" t-esc="enr.course_id.name"/>
+                                                <div style="font-size:11px; color:var(--tm-text-light); margin-top:4px;">
                                                     <t t-if="enr.course_id.subject_id" t-esc="enr.course_id.subject_id.name"/>
                                                     <t t-if="enr.course_id.tutor_id"> · <t t-esc="enr.course_id.tutor_id.name"/></t>
                                                 </div>
