@@ -56,7 +56,7 @@
             </t>
 
             <form action="/my/profile/save" method="POST">
-                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
                 <div class="row">
                     <!-- Personal Information -->
                     <div class="col-lg-6">
@@ -75,13 +75,13 @@
                                     <label class="form-label fw-bold" style="font-size:12px;">Email</label>
                                     <input type="email" name="email" class="form-control"
                                            style="border-radius:8px; font-size:13px;"
-                                           t-att-value="profile.email if profile and hasattr(profile, 'email') else partner.email"/>
+                                           t-att-value="(profile.email if profile else '') or (partner.email or '')"/>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label fw-bold" style="font-size:12px;">Phone</label>
                                     <input type="text" name="phone" class="form-control"
                                            style="border-radius:8px; font-size:13px;"
-                                           t-att-value="profile.phone if profile and hasattr(profile, 'phone') else partner.phone"/>
+                                           t-att-value="(profile.phone if profile else '') or (partner.phone or '')"/>
                                 </div>
                                 <div class="mb-0">
                                     <div class="tm-label">Login (Username)</div>
@@ -330,6 +330,9 @@
                         </div>
                         <a href="/my/profile" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
                             <i class="fa fa-user-circle"/> Profile
+                        </a>
+                        <a href="/my/logout" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-sign-out"/> Logout
                         </a>
                     </div>
                 </div>
@@ -647,22 +650,22 @@
                         <table class="tm-table">
                             <thead><tr><th>Date</th><th>Time</th><th>Tutor</th><th>Status</th><th></th></tr></thead>
                             <tbody>
-                                <t t-foreach="occurrences" t-as="occ">
+                                <t t-foreach="occ_data" t-as="od">
                                     <tr>
-                                        <td class="fw-bold" style="font-size:12px;"><t t-esc="occ.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM yyyy"}'/></td>
-                                        <td style="font-size:12px;"><t t-esc="occ.start_datetime" t-options='{"widget": "datetime", "format": "hh:mm a"}'/></td>
+                                        <td class="fw-bold" style="font-size:12px;"><t t-esc="od['date_str']"/></td>
+                                        <td style="font-size:12px;"><t t-esc="od['time_str']"/></td>
                                         <td>
-                                            <t t-if="occ.tutor_id" t-esc="occ.tutor_id.name"/>
+                                            <t t-if="od['occ'].tutor_id" t-esc="od['occ'].tutor_id.name"/>
                                             <t t-else=""><span class="text-muted">—</span></t>
                                         </td>
                                         <td>
-                                            <span t-if="occ.lesson_status == 'scheduled'" class="tm-badge tm-badge-blue">Scheduled</span>
-                                            <span t-if="occ.lesson_status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
-                                            <span t-if="occ.lesson_status == 'cancelled'" class="tm-badge tm-badge-red">Cancelled</span>
-                                            <span t-if="occ.lesson_status == 'no_show'" class="tm-badge tm-badge-orange">No Show</span>
+                                            <span t-if="od['occ'].lesson_status == 'scheduled'" class="tm-badge tm-badge-blue">Scheduled</span>
+                                            <span t-if="od['occ'].lesson_status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
+                                            <span t-if="od['occ'].lesson_status == 'cancelled'" class="tm-badge tm-badge-red">Cancelled</span>
+                                            <span t-if="od['occ'].lesson_status == 'no_show'" class="tm-badge tm-badge-orange">No Show</span>
                                         </td>
                                         <td>
-                                            <t t-if="course.virtual_class_url and occ.lesson_status == 'scheduled'">
+                                            <t t-if="course.virtual_class_url and od['occ'].lesson_status == 'scheduled'">
                                                 <a t-att-href="course.virtual_class_url" target="_blank" class="tm-btn tm-btn-green tm-btn-sm">
                                                     <i class="fa fa-video-camera"/> Join
                                                 </a>
@@ -781,7 +784,7 @@
                                 <hr t-if="submission" style="border-color:var(--tm-border);"/>
                                 <div class="fw-bold mb-2" style="font-size:13px; color:var(--tm-green);"><t t-if="submission">Re-submit</t><t t-else="">Submit Your Work</t></div>
                                 <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
-                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
                                     <div class="mb-3"><input type="file" class="form-control" name="submission_file" style="border-radius:8px; font-size:12px;"/></div>
                                     <button type="submit" class="tm-btn tm-btn-green w-100 justify-content-center"><i class="fa fa-upload"/><t t-if="submission">Re-submit</t><t t-else="">Submit</t></button>
                                 </form>
@@ -818,6 +821,9 @@
                         </div>
                         <a href="/my/profile" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
                             <i class="fa fa-user-circle"/> Profile
+                        </a>
+                        <a href="/my/logout" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-sign-out"/> Logout
                         </a>
                     </div>
                 </div>
@@ -921,7 +927,8 @@
                 <div class="col-lg-8">
                     <div class="tm-card">
                         <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));" data-bs-toggle="collapse" data-bs-target="#tutorCourseLessons">
-                            <span><i class="fa fa-calendar-check-o me-2"/>This Week's Lessons</span><i class="fa fa-chevron-down tm-chevron"/>
+                            <span><i class="fa fa-calendar-check-o me-2"/>This Week's Lessons</span>
+                            <i class="fa fa-chevron-down tm-chevron"/>
                         </div>
                         <div id="tutorCourseLessons" class="collapse show">
                             <t t-if="not this_week_lessons"><div class="tm-empty"><i class="fa fa-calendar-o"/><p>No lessons this week</p></div></t>
@@ -991,10 +998,10 @@
                         <t t-esc="occurrence.name"/> · <t t-esc="occurrence.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM yyyy hh:mm a"}'/>
                     </p>
                 </div>
-                <a t-attf-href="/my/tutor/courses/#{course.id}/lessons" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Lessons</a>
+                <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
             </div>
             <form t-attf-action="/my/tutor/lesson/#{occurrence.id}/attendance/save" method="POST">
-                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
                 <div class="tm-card mb-3">
                     <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));"><span><i class="fa fa-flag me-2"/>Lesson Status</span></div>
                     <div class="tm-card-body">
@@ -1048,7 +1055,7 @@
                     </t>
                 </div>
                 <div class="d-flex justify-content-end gap-2 mt-3 mb-4">
-                    <a t-attf-href="/my/tutor/courses/#{course.id}/lessons" class="tm-btn tm-btn-outline"><i class="fa fa-times"/> Cancel</a>
+                    <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline"><i class="fa fa-times"/> Cancel</a>
                     <button type="submit" class="tm-btn tm-btn-green"><i class="fa fa-save"/> Save Attendance</button>
                 </div>
             </form>
@@ -1076,7 +1083,7 @@
                         <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-green), var(--tm-green-dark));"><span><i class="fa fa-plus me-2"/>New Assignment</span></div>
                         <div class="tm-card-body">
                             <form t-attf-action="/my/tutor/courses/#{course.id}/assignments/create" method="POST" enctype="multipart/form-data">
-                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
                                 <div class="mb-2"><label class="form-label fw-bold" style="font-size:11px;">Title *</label><input type="text" name="name" class="form-control form-control-sm" required="required" style="border-radius:8px;" placeholder="e.g. Chapter 5 Worksheet"/></div>
                                 <div class="mb-2"><label class="form-label fw-bold" style="font-size:11px;">Type</label>
                                     <select name="assignment_type" class="form-select form-select-sm" style="border-radius:8px;">
@@ -1185,7 +1192,7 @@
                                         <div class="p-2 mb-2" style="background:var(--tm-bg); border-radius:8px; font-size:11px;"><span class="fw-bold">Feedback:</span> <t t-esc="sub.feedback"/></div>
                                     </t>
                                     <form t-attf-action="/my/tutor/submission/#{sub.id}/grade" method="POST" class="mt-2">
-                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
                                         <div class="row g-2 align-items-end">
                                             <div class="col-3">
                                                 <label class="form-label fw-bold" style="font-size:10px;">Score</label>
@@ -1208,6 +1215,61 @@
     </t>
 </template>
 
+<template id="portal_tutor_lessons" name="Tutor: Lessons">
+    <t t-call="portal.portal_layout">
+        <t t-call="tuition_management.portal_tuition_css"/>
+        <div class="tm-page mt-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+                <h5 class="mb-0 fw-bold" style="color:var(--tm-indigo);"><i class="fa fa-calendar me-2"/><t t-esc="course.name"/> — Lessons</h5>
+                <a t-att-href="back_url" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+            </div>
+            <div class="mb-3">
+                <a t-attf-href="/my/tutor/courses/#{course.id}/lessons?week=this" t-attf-class="tm-pill-tab #{'active' if current_week == 'this' else ''}">This Week</a>
+                <a t-attf-href="/my/tutor/courses/#{course.id}/lessons?week=next" t-attf-class="tm-pill-tab #{'active' if current_week == 'next' else ''}">Next Week</a>
+                <a t-attf-href="/my/tutor/courses/#{course.id}/lessons?week=all" t-attf-class="tm-pill-tab #{'active' if current_week == 'all' else ''}">All Upcoming</a>
+                <a t-attf-href="/my/tutor/courses/#{course.id}/lessons?week=past" t-attf-class="tm-pill-tab #{'active' if current_week == 'past' else ''}">Past (30 days)</a>
+            </div>
+            <div class="tm-card">
+                <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));"><span><i class="fa fa-list me-2"/>Schedule</span></div>
+                <t t-if="not occ_data"><div class="tm-empty"><i class="fa fa-calendar-o"/><p>No lessons found for this period</p></div></t>
+                <t t-if="occ_data">
+                    <div class="table-responsive">
+                        <table class="tm-table">
+                            <thead><tr><th>Date</th><th>Time</th><th>Status</th><th>Attendance</th><th></th></tr></thead>
+                            <tbody>
+                                <t t-foreach="occ_data" t-as="od">
+                                    <tr>
+                                        <td class="fw-bold" style="font-size:12px;"><t t-esc="od['date_str']"/></td>
+                                        <td style="font-size:12px;"><t t-esc="od['time_str']"/></td>
+                                        <td>
+                                            <span t-if="od['occ'].lesson_status == 'scheduled'" class="tm-badge tm-badge-blue">Scheduled</span>
+                                            <span t-if="od['occ'].lesson_status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
+                                            <span t-if="od['occ'].lesson_status == 'cancelled'" class="tm-badge tm-badge-red">Cancelled</span>
+                                            <span t-if="od['occ'].lesson_status == 'no_show'" class="tm-badge tm-badge-orange">No Show</span>
+                                        </td>
+                                        <td>
+                                            <span t-if="od['occ'].attendance_marked" class="tm-badge tm-badge-green">Marked</span>
+                                            <span t-else="" class="tm-badge tm-badge-grey">Pending</span>
+                                        </td>
+                                        <td>
+                                            <a t-attf-href="/my/tutor/lesson/#{od['occ'].id}/attendance" class="tm-btn tm-btn-blue tm-btn-sm">
+                                                <i class="fa fa-check-square-o"/>
+                                                <t t-if="od['occ'].attendance_marked">Edit</t><t t-else="">Mark</t>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
+            </div>
+        </div>
+    </t>
+</template>
+
+<!-- TUTOR: LESSONS (duplicate removed, see above) -->
+
 <!-- ═══════════════════════════════════════════════ -->
 <!-- PARENT: DASHBOARD                               -->
 <!-- ═══════════════════════════════════════════════ -->
@@ -1225,6 +1287,9 @@
                         <div class="tm-hero-stat"><div class="num"><t t-esc="len(child_data)"/></div><div class="lbl">Children</div></div>
                         <a href="/my/profile" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
                             <i class="fa fa-user-circle"/> Profile
+                        </a>
+                        <a href="/my/logout" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-sign-out"/> Logout
                         </a>
                     </div>
                 </div>

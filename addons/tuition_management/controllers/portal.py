@@ -7,7 +7,6 @@ import base64
 
 
 class TuitionPortal(CustomerPortal):
-
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         partner = request.env.user.partner_id
@@ -60,6 +59,15 @@ class TuitionPortal(CustomerPortal):
             return request.redirect('/my/parent/children')
         return super().home(**kw)
 
+    @http.route(['/my/logout'], type='http', auth='user', website=True)
+    def portal_logout(self, **kw):
+        return request.redirect('/web/session/logout?redirect=/web/login')
+
+    @http.route(['/my/logout'], type='http', auth='public', website=True)
+    def portal_logout(self, **kw):
+        request.session.logout(keep_db=True)
+        return request.redirect('/web/login')
+
     def _get_student(self):
         return request.env['student.profile'].sudo().search(
             [('partner_id', '=', request.env.user.partner_id.id)], limit=1)
@@ -85,6 +93,7 @@ class TuitionPortal(CustomerPortal):
         parent = self._get_parent()
         profile = student or tutor or parent
         role = 'Student' if student else ('Tutor' if tutor else ('Parent' if parent else 'User'))
+        back_url = '/my/tutor/courses' if tutor else ('/my/courses' if student else ('/my/parent/children' if parent else '/my'))
         return request.render('tuition_management.portal_user_profile', {
             'user': user,
             'partner': partner,
@@ -96,6 +105,8 @@ class TuitionPortal(CustomerPortal):
             'success': kw.get('success'),
             'error': kw.get('error'),
             'page_name': 'profile',
+            'back_url': back_url,
+            'csrf_token': request.csrf_token(),
         })
 
     @http.route(['/my/profile/save'], type='http', auth='user', website=True,
@@ -244,10 +255,22 @@ class TuitionPortal(CustomerPortal):
             ('start_datetime', '<=', datetime.combine(end_date, datetime.max.time())),
         ], order='start_datetime asc')
 
+        # Pre-format datetimes to avoid QWeb formatting errors
+        occ_data = []
+        for occ in occurrences:
+            try:
+                date_str = occ.start_datetime.strftime('%a, %d %b %Y') if occ.start_datetime else ''
+                time_str = occ.start_datetime.strftime('%I:%M %p') if occ.start_datetime else ''
+            except Exception:
+                date_str = str(occ.start_datetime) if occ.start_datetime else ''
+                time_str = ''
+            occ_data.append({'occ': occ, 'date_str': date_str, 'time_str': time_str})
+
         return request.render('tuition_management.portal_student_lessons', {
             'course': course,
             'student': student,
             'occurrences': occurrences,
+            'occ_data': occ_data,
             'current_week': week,
             'page_name': 'course_lessons',
         })
@@ -291,6 +314,7 @@ class TuitionPortal(CustomerPortal):
             'submission': submission,
             'student': student,
             'page_name': 'assignment_detail',
+            'csrf_token': request.csrf_token(),
         })
 
     @http.route(['/my/assignments/<int:assignment_id>/submit'], type='http', auth='user',
@@ -401,16 +425,21 @@ class TuitionPortal(CustomerPortal):
             'this_week_lessons': this_week_lessons,
             'enrolled_students': enrolled_students,
             'course_assignments': course_assignments,
+            'lessons_url': f'/my/tutor/courses/{course.id}/lessons',
+            'assignments_url': f'/my/tutor/courses/{course.id}/assignments',
             'page_name': 'tutor_course_detail',
         })
 
-    @http.route(['/my/tutor/courses/<int:course_id>/lessons'], type='http', auth='user', website=True)
+    @http.route(['/my/tutor/courses/<int:course_id>/lessons',
+                 '/my/tutor/courses/<int:course_id>/lessons/'], type='http', auth='user', website=True)
     def portal_tutor_lessons(self, course_id, week='this', **kw):
         tutor = self._get_tutor()
         if not tutor:
-            return request.redirect('/my')
+            return request.redirect('/my/tutor/courses')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or course.tutor_id.id != tutor.id:
+        if not course.exists():
+            return request.redirect('/my/tutor/courses')
+        if course.tutor_id and course.tutor_id.id != tutor.id:
             return request.redirect('/my/tutor/courses')
 
         today = fields.Date.today()
@@ -435,11 +464,28 @@ class TuitionPortal(CustomerPortal):
             ('start_datetime', '<=', datetime.combine(end_date, datetime.max.time())),
         ], order='start_datetime asc')
 
+        # Pre-format datetimes to avoid QWeb formatting errors
+        occ_data = []
+        for occ in occurrences:
+            try:
+                date_str = occ.start_datetime.strftime('%a, %d %b %Y') if occ.start_datetime else ''
+                time_str = occ.start_datetime.strftime('%I:%M %p') if occ.start_datetime else ''
+            except Exception:
+                date_str = str(occ.start_datetime) if occ.start_datetime else ''
+                time_str = ''
+            occ_data.append({
+                'occ': occ,
+                'date_str': date_str,
+                'time_str': time_str,
+            })
+
         return request.render('tuition_management.portal_tutor_lessons', {
             'tutor': tutor,
             'course': course,
             'occurrences': occurrences,
+            'occ_data': occ_data,
             'current_week': week,
+            'back_url': f'/my/tutor/courses/{course.id}',
             'page_name': 'tutor_lessons',
         })
 
@@ -447,9 +493,11 @@ class TuitionPortal(CustomerPortal):
     def portal_tutor_attendance_form(self, occurrence_id, **kw):
         tutor = self._get_tutor()
         if not tutor:
-            return request.redirect('/my')
+            return request.redirect('/my/tutor/courses')
         occurrence = request.env['class.schedule.occurrence'].sudo().browse(occurrence_id)
-        if not occurrence.exists() or occurrence.tutor_id.id != tutor.id:
+        if not occurrence.exists():
+            return request.redirect('/my/tutor/courses')
+        if occurrence.tutor_id and occurrence.tutor_id.id != tutor.id:
             return request.redirect('/my/tutor/courses')
 
         enrolled = occurrence.course_id.enrollment_ids.filtered(lambda e: e.status == 'active')
@@ -471,7 +519,9 @@ class TuitionPortal(CustomerPortal):
             'occurrence': occurrence,
             'course': occurrence.course_id,
             'student_data': student_data,
+            'back_url': f'/my/tutor/courses/{occurrence.course_id.id}',
             'page_name': 'tutor_attendance',
+            'csrf_token': request.csrf_token(),
         })
 
     @http.route(['/my/tutor/lesson/<int:occurrence_id>/attendance/save'], type='http',
@@ -479,9 +529,11 @@ class TuitionPortal(CustomerPortal):
     def portal_tutor_attendance_save(self, occurrence_id, **kw):
         tutor = self._get_tutor()
         if not tutor:
-            return request.redirect('/my')
+            return request.redirect('/my/tutor/courses')
         occurrence = request.env['class.schedule.occurrence'].sudo().browse(occurrence_id)
-        if not occurrence.exists() or occurrence.tutor_id.id != tutor.id:
+        if not occurrence.exists():
+            return request.redirect('/my/tutor/courses')
+        if occurrence.tutor_id and occurrence.tutor_id.id != tutor.id:
             return request.redirect('/my/tutor/courses')
 
         lesson_status = kw.get('lesson_status', 'completed')
@@ -516,7 +568,7 @@ class TuitionPortal(CustomerPortal):
 
         occurrence.sudo().write({'lesson_status': lesson_status})
         course_id = occurrence.course_id.id
-        return request.redirect(f'/my/tutor/courses/{course_id}/lessons?saved=1')
+        return request.redirect(f'/my/tutor/courses/{course_id}')
 
     @http.route(['/my/tutor/courses/<int:course_id>/assignments'], type='http', auth='user', website=True)
     def portal_tutor_assignments(self, course_id, **kw):
@@ -533,6 +585,7 @@ class TuitionPortal(CustomerPortal):
             'course': course,
             'assignments': assignments,
             'page_name': 'tutor_assignments',
+            'csrf_token': request.csrf_token(),
         })
 
     @http.route(['/my/tutor/courses/<int:course_id>/assignments/create'], type='http',
@@ -586,6 +639,7 @@ class TuitionPortal(CustomerPortal):
             'course': assignment.course_id,
             'submissions': submissions,
             'page_name': 'tutor_assignment_detail',
+            'csrf_token': request.csrf_token(),
         })
 
     @http.route(['/my/tutor/submission/<int:submission_id>/grade'], type='http',
