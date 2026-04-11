@@ -290,6 +290,68 @@ class TuitionPortal(CustomerPortal):
     # STUDENT PORTAL
     # ──────────────────────────────────────────────
 
+    @http.route(['/my/student/schedule'], type='http', auth='user', website=True)
+    def portal_student_schedule(self, week='this', **kw):
+        student = self._get_student()
+        if not student:
+            return request.redirect('/my')
+        enrollments = request.env['course.enrollment'].sudo().search([
+            ('student_id', '=', student.id), ('status', '=', 'active'),
+        ])
+        course_ids = enrollments.mapped('course_id').ids
+
+        today = fields.Date.today()
+        try:
+            week_offset = int(kw.get('week_offset', 0))
+        except (ValueError, TypeError):
+            week_offset = 0
+        start_of_week = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+        end_of_week = start_of_week + timedelta(days=6)
+        week_label = '%s — %s' % (start_of_week.strftime('%d %b'), end_of_week.strftime('%d %b %Y'))
+        if week_offset == 0:
+            week_label = 'This Week (%s)' % week_label
+
+        occurrences = request.env['class.schedule.occurrence'].sudo().search([
+            ('course_id', 'in', course_ids),
+            ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
+            ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
+        ], order='start_datetime asc')
+
+        attendance = request.env['attendance.record'].sudo().search([
+            ('student_id', '=', student.id),
+            ('class_schedule_occurrence_id', 'in', occurrences.ids),
+        ])
+        attendance_map = {a.class_schedule_occurrence_id.id: a.status for a in attendance}
+
+        occ_data = []
+        for occ in occurrences:
+            try:
+                date_str = occ.start_datetime.strftime('%a, %d %b %Y') if occ.start_datetime else ''
+                time_str = occ.start_datetime.strftime('%I:%M %p') if occ.start_datetime else ''
+            except Exception:
+                date_str = str(occ.start_datetime) if occ.start_datetime else ''
+                time_str = ''
+            att_status = attendance_map.get(occ.id, '')
+            occ_data.append({
+                'occ': occ,
+                'date_str': date_str,
+                'time_str': time_str,
+                'att_status': att_status,
+            })
+
+        return request.render('tuition_management.portal_student_schedule', {
+            'user': request.env.user,
+            'is_student': True,
+            'is_tutor': False,
+            'is_parent': False,
+            'student': student,
+            'occ_data': occ_data,
+            'week_offset': week_offset,
+            'week_label': week_label,
+            'page_name': 'student_schedule',
+            'page_title': 'My Schedule',
+        })
+
     @http.route(['/my/courses'], type='http', auth='user', website=True)
     def portal_my_courses(self, **kw):
         student = self._get_student()
@@ -333,9 +395,25 @@ class TuitionPortal(CustomerPortal):
         assignments = request.env['course.assignment'].sudo().search([
             ('course_id', '=', course.id)
         ])
+
+        # Weekly occurrences with prev/next navigation
+        today = fields.Date.today()
+        try:
+            week_offset = int(kw.get('week_offset', 0))
+        except (ValueError, TypeError):
+            week_offset = 0
+        start_of_week = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+        end_of_week = start_of_week + timedelta(days=6)
+        week_label = '%s — %s' % (start_of_week.strftime('%d %b'), end_of_week.strftime('%d %b %Y'))
+        if week_offset == 0:
+            week_label = 'This Week (%s)' % week_label
+
         occurrences = request.env['class.schedule.occurrence'].sudo().search([
-            ('course_id', '=', course.id)
-        ], order='start_datetime desc', limit=20)
+            ('course_id', '=', course.id),
+            ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
+            ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
+        ], order='start_datetime asc')
+
         attendance = request.env['attendance.record'].sudo().search([
             ('student_id', '=', enrollment.student_id.id),
             ('class_schedule_occurrence_id', 'in', occurrences.ids)
@@ -350,12 +428,15 @@ class TuitionPortal(CustomerPortal):
             'user': request.env.user,
             'is_student': bool(student),
             'is_parent': bool(parent),
+            'is_tutor': False,
             'enrollment': enrollment,
             'course': course,
             'assignments': assignments,
             'occurrences': occurrences,
             'attendance_map': attendance_map,
             'progress_reports': progress_reports,
+            'week_offset': week_offset,
+            'week_label': week_label,
             'page_name': 'my_courses',
             'page_title': course.name,
         }
@@ -901,6 +982,104 @@ class TuitionPortal(CustomerPortal):
     # ──────────────────────────────────────────────
     # PARENT PORTAL
     # ──────────────────────────────────────────────
+
+    @http.route(['/my/parent/schedule'], type='http', auth='user', website=True)
+    def portal_parent_schedule(self, **kw):
+        parent = self._get_parent()
+        if not parent:
+            return request.redirect('/my')
+        child_ids = parent.student_ids.ids
+        course_ids = request.env['course.enrollment'].sudo().search([
+            ('student_id', 'in', child_ids), ('status', '=', 'active'),
+        ]).mapped('course_id').ids
+
+        today = fields.Date.today()
+        try:
+            week_offset = int(kw.get('week_offset', 0))
+        except (ValueError, TypeError):
+            week_offset = 0
+        start_of_week = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
+        end_of_week = start_of_week + timedelta(days=6)
+        week_label = '%s — %s' % (start_of_week.strftime('%d %b'), end_of_week.strftime('%d %b %Y'))
+        if week_offset == 0:
+            week_label = 'This Week (%s)' % week_label
+
+        occurrences = request.env['class.schedule.occurrence'].sudo().search([
+            ('course_id', 'in', course_ids),
+            ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
+            ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
+        ], order='start_datetime asc')
+
+        # Build attendance map for all children
+        attendance = request.env['attendance.record'].sudo().search([
+            ('student_id', 'in', child_ids),
+            ('class_schedule_occurrence_id', 'in', occurrences.ids),
+        ])
+        att_by_occ = {}
+        for a in attendance:
+            att_by_occ.setdefault(a.class_schedule_occurrence_id.id, []).append({
+                'student_name': a.student_id.name,
+                'status': a.status,
+            })
+
+        occ_data = []
+        for occ in occurrences:
+            try:
+                date_str = occ.start_datetime.strftime('%a, %d %b %Y') if occ.start_datetime else ''
+                time_str = occ.start_datetime.strftime('%I:%M %p') if occ.start_datetime else ''
+            except Exception:
+                date_str = str(occ.start_datetime) if occ.start_datetime else ''
+                time_str = ''
+            occ_data.append({
+                'occ': occ,
+                'date_str': date_str,
+                'time_str': time_str,
+                'attendance': att_by_occ.get(occ.id, []),
+            })
+
+        return request.render('tuition_management.portal_parent_schedule', {
+            'user': request.env.user,
+            'is_parent': True,
+            'is_student': False,
+            'is_tutor': False,
+            'parent': parent,
+            'occ_data': occ_data,
+            'week_offset': week_offset,
+            'week_label': week_label,
+            'page_name': 'parent_schedule',
+            'page_title': 'Schedules',
+        })
+
+    @http.route(['/my/parent/progress'], type='http', auth='user', website=True)
+    def portal_parent_progress(self, **kw):
+        parent = self._get_parent()
+        if not parent:
+            return request.redirect('/my')
+        child_data = []
+        for child in parent.student_ids:
+            reports = request.env['progress.report'].sudo().search([
+                ('student_id', '=', child.id),
+            ], order='report_date desc', limit=20)
+            total_att = request.env['attendance.record'].sudo().search_count([
+                ('student_id', '=', child.id)])
+            present_att = request.env['attendance.record'].sudo().search_count([
+                ('student_id', '=', child.id), ('status', '=', 'present')])
+            att_rate = ('%d%%' % round(present_att * 100 / total_att)) if total_att else '—'
+            child_data.append({
+                'student': child,
+                'reports': reports,
+                'attendance_rate': att_rate,
+            })
+        return request.render('tuition_management.portal_parent_progress', {
+            'user': request.env.user,
+            'is_parent': True,
+            'is_student': False,
+            'is_tutor': False,
+            'parent': parent,
+            'child_data': child_data,
+            'page_name': 'parent_progress',
+            'page_title': 'Progress',
+        })
 
     @http.route(['/my/parent/children/<int:student_id>'], type='http', auth='user', website=True)
     def portal_parent_child_detail(self, student_id, **kw):

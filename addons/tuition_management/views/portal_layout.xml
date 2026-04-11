@@ -60,21 +60,10 @@
                                     <span class="tm-nav-badge"><t t-esc="assignment_count"/></span>
                                 </t>
                             </a>
-                            <a href="/my/attendance"
-                               t-attf-class="tm-nav-item #{page_name == 'attendance' and 'active' or ''}">
-                                <i class="fa fa-calendar-check-o"/>
-                                Attendance
-                            </a>
-                            <a href="/my/progress"
-                               t-attf-class="tm-nav-item #{page_name == 'progress' and 'active' or ''}">
-                                <i class="fa fa-line-chart"/>
-                                Progress
-                            </a>
-                            <div class="tm-sidebar-section">Billing</div>
-                            <a href="/my/tuition/invoices"
-                               t-attf-class="tm-nav-item #{page_name == 'tuition_invoices' and 'active' or ''}">
-                                <i class="fa fa-file-text-o"/>
-                                Invoices
+                            <a href="/my/student/schedule"
+                               t-attf-class="tm-nav-item #{page_name == 'student_schedule' and 'active' or ''}">
+                                <i class="fa fa-calendar"/>
+                                Schedule
                             </a>
                         </t>
 
@@ -98,6 +87,16 @@
                                t-attf-class="tm-nav-item #{page_name == 'parent_children' and 'active' or ''}">
                                 <i class="fa fa-users"/>
                                 My Children
+                            </a>
+                            <a href="/my/parent/schedule"
+                               t-attf-class="tm-nav-item #{page_name == 'parent_schedule' and 'active' or ''}">
+                                <i class="fa fa-calendar"/>
+                                Schedules
+                            </a>
+                            <a href="/my/parent/progress"
+                               t-attf-class="tm-nav-item #{page_name == 'parent_progress' and 'active' or ''}">
+                                <i class="fa fa-line-chart"/>
+                                Progress
                             </a>
                             <a href="/my/tuition/invoices"
                                t-attf-class="tm-nav-item #{page_name == 'tuition_invoices' and 'active' or ''}">
@@ -208,26 +207,23 @@
                 </div>
                 <div class="tm-stat-action">View Assignments →</div>
             </a>
-            <a href="/my/tuition/invoices" class="tm-stat-card">
-                <div class="tm-stat-card-top">
-                    <div>
-                        <div class="tm-stat-value"><t t-esc="unpaid_invoices or 0"/></div>
-                        <div class="tm-stat-label">Unpaid Invoices</div>
-                        <t t-if="amount_due">
-                            <div class="tm-stat-sub">£<t t-esc="'%.2f' % amount_due"/> Due</div>
-                        </t>
-                    </div>
-                    <div class="tm-stat-icon red"><i class="fa fa-file-text-o"/></div>
-                </div>
-                <div class="tm-stat-action">View Invoices →</div>
-            </a>
-            <div class="tm-stat-card">
+            <a href="/my/student/schedule" class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div>
                         <div class="tm-stat-value"><t t-esc="attendance_rate or '—'"/></div>
                         <div class="tm-stat-label">Attendance Rate</div>
                     </div>
                     <div class="tm-stat-icon green"><i class="fa fa-calendar-check-o"/></div>
+                </div>
+                <div class="tm-stat-action">View Schedule →</div>
+            </a>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="course_count or 0"/></div>
+                        <div class="tm-stat-label">Active Courses</div>
+                    </div>
+                    <div class="tm-stat-icon purple"><i class="fa fa-book"/></div>
                 </div>
             </div>
         </div>
@@ -624,16 +620,25 @@
                 <t t-else=""><div class="tm-empty"><i class="fa fa-tasks"/><p>No assignments.</p></div></t>
             </div>
 
-            <!-- Sessions + Attendance -->
+            <!-- Sessions + Attendance (weekly) -->
             <div class="tm-card">
-                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-calendar"/> Sessions &amp; Attendance</div></div>
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-calendar"/> Sessions &amp; Attendance</div>
+                </div>
+                <div style="padding:10px 16px;border-bottom:1px solid var(--tm-border);display:flex;justify-content:space-between;align-items:center;">
+                    <a t-attf-href="/my/courses/#{enrollment.id}?week_offset=#{(week_offset or 0) - 1}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-chevron-left"/> Prev</a>
+                    <span style="font-size:12px;font-weight:600;color:var(--tm-text);">
+                        <t t-esc="week_label or 'This Week'"/>
+                    </span>
+                    <a t-attf-href="/my/courses/#{enrollment.id}?week_offset=#{(week_offset or 0) + 1}" class="tm-btn tm-btn-outline tm-btn-sm">Next <i class="fa fa-chevron-right"/></a>
+                </div>
                 <t t-if="occurrences">
                     <table class="tm-table">
                         <thead><tr><th>Date</th><th>Session</th><th>Attendance</th></tr></thead>
                         <tbody>
                             <t t-foreach="occurrences" t-as="occ">
                                 <tr>
-                                    <td style="white-space:nowrap;"><t t-esc="occ.start_datetime and occ.start_datetime.strftime('%d %b %Y') or '—'"/></td>
+                                    <td style="white-space:nowrap;"><t t-esc="occ.start_datetime and occ.start_datetime.strftime('%a %d %b, %H:%M') or '—'"/></td>
                                     <td><span t-attf-class="tm-badge #{occ.lesson_status == 'completed' and 'tm-badge-green' or occ.lesson_status == 'cancelled' and 'tm-badge-red' or 'tm-badge-blue'}"><t t-esc="occ.lesson_status.capitalize()"/></span></td>
                                     <td>
                                         <t t-set="att" t-value="attendance_map.get(occ.id)"/>
@@ -646,7 +651,7 @@
                         </tbody>
                     </table>
                 </t>
-                <t t-else=""><div class="tm-empty"><i class="fa fa-calendar"/><p>No sessions yet.</p></div></t>
+                <t t-else=""><div class="tm-empty"><i class="fa fa-calendar"/><p>No sessions this week.</p></div></t>
             </div>
         </div>
 
@@ -782,6 +787,183 @@
             </t>
             <t t-else=""><div class="tm-empty"><i class="fa fa-calendar"/><p>No attendance records.</p></div></t>
         </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- STUDENT: SCHEDULE (All Courses, Weekly)             -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_student_schedule">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">student_schedule</t>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-calendar"/> My Schedule</h5>
+
+        <div class="tm-card">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-list"/> Sessions</div>
+            </div>
+            <div style="padding:10px 16px;border-bottom:1px solid var(--tm-border);display:flex;justify-content:space-between;align-items:center;">
+                <a t-attf-href="/my/student/schedule?week_offset=#{(week_offset or 0) - 1}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-chevron-left"/> Prev</a>
+                <span style="font-size:12px;font-weight:600;color:var(--tm-text);"><t t-esc="week_label or 'This Week'"/></span>
+                <a t-attf-href="/my/student/schedule?week_offset=#{(week_offset or 0) + 1}" class="tm-btn tm-btn-outline tm-btn-sm">Next <i class="fa fa-chevron-right"/></a>
+            </div>
+            <t t-if="occ_data">
+                <table class="tm-table">
+                    <thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Tutor</th><th>Status</th><th>Attendance</th></tr></thead>
+                    <tbody>
+                        <t t-foreach="occ_data" t-as="od">
+                            <tr>
+                                <td class="fw-bold" style="white-space:nowrap;"><t t-esc="od['date_str']"/></td>
+                                <td><t t-esc="od['time_str']"/></td>
+                                <td><t t-esc="od['occ'].course_id.name or '—'"/></td>
+                                <td><t t-esc="od['occ'].tutor_id.name or '—'"/></td>
+                                <td>
+                                    <span t-attf-class="tm-badge #{od['occ'].lesson_status == 'completed' and 'tm-badge-green' or od['occ'].lesson_status == 'cancelled' and 'tm-badge-red' or od['occ'].lesson_status == 'no_show' and 'tm-badge-orange' or 'tm-badge-blue'}">
+                                        <t t-esc="od['occ'].lesson_status.capitalize()"/>
+                                    </span>
+                                </td>
+                                <td>
+                                    <t t-if="od['att_status']">
+                                        <span t-attf-class="tm-badge #{od['att_status'] == 'present' and 'tm-badge-green' or od['att_status'] == 'absent' and 'tm-badge-red' or od['att_status'] == 'late' and 'tm-badge-orange' or 'tm-badge-grey'}">
+                                            <t t-esc="od['att_status'].capitalize()"/>
+                                        </span>
+                                    </t>
+                                    <t t-else=""><span class="tm-badge tm-badge-grey">—</span></t>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else="">
+                <div class="tm-empty"><i class="fa fa-calendar"/><p>No sessions this week.</p></div>
+            </t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PARENT: SCHEDULE (All Children, Weekly)             -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_parent_schedule">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">parent_schedule</t>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-calendar"/> Schedules</h5>
+
+        <div class="tm-card">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-list"/> Sessions</div>
+            </div>
+            <div style="padding:10px 16px;border-bottom:1px solid var(--tm-border);display:flex;justify-content:space-between;align-items:center;">
+                <a t-attf-href="/my/parent/schedule?week_offset=#{(week_offset or 0) - 1}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-chevron-left"/> Prev</a>
+                <span style="font-size:12px;font-weight:600;color:var(--tm-text);"><t t-esc="week_label or 'This Week'"/></span>
+                <a t-attf-href="/my/parent/schedule?week_offset=#{(week_offset or 0) + 1}" class="tm-btn tm-btn-outline tm-btn-sm">Next <i class="fa fa-chevron-right"/></a>
+            </div>
+            <t t-if="occ_data">
+                <table class="tm-table">
+                    <thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Tutor</th><th>Status</th><th>Attendance</th></tr></thead>
+                    <tbody>
+                        <t t-foreach="occ_data" t-as="od">
+                            <tr>
+                                <td class="fw-bold" style="white-space:nowrap;"><t t-esc="od['date_str']"/></td>
+                                <td><t t-esc="od['time_str']"/></td>
+                                <td><t t-esc="od['occ'].course_id.name or '—'"/></td>
+                                <td><t t-esc="od['occ'].tutor_id.name or '—'"/></td>
+                                <td>
+                                    <span t-attf-class="tm-badge #{od['occ'].lesson_status == 'completed' and 'tm-badge-green' or od['occ'].lesson_status == 'cancelled' and 'tm-badge-red' or od['occ'].lesson_status == 'no_show' and 'tm-badge-orange' or 'tm-badge-blue'}">
+                                        <t t-esc="od['occ'].lesson_status.capitalize()"/>
+                                    </span>
+                                </td>
+                                <td>
+                                    <t t-if="od['attendance']">
+                                        <t t-foreach="od['attendance']" t-as="att_rec">
+                                            <div style="font-size:11px;margin-bottom:2px;">
+                                                <strong><t t-esc="att_rec['student_name']"/>:</strong>
+                                                <span t-attf-class="tm-badge tm-btn-sm #{att_rec['status'] == 'present' and 'tm-badge-green' or att_rec['status'] == 'absent' and 'tm-badge-red' or att_rec['status'] == 'late' and 'tm-badge-orange' or 'tm-badge-grey'}">
+                                                    <t t-esc="att_rec['status'].capitalize()"/>
+                                                </span>
+                                            </div>
+                                        </t>
+                                    </t>
+                                    <t t-else=""><span class="tm-badge tm-badge-grey">—</span></t>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else="">
+                <div class="tm-empty"><i class="fa fa-calendar"/><p>No sessions this week.</p></div>
+            </t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PARENT: PROGRESS                                    -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_parent_progress">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">parent_progress</t>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-line-chart"/> Progress</h5>
+
+        <t t-if="child_data">
+            <t t-foreach="child_data" t-as="cd">
+                <div class="tm-card" style="margin-bottom:20px;">
+                    <div class="tm-card-header">
+                        <div class="tm-card-title">
+                            <i class="fa fa-user-circle"/>
+                            <t t-esc="cd['student'].name"/>
+                            <t t-if="cd['student'].grade_id">
+                                <span class="tm-badge tm-badge-purple" style="font-size:11px;margin-left:8px;">
+                                    <t t-esc="cd['student'].grade_id.name"/>
+                                </span>
+                            </t>
+                        </div>
+                        <span class="tm-badge tm-badge-blue" style="font-size:11px;">
+                            Attendance: <t t-esc="cd['attendance_rate']"/>
+                        </span>
+                    </div>
+                    <t t-if="cd['reports']">
+                        <table class="tm-table">
+                            <thead><tr><th>Date</th><th>Course</th><th>Title</th><th>Rating</th><th>Score</th><th>Comments</th></tr></thead>
+                            <tbody>
+                                <t t-foreach="cd['reports']" t-as="rpt">
+                                    <tr>
+                                        <td style="white-space:nowrap;"><t t-esc="rpt.report_date"/></td>
+                                        <td><t t-esc="rpt.course_id.name"/></td>
+                                        <td class="fw-bold"><t t-esc="rpt.name"/></td>
+                                        <td>
+                                            <t t-if="rpt.overall_rating">
+                                                <span t-attf-class="tm-badge #{rpt.overall_rating == 'excellent' and 'tm-badge-green' or rpt.overall_rating == 'good' and 'tm-badge-blue' or rpt.overall_rating == 'satisfactory' and 'tm-badge-orange' or 'tm-badge-red'}">
+                                                    <t t-esc="rpt.overall_rating.replace('_',' ').capitalize()"/>
+                                                </span>
+                                            </t>
+                                            <t t-else="">—</t>
+                                        </td>
+                                        <td><t t-esc="rpt.score and ('%.0f / %.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
+                                        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                            <t t-esc="rpt.comments or rpt.strengths or '—'"/>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                    <t t-else="">
+                        <div class="tm-empty"><i class="fa fa-line-chart"/><p>No progress reports yet for <t t-esc="cd['student'].name"/>.</p></div>
+                    </t>
+                </div>
+            </t>
+        </t>
+        <t t-else="">
+            <div class="tm-card">
+                <div class="tm-empty"><i class="fa fa-child"/><p>No children found.</p></div>
+            </div>
+        </t>
     </t>
 </template>
 
