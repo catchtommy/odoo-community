@@ -324,6 +324,26 @@ class TuitionPortal(CustomerPortal):
             ('course_id', '=', course.id),
             ('student_id', '=', enrollment.student_id.id),
         ], order='report_date desc')
+        next_lesson = request.env['class.schedule.occurrence'].sudo().search([
+            ('course_id', '=', course.id),
+            ('start_datetime', '>=', fields.Datetime.now()),
+            ('lesson_status', '=', 'scheduled'),
+        ], order='start_datetime asc', limit=1)
+        now = fields.Datetime.now()
+        time_remaining = None
+        if next_lesson and next_lesson.start_datetime:
+            delta = next_lesson.start_datetime - now
+            total_minutes = int(delta.total_seconds() // 60)
+            if total_minutes > 0:
+                days = total_minutes // 1440
+                hours = (total_minutes % 1440) // 60
+                mins = total_minutes % 60
+                if days > 0:
+                    time_remaining = '%dd %dh %dm' % (days, hours, mins)
+                elif hours > 0:
+                    time_remaining = '%dh %dm' % (hours, mins)
+                else:
+                    time_remaining = '%d minutes' % mins
 
         values = {
             'user': request.env.user,
@@ -335,6 +355,8 @@ class TuitionPortal(CustomerPortal):
             'occurrences': occurrences,
             'attendance_map': attendance_map,
             'progress_reports': progress_reports,
+            'next_lesson': next_lesson,
+            'time_remaining': time_remaining,
             'page_name': 'my_courses',
             'page_title': course.name,
         }
@@ -531,6 +553,165 @@ class TuitionPortal(CustomerPortal):
             'course_data': course_data,
             'lesson_count': lesson_count,
             'page_name': 'tutor_courses',
+        })
+
+    @http.route(['/my/tutor/progress-reports'], type='http', auth='user', website=True)
+    def portal_tutor_progress_reports(self, course_id=None, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        domain = [('tutor_id', '=', tutor.id)]
+        courses = request.env['course.master'].sudo().search([('tutor_id', '=', tutor.id)])
+        selected_course = None
+        if course_id:
+            domain.append(('course_id', '=', int(course_id)))
+            selected_course = request.env['course.master'].sudo().browse(int(course_id))
+        reports = request.env['progress.report'].sudo().search(domain, order='report_date desc')
+        return request.render('tuition_management.portal_tutor_progress_reports', {
+            'user': request.env.user,
+            'is_tutor': True, 'is_student': False, 'is_parent': False,
+            'tutor': tutor, 'reports': reports, 'courses': courses,
+            'selected_course': selected_course, 'course_id': course_id,
+            'page_name': 'tutor_progress_reports', 'page_title': 'Progress Reports',
+        })
+
+    @http.route('/my/tutor/progress-reports/create', type='http', auth='user', website=True)
+    def tutor_progress_report_create(self, course_id=None, back_url=None, **kwargs):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        course = None
+        if course_id:
+            course = request.env['course.master'].sudo().browse(int(course_id))
+            if not course.exists():
+                course = None
+        courses = request.env['course.master'].sudo().search([('tutor_id', '=', tutor.id)])
+        students = request.env['student.profile'].sudo().search([])
+        if not back_url:
+            back_url = '/my/tutor/progress-reports'
+        return request.render('tuition_management.portal_tutor_progress_report_form', {
+            'tutor': tutor,
+            'course': course,
+            'courses': courses,
+            'students': students,
+            'report': None,
+            'back_url': back_url,
+            'csrf_token': request.csrf_token(),
+        })
+
+    @http.route(['/my/tutor/progress-reports/create/save'], type='http', auth='user', website=True, methods=['POST'])
+    def portal_tutor_progress_report_create_save(self, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        course_id = int(kw.get('course_id') or 0)
+        student_id = int(kw.get('student_id') or 0)
+        if not course_id or not student_id:
+            return request.redirect('/my/tutor/progress-reports')
+        report = request.env['progress.report'].sudo().create({
+            'name': kw.get('name') or 'Progress Report',
+            'course_id': course_id,
+            'student_id': student_id,
+            'tutor_id': tutor.id,
+            'report_date': kw.get('report_date') or fields.Date.today(),
+            'overall_rating': kw.get('overall_rating') or False,
+            'score': float(kw.get('score') or 0),
+            'max_score': float(kw.get('max_score') or 100),
+            'strengths': kw.get('strengths', ''),
+            'areas_for_improvement': kw.get('areas_for_improvement', ''),
+            'comments': kw.get('comments', ''),
+            'homework_notes': kw.get('homework_notes', ''),
+        })
+        return request.redirect('/my/tutor/progress-reports/%d/edit?saved=1' % report.id)
+
+    @http.route(['/my/tutor/progress-reports/<int:report_id>/edit'], type='http', auth='user', website=True)
+    def portal_tutor_progress_report_edit(self, report_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        report = request.env['progress.report'].sudo().browse(report_id)
+        if not report.exists() or report.tutor_id.id != tutor.id:
+            return request.redirect('/my/tutor/progress-reports')
+        courses = request.env['course.master'].sudo().search([('tutor_id', '=', tutor.id)])
+        enrollments = request.env['course.enrollment'].sudo().search([
+            ('course_id', '=', report.course_id.id), ('status', '=', 'active')
+        ])
+        return request.render('tuition_management.portal_tutor_progress_report_form', {
+            'user': request.env.user,
+            'is_tutor': True, 'is_student': False, 'is_parent': False,
+            'tutor': tutor, 'courses': courses, 'enrollments': enrollments,
+            'preselect_course': report.course_id, 'report': report,
+            'saved': kw.get('saved'),
+            'page_name': 'tutor_progress_reports', 'page_title': 'Edit Progress Report',
+        })
+
+    @http.route(['/my/tutor/progress-reports/<int:report_id>/save'], type='http', auth='user', website=True, methods=['POST'])
+    def portal_tutor_progress_report_save(self, report_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        report = request.env['progress.report'].sudo().browse(report_id)
+        if not report.exists() or report.tutor_id.id != tutor.id:
+            return request.redirect('/my/tutor/progress-reports')
+        report.write({
+            'name': kw.get('name') or report.name,
+            'report_date': kw.get('report_date') or report.report_date,
+            'overall_rating': kw.get('overall_rating') or False,
+            'score': float(kw.get('score') or 0),
+            'max_score': float(kw.get('max_score') or 100),
+            'strengths': kw.get('strengths', ''),
+            'areas_for_improvement': kw.get('areas_for_improvement', ''),
+            'comments': kw.get('comments', ''),
+            'homework_notes': kw.get('homework_notes', ''),
+        })
+        return request.redirect('/my/tutor/progress-reports/%d/edit?saved=1' % report_id)
+
+    @http.route(['/my/tutor/progress-reports/<int:report_id>/delete'], type='http', auth='user', website=True, methods=['POST'])
+    def portal_tutor_progress_report_delete(self, report_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        report = request.env['progress.report'].sudo().browse(report_id)
+        if report.exists() and report.tutor_id.id == tutor.id:
+            report.unlink()
+        return request.redirect('/my/tutor/progress-reports?deleted=1')
+
+    @http.route(['/my/tutor/progress-reports/students'], type='http', auth='user', website=True)
+    def portal_tutor_progress_report_students(self, course_id=None, **kw):
+        tutor = self._get_tutor()
+        if not tutor or not course_id:
+            return request.make_response('[]', headers=[('Content-Type', 'application/json')])
+        enrollments = request.env['course.enrollment'].sudo().search([
+            ('course_id', '=', int(course_id)), ('status', '=', 'active')
+        ])
+        import json
+        data = [{'id': e.student_id.id, 'name': e.student_id.name} for e in enrollments]
+        return request.make_response(json.dumps(data), headers=[('Content-Type', 'application/json')])
+
+    @http.route(['/my/tutor/payments'], type='http', auth='user', website=True)
+    def portal_tutor_payments(self, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        domain = [('move_type', 'in', ['in_invoice', 'in_receipt'])]
+        if tutor.partner_id:
+            domain.append(('partner_id', '=', tutor.partner_id.id))
+        else:
+            domain.append(('id', '=', False))
+        invoices = request.env['account.move'].sudo().search(domain, order='invoice_date desc')
+        total_paid = sum(invoices.filtered(lambda i: i.payment_state == 'paid').mapped('amount_total'))
+        total_pending = sum(invoices.filtered(lambda i: i.payment_state != 'paid' and i.state == 'posted').mapped('amount_residual'))
+        return request.render('tuition_management.portal_tutor_payments', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
+            'tutor': tutor,
+            'invoices': invoices,
+            'total_paid': total_paid,
+            'total_pending': total_pending,
+            'page_name': 'tutor_payments',
+            'page_title': 'My Payments',
         })
 
     @http.route(['/my/tutor/schedule'], type='http', auth='user', website=True)
@@ -866,6 +1047,22 @@ class TuitionPortal(CustomerPortal):
 
         return request.redirect(f'/my/tutor/assignment/{submission.assignment_id.id}?graded=1')
 
+    @http.route('/my/tutor/assignments', type='http', auth='user', website=True)
+    def tutor_all_assignments(self, **kwargs):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my/tutor/courses')
+        courses = request.env['course.master'].sudo().search([('tutor_id', '=', tutor.id)])
+        assignments = request.env['course.assignment'].sudo().search(
+            [('course_id', 'in', courses.ids)], order='due_date asc'
+        )
+        return request.render('tuition_management.portal_tutor_all_assignments', {
+            'tutor': tutor,
+            'assignments': assignments,
+            'courses': courses,
+            'page_name': 'tutor_all_assignments',
+        })
+
     # ──────────────────────────────────────────────
     # PARENT PORTAL
     # ──────────────────────────────────────────────
@@ -941,3 +1138,27 @@ class TuitionPortal(CustomerPortal):
             'page_name': 'parent_children',
             'page_title': 'My Children',
         })
+
+    @http.route(['/my/tutor/courses/<int:course_id>/assignments/new'], type='http', auth='user', website=True)
+    def portal_tutor_assignment_new(self, course_id, back_url=None, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        course = request.env['course.master'].sudo().browse(course_id)
+        if not course.exists() or course.tutor_id.id != tutor.id:
+            return request.redirect('/my/tutor/courses')
+        if not back_url:
+            back_url = '/my/tutor/courses/%d' % course_id
+        return request.render('tuition_management.portal_tutor_assignment_new', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
+            'tutor': tutor,
+            'course': course,
+            'back_url': back_url,
+            'page_name': 'tutor_course_detail',
+            'csrf_token': request.csrf_token(),
+        })
+
+

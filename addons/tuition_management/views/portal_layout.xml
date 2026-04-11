@@ -90,6 +90,17 @@
                                 <i class="fa fa-calendar"/>
                                 Schedule
                             </a>
+                            <a href="/my/tutor/payments"
+                               t-attf-class="tm-nav-item #{page_name == 'tutor_payments' and 'active' or ''}">
+                                <i class="fa fa-money"/>
+                                Payments
+                            </a>
+                            <a href="/my/tutor/progress-reports"
+                               t-attf-class="tm-nav-link #{page_name == 'tutor_progress_reports' and 'active' or ''}">
+                                <i class="fa fa-line-chart"/>
+                                Progress Reports
+                            </a>
+                            <a t-attf-href="/my/tutor/assignments" t-attf-class="tm-nav-link #{page_name == 'tutor_all_assignments' and 'active' or ''}"><i class="fa fa-tasks"/> All Assignments</a>
                         </t>
 
                         <t t-if="is_parent">
@@ -368,26 +379,25 @@
                 <div class="tm-card-title"><i class="fa fa-book"/> My Courses</div>
                 <a href="/my/tutor/courses" class="tm-card-action">View All</a>
             </div>
-            <t t-if="tutor_courses or course_data">
+            <t t-if="tutor_courses or courses or course_data">
                 <table class="tm-table">
                     <thead>
                         <tr><th>Course</th><th>Subject</th><th>Status</th><th>Students</th><th></th></tr>
                     </thead>
                     <tbody>
-                        <t t-foreach="tutor_courses or (cd['course'] for cd in (course_data or []))" t-as="c">
+                        <t t-foreach="tutor_courses or courses or []" t-as="c">
                             <tr>
                                 <td class="fw-bold"><t t-esc="c.name"/></td>
                                 <td><t t-esc="c.subject_id.name or '—'"/></td>
                                 <td><span t-attf-class="tm-badge #{c.status == 'active' and 'tm-badge-green' or 'tm-badge-grey'}"><t t-esc="(c.status or 'draft').capitalize()"/></span></td>
                                 <td><t t-esc="len(c.enrollment_ids) or 0"/></td>
-                                <td><a t-attf-href="/my/tutor/courses/#{c.id}" class="tm-btn tm-btn-outline tm-btn-sm">View</a></td>
+                                <td><a t-att-href="/my/tutor/courses/#{c.id}" class="tm-btn tm-btn-outline tm-btn-sm">View</a></td>
                             </tr>
                         </t>
                     </tbody>
                 </table>
             </t>
-            <t t-else=""><div class="tm-empty"><i class="fa fa-book"/><p>No courses assigned.</p></div></t>
-        </div>
+            <t t-else=""><div class="tm-empty"><i class="fa fa-book"/><p>No courses assigned.</p></div></t>        </div>
     </t>
 </template>
 
@@ -526,6 +536,23 @@
 <template id="portal_course_detail">
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">my_courses</t>
+
+        <!-- Next Lesson Banner -->
+        <t t-if="next_lesson">
+            <div style="background:linear-gradient(135deg,#1976D2,#1565C0);border-radius:12px;padding:16px 20px;margin-bottom:20px;color:#fff;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                <div>
+                    <div style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;opacity:0.85;margin-bottom:4px;"><i class="fa fa-clock-o"/> Next Session</div>
+                    <div style="font-size:16px;font-weight:700;"><t t-esc="next_lesson.start_datetime and next_lesson.start_datetime.strftime('%A, %d %B %Y at %H:%M') or '—'"/></div>
+                    <t t-if="next_lesson.name"><div style="font-size:12px;opacity:0.85;margin-top:2px;"><t t-esc="next_lesson.name"/></div></t>
+                </div>
+                <t t-if="time_remaining">
+                    <div style="background:rgba(255,255,255,0.2);border-radius:10px;padding:10px 18px;text-align:center;">
+                        <div style="font-size:20px;font-weight:800;line-height:1;"><t t-esc="time_remaining"/></div>
+                        <div style="font-size:10px;text-transform:uppercase;opacity:0.8;margin-top:2px;">remaining</div>
+                    </div>
+                </t>
+            </div>
+        </t>
 
         <div style="margin-bottom:16px;">
             <a href="/my/courses" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Courses</a>
@@ -735,6 +762,291 @@
                 </table>
             </t>
             <t t-else=""><div class="tm-empty"><i class="fa fa-calendar"/><p>No attendance records.</p></div></t>
+        </div>
+    </t>
+</template>
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TUTOR: PROGRESS REPORTS LIST                        -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_tutor_progress_reports">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_progress_reports</t>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+            <h5 style="margin:0;font-weight:700;"><i class="fa fa-line-chart"/> Progress Reports</h5>
+            <a href="/my/tutor/progress-reports/create" class="tm-btn tm-btn-primary"><i class="fa fa-plus"/> New Report</a>
+        </div>
+
+        <t t-if="request.params.get('deleted')">
+            <div style="background:#FDEAEA;color:#c05050;border-radius:10px;padding:12px 16px;margin-bottom:16px;"><i class="fa fa-trash"/> Report deleted.</div>
+        </t>
+
+        <!-- Filter by course -->
+        <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+            <span style="font-size:12px;color:var(--tm-text-light);">Filter:</span>
+            <a href="/my/tutor/progress-reports" t-attf-class="tm-btn tm-btn-sm #{not selected_course and 'tm-btn-primary' or 'tm-btn-outline'}">All</a>
+            <t t-foreach="courses" t-as="c">
+                <a t-attf-href="/my/tutor/progress-reports?course_id=#{c.id}" t-attf-class="tm-btn tm-btn-sm #{selected_course and selected_course.id == c.id and 'tm-btn-primary' or 'tm-btn-outline'}"><t t-esc="c.name"/></a>
+            </t>
+        </div>
+
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> All Reports</div></div>
+            <t t-if="reports">
+                <table class="tm-table">
+                    <thead><tr><th>Date</th><th>Title</th><th>Student</th><th>Course</th><th>Rating</th><th>Score</th><th></th></tr></thead>
+                    <tbody>
+                        <t t-foreach="reports" t-as="rpt">
+                            <tr>
+                                <td style="white-space:nowrap;"><t t-esc="rpt.report_date"/></td>
+                                <td class="fw-bold"><t t-esc="rpt.name"/></td>
+                                <td><t t-esc="rpt.student_id.name"/></td>
+                                <td><t t-esc="rpt.course_id.name"/></td>
+                                <td>
+                                    <t t-if="rpt.overall_rating">
+                                        <span t-attf-class="tm-badge #{rpt.overall_rating == 'excellent' and 'tm-badge-green' or rpt.overall_rating == 'good' and 'tm-badge-blue' or rpt.overall_rating == 'satisfactory' and 'tm-badge-orange' or 'tm-badge-red'}">
+                                            <t t-esc="rpt.overall_rating.replace('_',' ').capitalize()"/>
+                                        </span>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td><t t-esc="rpt.score and ('%.0f/%.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
+                                <td style="display:flex;gap:4px;">
+                                    <a t-attf-href="/my/tutor/progress-reports/#{rpt.id}/edit" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-edit"/></a>
+                                    <form t-attf-action="/my/tutor/progress-reports/#{rpt.id}/delete" method="POST" style="display:inline;" onsubmit="return confirm('Delete this report?')">
+                                        <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+                                        <button type="submit" class="tm-btn tm-btn-sm" style="background:#FDEAEA;color:#c05050;border:1px solid #f5c6c6;"><i class="fa fa-trash"/></button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else=""><div class="tm-empty"><i class="fa fa-line-chart"/><p>No progress reports yet. <a href="/my/tutor/progress-reports/create">Create one</a>.</p></div></t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TUTOR: PROGRESS REPORT FORM (Create / Edit)         -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_tutor_progress_report_form">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_progress_reports</t>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+            <h5 style="margin:0;font-weight:700;"><i class="fa fa-line-chart"/> <t t-if="report">Edit</t><t t-else="">New</t> Progress Report</h5>
+            <a href="/my/tutor/progress-reports" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back</a>
+        </div>
+
+        <t t-if="saved">
+            <div style="background:#EDF7ED;color:#4a8a4e;border-radius:10px;padding:12px 16px;margin-bottom:16px;"><i class="fa fa-check-circle"/> Report saved successfully!</div>
+        </t>
+
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-edit"/> Report Details</div></div>
+            <div class="tm-card-body">
+                <t t-set="form_action" t-value="'/my/tutor/progress-reports/%d/save' % report.id if report else '/my/tutor/progress-reports/create/save'"/>
+                <form t-att-action="form_action" method="POST">
+                    <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+
+                    <div class="tm-form-row">
+                        <div class="tm-field">
+                            <label class="tm-required">Title</label>
+                            <input type="text" name="name" class="form-control form-control-sm" required="required"
+                                   t-att-value="report.name if report else ''" placeholder="e.g. Week 3 Progress"/>
+                        </div>
+                        <div class="tm-field">
+                            <label class="tm-required">Date</label>
+                            <input type="date" name="report_date" class="form-control form-control-sm" required="required"
+                                   t-att-value="str(report.report_date) if report else ''"/>
+                        </div>
+                    </div>
+
+                    <t t-if="not report">
+                        <div class="tm-form-row">
+                            <div class="tm-field">
+                                <label class="tm-required">Course</label>
+                                <select name="course_id" id="report_course_id" class="form-select form-select-sm" required="required" onchange="loadStudents(this.value)">
+                                    <option value="">— Select Course —</option>
+                                    <t t-foreach="courses" t-as="c">
+                                        <option t-att-value="c.id" t-att-selected="preselect_course and preselect_course.id == c.id and 'selected' or None"><t t-esc="c.name"/></option>
+                                    </t>
+                                </select>
+                            </div>
+                            <div class="tm-field">
+                                <label class="tm-required">Student</label>
+                                <select name="student_id" id="report_student_id" class="form-select form-select-sm" required="required">
+                                    <option value="">— Select Course First —</option>
+                                </select>
+                            </div>
+                        </div>
+                    </t>
+                    <t t-else="">
+                        <div class="tm-form-row">
+                            <div class="tm-field">
+                                <label>Course</label>
+                                <input type="text" class="form-control form-control-sm" t-att-value="report.course_id.name" readonly="readonly"/>
+                            </div>
+                            <div class="tm-field">
+                                <label>Student</label>
+                                <input type="text" class="form-control form-control-sm" t-att-value="report.student_id.name" readonly="readonly"/>
+                            </div>
+                        </div>
+                    </t>
+
+                    <div class="tm-form-section">Assessment</div>
+                    <div class="tm-form-row">
+                        <div class="tm-field">
+                            <label>Overall Rating</label>
+                            <select name="overall_rating" class="form-select form-select-sm">
+                                <option value="">— Select —</option>
+                                <option value="excellent" t-att-selected="report and report.overall_rating == 'excellent' and 'selected' or None">Excellent</option>
+                                <option value="good" t-att-selected="report and report.overall_rating == 'good' and 'selected' or None">Good</option>
+                                <option value="satisfactory" t-att-selected="report and report.overall_rating == 'satisfactory' and 'selected' or None">Satisfactory</option>
+                                <option value="needs_improvement" t-att-selected="report and report.overall_rating == 'needs_improvement' and 'selected' or None">Needs Improvement</option>
+                                <option value="poor" t-att-selected="report and report.overall_rating == 'poor' and 'selected' or None">Poor</option>
+                            </select>
+                        </div>
+                        <div class="tm-field">
+                            <label>Score</label>
+                            <div style="display:flex;gap:6px;align-items:center;">
+                                <input type="number" name="score" class="form-control form-control-sm" step="0.1" min="0" placeholder="0"
+                                       t-att-value="report.score if report else 0"/>
+                                <span style="color:var(--tm-text-light);">/</span>
+                                <input type="number" name="max_score" class="form-control form-control-sm" step="0.1" min="0" placeholder="100"
+                                       t-att-value="report.max_score if report else 100"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="tm-form-section">Feedback</div>
+                    <div class="tm-field">
+                        <label>Strengths</label>
+                        <textarea name="strengths" class="form-control form-control-sm" rows="2" placeholder="What the student did well..."><t t-esc="report.strengths if report else ''"/></textarea>
+                    </div>
+                    <div class="tm-field">
+                        <label>Areas for Improvement</label>
+                        <textarea name="areas_for_improvement" class="form-control form-control-sm" rows="2" placeholder="What needs work..."><t t-esc="report.areas_for_improvement if report else ''"/></textarea>
+                    </div>
+                    <div class="tm-field">
+                        <label>General Comments</label>
+                        <textarea name="comments" class="form-control form-control-sm" rows="2" placeholder="General comments..."><t t-esc="report.comments if report else ''"/></textarea>
+                    </div>
+                    <div class="tm-field">
+                        <label>Homework / Next Steps</label>
+                        <textarea name="homework_notes" class="form-control form-control-sm" rows="2" placeholder="Homework assigned or next steps..."><t t-esc="report.homework_notes if report else ''"/></textarea>
+                    </div>
+
+                    <div class="tm-form-actions">
+                        <a href="/my/tutor/progress-reports" class="tm-btn tm-btn-outline"><i class="fa fa-times"/> Cancel</a>
+                        <button type="submit" class="tm-btn tm-btn-primary"><i class="fa fa-save"/> Save Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <t t-if="not report">
+            <script>
+                function loadStudents(courseId) {
+                    var sel = document.getElementById('report_student_id');
+                    sel.innerHTML = '<option value="">Loading...</option>';
+                    if (!courseId) { sel.innerHTML = '<option value="">— Select Course First —</option>'; return; }
+                    fetch('/my/tutor/progress-reports/students?course_id=' + courseId)
+                        .then(r => r.json())
+                        .then data => {
+                            sel.innerHTML = '<option value="">— Select Student —</option>';
+                            data.forEach(s => { sel.innerHTML += '<option value="' + s.id + '">' + s.name + '</option>'; });
+                        });
+                }
+                // Auto-load if course preselected
+                var cs = document.getElementById('report_course_id');
+                if (cs &amp;&amp; cs.value) loadStudents(cs.value);
+            </script>
+        </t>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TUTOR: PAYMENTS                                     -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_tutor_payments">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_payments</t>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-money"/> My Payments</h5>
+
+        <!-- Summary Stats -->
+        <div class="tm-stat-grid" style="margin-bottom:20px;">
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value" style="color:var(--tm-success);">
+                            <t t-esc="'%.2f' % total_paid"/>
+                        </div>
+                        <div class="tm-stat-label">Total Paid</div>
+                    </div>
+                    <div class="tm-stat-icon green"><i class="fa fa-check-circle"/></div>
+                </div>
+            </div>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value" style="color:#f57c00;">
+                            <t t-esc="'%.2f' % total_pending"/>
+                        </div>
+                        <div class="tm-stat-label">Pending</div>
+                    </div>
+                    <div class="tm-stat-icon orange"><i class="fa fa-clock-o"/></div>
+                </div>
+            </div>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="len(invoices)"/></div>
+                        <div class="tm-stat-label">Total Records</div>
+                    </div>
+                    <div class="tm-stat-icon blue"><i class="fa fa-file-text"/></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Payments Table -->
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> Payment History</div></div>
+            <t t-if="invoices">
+                <table class="tm-table">
+                    <thead>
+                        <tr><th>Reference</th><th>Date</th><th>Due Date</th><th>Amount</th><th>Status</th></tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="invoices" t-as="inv">
+                            <tr>
+                                <td class="fw-bold"><t t-esc="inv.name or inv.ref or '—'"/></td>
+                                <td style="white-space:nowrap;"><t t-esc="inv.invoice_date or '—'"/></td>
+                                <td style="white-space:nowrap;"><t t-esc="inv.invoice_date_due or '—'"/></td>
+                                <td>
+                                    <t t-esc="inv.currency_id.symbol or ''"/>
+                                    <t t-esc="'%.2f' % inv.amount_total"/>
+                                    <t t-if="inv.payment_state != 'paid' and inv.amount_residual != inv.amount_total">
+                                        <span style="font-size:11px;color:var(--tm-text-light);"> (due: <t t-esc="'%.2f' % inv.amount_residual"/>)</span>
+                                    </t>
+                                </td>
+                                <td>
+                                    <span t-attf-class="tm-badge #{inv.payment_state == 'paid' and 'tm-badge-green' or inv.payment_state == 'partial' and 'tm-badge-orange' or inv.state == 'draft' and 'tm-badge-grey' or 'tm-badge-blue'}">
+                                        <t t-if="inv.payment_state == 'paid'">Paid</t>
+                                        <t t-elif="inv.payment_state == 'partial'">Partial</t>
+                                        <t t-elif="inv.state == 'draft'">Draft</t>
+                                        <t t-else="">Pending</t>
+                                    </span>
+                                </td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else=""><div class="tm-empty"><i class="fa fa-money"/><p>No payment records found.</p></div></t>
         </div>
     </t>
 </template>
