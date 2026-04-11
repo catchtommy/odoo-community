@@ -44,24 +44,95 @@ class TuitionPortal(CustomerPortal):
 
         return values
 
-    @http.route(['/my', '/my/home'], type='http', auth='user', website=True)
+    @http.route(['/my', '/my/home', '/my/dashboard'], type='http', auth='user', website=True)
     def home(self, **kw):
-        """Redirect tutor/student directly to their dashboard."""
         partner = request.env.user.partner_id
-        tutor = request.env['tutor.profile'].sudo().search([('partner_id', '=', partner.id)], limit=1)
-        if tutor:
-            return request.redirect('/my/tutor/courses')
         student = request.env['student.profile'].sudo().search([('partner_id', '=', partner.id)], limit=1)
-        if student:
-            return request.redirect('/my/courses')
+        tutor = request.env['tutor.profile'].sudo().search([('partner_id', '=', partner.id)], limit=1)
         parent = request.env['parent.profile'].sudo().search([('partner_id', '=', partner.id)], limit=1)
-        if parent:
-            return request.redirect('/my/parent/children')
-        return super().home(**kw)
 
-    @http.route(['/my/logout'], type='http', auth='user', website=True)
-    def portal_logout(self, **kw):
-        return request.redirect('/web/session/logout?redirect=/web/login')
+        values = {
+            'user': request.env.user,
+            'is_student': bool(student),
+            'is_tutor': bool(tutor),
+            'is_parent': bool(parent),
+        }
+
+        today = fields.Date.today()
+
+        if student:
+            enrollments = request.env['course.enrollment'].sudo().search([
+                ('student_id', '=', student.id), ('status', '=', 'active')])
+            course_ids = enrollments.mapped('course_id').ids
+            assignments = request.env['course.assignment'].sudo().search([
+                ('course_id', 'in', course_ids), ('status', 'in', ['assigned'])])
+            invoices = request.env['account.move'].sudo().search([
+                ('partner_id', '=', partner.id),
+                ('move_type', '=', 'out_invoice'),
+                ('payment_state', '!=', 'paid'),
+                ('state', '=', 'posted'),
+            ])
+            total_sessions = request.env['attendance.record'].sudo().search_count([
+                ('student_id', '=', student.id)])
+            present_sessions = request.env['attendance.record'].sudo().search_count([
+                ('student_id', '=', student.id), ('status', '=', 'present')])
+            attendance_rate = ('%d%%' % round(present_sessions * 100 / total_sessions)) if total_sessions else '—'
+            values.update({
+                'course_count': len(enrollments),
+                'pending_assignments': len(assignments),
+                'unpaid_invoices': len(invoices),
+                'amount_due': sum(invoices.mapped('amount_residual')),
+                'attendance_rate': attendance_rate,
+                'recent_courses': enrollments[:5],
+                'upcoming_assignments': assignments[:5],
+                'today': today,
+            })
+            return request.render('tuition_management.portal_student_dashboard', values)
+
+        if tutor:
+            courses = request.env['course.master'].sudo().search([
+                ('tutor_id', '=', tutor.id)])
+            today_sessions = request.env['class.schedule.occurrence'].sudo().search_count([
+                ('tutor_id', '=', tutor.id),
+                ('start_datetime', '>=', fields.Datetime.now().replace(hour=0, minute=0, second=0)),
+                ('start_datetime', '<=', fields.Datetime.now().replace(hour=23, minute=59, second=59)),
+            ])
+            student_ids = request.env['course.enrollment'].sudo().search([
+                ('course_id', 'in', courses.ids), ('status', '=', 'active')
+            ]).mapped('student_id').ids
+            values.update({
+                'tutor_course_count': len(courses),
+                'today_sessions': today_sessions,
+                'total_students': len(set(student_ids)),
+                'tutor_courses': courses,
+            })
+            return request.render('tuition_management.portal_tutor_dashboard', values)
+        if parent:
+            child_data = []
+            total_enrollments = 0
+            for child in parent.student_ids:
+                enrollments = request.env['course.enrollment'].sudo().search([
+                    ('student_id', '=', child.id), ('status', '=', 'active')])
+                total_enrollments += len(enrollments)
+                child_data.append({'student': child, 'enrollments': enrollments})
+            child_partners = parent.student_ids.mapped('partner_id').ids
+            all_partners = list(set([parent.partner_id.id] + child_partners)) if parent.partner_id else child_partners
+            invoices = request.env['account.move'].sudo().search([
+                ('partner_id', 'in', all_partners),
+                ('move_type', '=', 'out_invoice'),
+                ('payment_state', '!=', 'paid'),
+                ('state', '=', 'posted'),
+            ])
+            values.update({
+                'child_count': len(parent.student_ids),
+                'child_data': child_data,
+                'total_enrollments': total_enrollments,
+                'unpaid_invoices': len(invoices),
+                'amount_due': sum(invoices.mapped('amount_residual')),
+            })
+            return request.render('tuition_management.portal_parent_dashboard', values)
+
+        return super().home(**kw)
 
     @http.route(['/my/logout'], type='http', auth='public', website=True)
     def portal_logout(self, **kw):
@@ -93,6 +164,10 @@ class TuitionPortal(CustomerPortal):
             ], order='invoice_date desc')
 
         return request.render('tuition_management.portal_parent_invoices', {
+            'user': request.env.user,
+            'is_parent': bool(parent),
+            'is_student': bool(student),
+            'is_tutor': False,
             'invoices': invoices,
             'page_name': 'tuition_invoices',
         })
@@ -124,7 +199,10 @@ class TuitionPortal(CustomerPortal):
         role = 'Student' if student else ('Tutor' if tutor else ('Parent' if parent else 'User'))
         back_url = '/my/tutor/courses' if tutor else ('/my/courses' if student else ('/my/parent/children' if parent else '/my'))
         return request.render('tuition_management.portal_user_profile', {
-            'user': user,
+            'user': request.env.user,
+            'is_student': bool(student),
+            'is_tutor': bool(tutor),
+            'is_parent': bool(parent),
             'partner': partner,
             'profile': profile,
             'role': role,
@@ -200,6 +278,10 @@ class TuitionPortal(CustomerPortal):
             ('student_id', '=', student.id), ('status', '=', 'active'),
         ])
         return request.render('tuition_management.portal_student_courses', {
+            'user': request.env.user,
+            'is_student': True,
+            'is_tutor': False,
+            'is_parent': False,
             'student': student,
             'enrollments': enrollments,
             'page_name': 'courses',
@@ -207,48 +289,56 @@ class TuitionPortal(CustomerPortal):
 
     @http.route(['/my/courses/<int:course_id>'], type='http', auth='user', website=True)
     def portal_course_detail(self, course_id, **kw):
-        student = self._get_student()
-        if not student:
-            return request.redirect('/my')
-        course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists():
-            return request.redirect('/my/courses')
-        enrollment = request.env['course.enrollment'].sudo().search([
-            ('student_id', '=', student.id), ('course_id', '=', course.id),
-            ('status', '=', 'active'),
-        ], limit=1)
+        partner = request.env.user.partner_id
+        student = request.env['student.profile'].sudo().search([('partner_id', '=', partner.id)], limit=1)
+        parent = request.env['parent.profile'].sudo().search([('partner_id', '=', partner.id)], limit=1)
+
+        # Find enrollment — student or parent's child
+        enrollment = None
+        if student:
+            enrollment = request.env['course.enrollment'].sudo().search([
+                ('id', '=', course_id), ('student_id', '=', student.id)
+            ], limit=1)
+        if not enrollment and parent:
+            child_ids = parent.student_ids.ids
+            enrollment = request.env['course.enrollment'].sudo().search([
+                ('id', '=', course_id), ('student_id', 'in', child_ids)
+            ], limit=1)
+
         if not enrollment:
-            return request.redirect('/my/courses')
+            return request.redirect('/my/dashboard')
 
-        today = fields.Date.today()
-        start_of_week = today - timedelta(days=today.weekday())
-        end_of_week = start_of_week + timedelta(days=6)
-        this_week_lessons = request.env['class.schedule.occurrence'].sudo().search([
+        course = enrollment.course_id
+        assignments = request.env['course.assignment'].sudo().search([
+            ('course_id', '=', course.id)
+        ])
+        occurrences = request.env['class.schedule.occurrence'].sudo().search([
+            ('course_id', '=', course.id)
+        ], order='start_datetime desc', limit=20)
+        attendance = request.env['attendance.record'].sudo().search([
+            ('student_id', '=', enrollment.student_id.id),
+            ('class_schedule_occurrence_id', 'in', occurrences.ids)
+        ])
+        attendance_map = {a.class_schedule_occurrence_id.id: a.status for a in attendance}
+        progress_reports = request.env['progress.report'].sudo().search([
             ('course_id', '=', course.id),
-            ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
-            ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
-        ], order='start_datetime asc', limit=10)
+            ('student_id', '=', enrollment.student_id.id),
+        ], order='report_date desc')
 
-        # Next upcoming lesson
-        next_lesson = request.env['class.schedule.occurrence'].sudo().search([
-            ('course_id', '=', course.id),
-            ('start_datetime', '>=', fields.Datetime.now()),
-            ('lesson_status', '=', 'scheduled'),
-        ], order='start_datetime asc', limit=1)
-
-        student_reports = course.progress_report_ids.filtered(lambda r: r.student_id.id == student.id)
-        course_assignments = course.assignment_ids.filtered(lambda a: a.status in ['assigned', 'completed'])
-
-        return request.render('tuition_management.portal_student_course_dashboard', {
-            'course': course,
+        values = {
+            'user': request.env.user,
+            'is_student': bool(student),
+            'is_parent': bool(parent),
             'enrollment': enrollment,
-            'student': student,
-            'this_week_lessons': this_week_lessons,
-            'next_lesson': next_lesson,
-            'student_reports': student_reports[:5],
-            'course_assignments': course_assignments,
-            'page_name': 'course_detail',
-        })
+            'course': course,
+            'assignments': assignments,
+            'occurrences': occurrences,
+            'attendance_map': attendance_map,
+            'progress_reports': progress_reports,
+            'page_name': 'my_courses',
+            'page_title': course.name,
+        }
+        return request.render('tuition_management.portal_course_detail', values)
 
     @http.route(['/my/courses/<int:course_id>/lessons'], type='http', auth='user', website=True)
     def portal_course_lessons(self, course_id, week='this', **kw):
@@ -296,6 +386,10 @@ class TuitionPortal(CustomerPortal):
             occ_data.append({'occ': occ, 'date_str': date_str, 'time_str': time_str})
 
         return request.render('tuition_management.portal_student_lessons', {
+            'user': request.env.user,
+            'is_student': True,
+            'is_tutor': False,
+            'is_parent': False,
             'course': course,
             'student': student,
             'occurrences': occurrences,
@@ -316,6 +410,10 @@ class TuitionPortal(CustomerPortal):
             ('course_id', 'in', course_ids), ('status', 'in', ['assigned', 'completed']),
         ], order='due_date asc')
         return request.render('tuition_management.portal_student_assignments', {
+            'user': request.env.user,
+            'is_student': True,
+            'is_tutor': False,
+            'is_parent': False,
             'assignments': assignments,
             'student': student,
             'page_name': 'assignments',
@@ -339,6 +437,10 @@ class TuitionPortal(CustomerPortal):
             ('assignment_id', '=', assignment.id), ('student_id', '=', student.id),
         ], limit=1)
         return request.render('tuition_management.portal_student_assignment_detail', {
+            'user': request.env.user,
+            'is_student': True,
+            'is_tutor': False,
+            'is_parent': False,
             'assignment': assignment,
             'submission': submission,
             'student': student,
@@ -401,7 +503,7 @@ class TuitionPortal(CustomerPortal):
         if not tutor:
             return request.redirect('/my')
         courses = request.env['course.master'].sudo().search([
-            ('tutor_id', '=', tutor.id), ('status', '=', 'active'),
+            ('tutor_id', '=', tutor.id),
         ])
         today = fields.Date.today()
         start_of_week = today - timedelta(days=today.weekday())
@@ -420,11 +522,59 @@ class TuitionPortal(CustomerPortal):
                 'assignment_count': len(c.assignment_ids),
             })
         return request.render('tuition_management.portal_tutor_dashboard', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
             'tutor': tutor,
             'courses': courses,
             'course_data': course_data,
             'lesson_count': lesson_count,
             'page_name': 'tutor_courses',
+        })
+
+    @http.route(['/my/tutor/schedule'], type='http', auth='user', website=True)
+    def portal_tutor_schedule(self, week='this', **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        today = fields.Date.today()
+        start_of_week = today - timedelta(days=today.weekday())
+        if week == 'next':
+            start_date = start_of_week + timedelta(days=7)
+            end_date = start_date + timedelta(days=6)
+        elif week == 'all':
+            start_date = today
+            end_date = today + timedelta(days=90)
+        elif week == 'past':
+            start_date = today - timedelta(days=30)
+            end_date = today - timedelta(days=1)
+        else:
+            week = 'this'
+            start_date = start_of_week
+            end_date = start_of_week + timedelta(days=6)
+        occurrences = request.env['class.schedule.occurrence'].sudo().search([
+            ('tutor_id', '=', tutor.id),
+            ('start_datetime', '>=', datetime.combine(start_date, datetime.min.time())),
+            ('start_datetime', '<=', datetime.combine(end_date, datetime.max.time())),
+        ], order='start_datetime asc')
+        occ_data = []
+        for occ in occurrences:
+            occ_data.append({
+                'occ': occ,
+                'date_str': occ.start_datetime.strftime('%a, %d %b %Y') if occ.start_datetime else '',
+                'time_str': occ.start_datetime.strftime('%H:%M') if occ.start_datetime else '',
+            })
+        return request.render('tuition_management.portal_tutor_schedule', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
+            'tutor': tutor,
+            'occ_data': occ_data,
+            'current_week': week,
+            'page_name': 'tutor_schedule',
+            'page_title': 'My Schedule',
         })
 
     @http.route(['/my/tutor/courses/<int:course_id>'], type='http', auth='user', website=True)
@@ -449,6 +599,10 @@ class TuitionPortal(CustomerPortal):
         course_assignments = course.assignment_ids
 
         return request.render('tuition_management.portal_tutor_course_detail', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
             'tutor': tutor,
             'course': course,
             'this_week_lessons': this_week_lessons,
@@ -509,6 +663,10 @@ class TuitionPortal(CustomerPortal):
             })
 
         return request.render('tuition_management.portal_tutor_lessons', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
             'tutor': tutor,
             'course': course,
             'occurrences': occurrences,
@@ -544,6 +702,10 @@ class TuitionPortal(CustomerPortal):
             })
 
         return request.render('tuition_management.portal_tutor_attendance', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
             'tutor': tutor,
             'occurrence': occurrence,
             'course': occurrence.course_id,
@@ -610,6 +772,10 @@ class TuitionPortal(CustomerPortal):
 
         assignments = course.assignment_ids
         return request.render('tuition_management.portal_tutor_assignments', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
             'tutor': tutor,
             'course': course,
             'assignments': assignments,
@@ -663,6 +829,10 @@ class TuitionPortal(CustomerPortal):
 
         submissions = assignment.submission_ids
         return request.render('tuition_management.portal_tutor_assignment_detail', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
             'tutor': tutor,
             'assignment': assignment,
             'course': assignment.course_id,
@@ -700,6 +870,41 @@ class TuitionPortal(CustomerPortal):
     # PARENT PORTAL
     # ──────────────────────────────────────────────
 
+    @http.route(['/my/parent/children/<int:student_id>'], type='http', auth='user', website=True)
+    def portal_parent_child_detail(self, student_id, **kw):
+        parent = self._get_parent()
+        if not parent:
+            return request.redirect('/my')
+        child = parent.student_ids.filtered(lambda s: s.id == student_id)
+        if not child:
+            return request.redirect('/my/parent/children')
+        child = child[0]
+        enrollments = request.env['course.enrollment'].sudo().search([
+            ('student_id', '=', child.id), ('status', '=', 'active'),
+        ])
+        progress_reports = request.env['progress.report'].sudo().search([
+            ('student_id', '=', child.id),
+        ], order='report_date desc', limit=20)
+        attendance_records = request.env['attendance.record'].sudo().search([
+            ('student_id', '=', child.id),
+        ], order='id desc', limit=30)
+        total = len(attendance_records)
+        present = len(attendance_records.filtered(lambda a: a.status == 'present'))
+        attendance_rate = ('%d%%' % round(present * 100 / total)) if total else '—'
+        return request.render('tuition_management.portal_parent_child_detail', {
+            'user': request.env.user,
+            'is_parent': True,
+            'is_student': False,
+            'is_tutor': False,
+            'child': child,
+            'enrollments': enrollments,
+            'progress_reports': progress_reports,
+            'attendance_records': attendance_records,
+            'attendance_rate': attendance_rate,
+            'page_name': 'parent_children',
+            'page_title': child.name,
+        })
+
     @http.route(['/my/parent/children'], type='http', auth='user', website=True)
     def portal_parent_children(self, **kw):
         parent = self._get_parent()
@@ -707,13 +912,32 @@ class TuitionPortal(CustomerPortal):
             return request.redirect('/my')
         children = parent.student_ids
         child_data = []
+        total_enrollments = 0
         for child in children:
             enrollments = request.env['course.enrollment'].sudo().search([
                 ('student_id', '=', child.id), ('status', '=', 'active'),
             ])
+            total_enrollments += len(enrollments)
             child_data.append({'student': child, 'enrollments': enrollments})
+        child_partners = parent.student_ids.mapped('partner_id').ids
+        all_partners = list(set([parent.partner_id.id] + child_partners)) if parent.partner_id else child_partners
+        invoices = request.env['account.move'].sudo().search([
+            ('partner_id', 'in', all_partners),
+            ('move_type', '=', 'out_invoice'),
+            ('payment_state', '!=', 'paid'),
+            ('state', '=', 'posted'),
+        ])
         return request.render('tuition_management.portal_parent_dashboard', {
+            'user': request.env.user,
+            'is_parent': True,
+            'is_student': False,
+            'is_tutor': False,
             'parent': parent,
             'child_data': child_data,
+            'child_count': len(children),
+            'total_enrollments': total_enrollments,
+            'unpaid_invoices': len(invoices),
+            'amount_due': sum(invoices.mapped('amount_residual')),
             'page_name': 'parent_children',
+            'page_title': 'My Children',
         })

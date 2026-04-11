@@ -16,6 +16,7 @@
     "data": [
         "security/ir.model.access.csv",
         "views/tuition_views.xml",
+        "views/portal_layout.xml",
         "views/portal_templates.xml",
     ],
     "installable": True,
