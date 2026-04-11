@@ -40,3 +40,7 @@ access_tuition_adjustment_admin,tuition.adjustment admin,model_tuition_adjustmen
 access_tuition_adjustment_portal,tuition.adjustment portal,model_tuition_adjustment,base.group_portal,1,0,0,0
 access_tuition_plan_change_wizard,tuition.plan.change.wizard,model_tuition_plan_change_wizard,base.group_user,1,1,1,1
 access_tuition_adjustment_wizard,tuition.adjustment.wizard,model_tuition_adjustment_wizard,base.group_user,1,1,1,1
+access_tuition_discount_admin,tuition.discount admin,model_tuition_discount,base.group_user,1,1,1,1
+access_tuition_invoice_confirm_wizard,tuition.invoice.confirm.wizard,model_tuition_invoice_confirm_wizard,base.group_user,1,1,1,1
+access_tuition_invoice_preview_wizard,tuition.invoice.preview.wizard,model_tuition_invoice_preview_wizard,base.group_user,1,1,1,1
+access_tuition_invoice_preview_wizard_line,tuition.invoice.preview.wizard.line,model_tuition_invoice_preview_wizard_line,base.group_user,1,1,1,1

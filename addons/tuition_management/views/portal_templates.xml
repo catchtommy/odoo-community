@@ -1400,16 +1400,30 @@
                             </list>
                         </field>
                     </page>
+                    <page string="Discounts" name="discounts">
+                        <field name="discount_ids">
+                            <list editable="bottom">
+                                <field name="name"/>
+                                <field name="discount_type"/>
+                                <field name="value"/>
+                                <field name="date_start"/>
+                                <field name="date_end"/>
+                                <field name="active"/>
+                                <field name="description"/>
+                            </list>
+                        </field>
+                    </page>
                     <page string="Adjustments" name="adjustments">
                         <field name="adjustment_ids">
-                            <list decoration-success="amount &gt; 0"
-                                  decoration-danger="amount &lt; 0">
+                            <list decoration-success="adjustment_type == 'extra_charge'"
+                                  decoration-danger="adjustment_type in ('discount','refund')">
                                 <field name="date"/>
                                 <field name="adjustment_type"/>
                                 <field name="description"/>
                                 <field name="amount"/>
+                                <field name="signed_amount" readonly="1"/>
                                 <field name="applied_in_invoice" readonly="1"/>
-                                <field name="invoice_id" readonly="1"/>
+                                <field name="invoice_id" readonly="1" optional="show"/>
                             </list>
                         </field>
                     </page>
@@ -1471,6 +1485,65 @@
     <field name="res_model">tuition.subscription</field>
     <field name="view_mode">list,form</field>
     <field name="search_view_id" ref="view_tuition_subscription_search"/>
+</record>
+
+<!-- Invoice Preview Wizard -->
+<record id="view_tuition_invoice_preview_wizard" model="ir.ui.view">
+    <field name="name">tuition.invoice.preview.wizard.form</field>
+    <field name="model">tuition.invoice.preview.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Invoice Preview">
+            <group>
+                <group>
+                    <field name="partner_id" readonly="1"/>
+                    <field name="month_label" readonly="1"/>
+                </group>
+                <group>
+                    <field name="base_price" readonly="1"/>
+                    <field name="total_discounts" readonly="1"/>
+                    <field name="total_adjustments" readonly="1"/>
+                    <field name="total_amount" readonly="1" class="fw-bold"/>
+                </group>
+            </group>
+            <field name="line_ids" readonly="1">
+                <list>
+                    <field name="description"/>
+                    <field name="product_id"/>
+                    <field name="quantity"/>
+                    <field name="unit_price"/>
+                    <field name="subtotal"/>
+                </list>
+            </field>
+            <footer>
+                <button name="action_confirm" type="object" string="Confirm &amp; Create Order" class="btn-primary"/>
+                <button name="action_discard" type="object" string="Discard" class="btn-secondary"/>
+            </footer>
+        </form>
+    </field>
+</record>
+
+<!-- Duplicate Invoice Confirm Wizard -->
+<record id="view_tuition_invoice_confirm_wizard" model="ir.ui.view">
+    <field name="name">tuition.invoice.confirm.wizard.form</field>
+    <field name="model">tuition.invoice.confirm.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Duplicate Invoice Warning">
+            <div class="alert alert-warning" role="alert">
+                <strong>An invoice already exists for this subscription this month.</strong>
+            </div>
+            <group string="Existing Invoice">
+                <field name="existing_invoice_name" readonly="1"/>
+                <field name="existing_invoice_date" readonly="1"/>
+                <field name="existing_invoice_amount" readonly="1"/>
+                <field name="existing_invoice_state" readonly="1"/>
+            </group>
+            <p>Do you want to generate another invoice anyway?</p>
+            <footer>
+                <button name="action_proceed" type="object" string="Generate Anyway" class="btn-warning"/>
+                <button name="action_cancel" type="object" string="Cancel" class="btn-secondary"/>
+            </footer>
+        </form>
+    </field>
 </record>
 
 <!-- Plan Change Wizard -->

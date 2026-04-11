@@ -910,6 +910,7 @@ class TuitionSubscription(models.Model):
     adjustment_ids = fields.One2many('tuition.adjustment', 'subscription_id',
                                      string='Adjustments')
     invoice_ids = fields.One2many('account.move', 'tuition_subscription_id', string='Invoices')
+    discount_ids = fields.One2many('tuition.discount', 'subscription_id', string='Discounts')
     current_plan_id = fields.Many2one('tuition.plan.line', string='Current Plan',
                                       compute='_compute_current_plan', store=False)
     current_plan_product = fields.Char(string='Current Plan',
@@ -984,6 +985,202 @@ class TuitionSubscription(models.Model):
         self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
+            'name': 'Add Adjustment',
+            'res_model': 'tuition.adjustment.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_subscription_id': self.id},
+        }
+
+    def action_generate_invoice(self):
+        self.ensure_one()
+        # Check for duplicate invoice this month
+        today = fields.Date.today()
+        month_start = today.replace(day=1)
+        existing = self.env['account.move'].sudo().search([
+            ('tuition_subscription_id', '=', self.id),
+            ('invoice_date', '>=', month_start),
+            ('state', '!=', 'cancel'),
+        ], limit=1)
+        if existing:
+            return {
+                'type': 'ir.actions.act_window',
+                'name': 'Duplicate Invoice Warning',
+                'res_model': 'tuition.invoice.confirm.wizard',
+                'view_mode': 'form',
+                'target': 'new',
+                'context': {
+                    'default_subscription_id': self.id,
+                    'default_existing_invoice_id': existing.id,
+                    'default_existing_invoice_name': existing.name,
+                    'default_existing_invoice_date': str(existing.invoice_date),
+                    'default_existing_invoice_amount': existing.amount_total,
+                    'default_existing_invoice_state': existing.payment_state,
+                },
+            }
+        return self._open_invoice_preview()
+
+    def _open_invoice_preview(self):
+        self.ensure_one()
+        preview_vals = self._build_preview_vals()
+        wizard = self.env['tuition.invoice.preview.wizard'].create({
+            'subscription_id': self.id,
+            'partner_id': preview_vals['partner_id'],
+            'month_label': preview_vals['month_label'],
+            'base_price': preview_vals['base_price'],
+            'total_discounts': preview_vals['total_discounts'],
+            'total_adjustments': preview_vals['total_adjustments'],
+            'total_amount': preview_vals['total_amount'],
+            'line_ids': [(0, 0, l) for l in preview_vals['lines']],
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Invoice Preview',
+            'res_model': 'tuition.invoice.preview.wizard',
+            'view_mode': 'form',
+            'res_id': wizard.id,
+            'target': 'new',
+        }
+
+    def _build_preview_vals(self):
+        self.ensure_one()
+        if self.state != 'active':
+            raise UserError("Cannot generate invoice for a %s subscription." % self.state)
+        plan = self.current_plan_id
+        if not plan:
+            raise UserError("No active plan for subscription %s." % self.name)
+        partner = self.student_id.partner_id
+        if not partner:
+            raise UserError("Student %s has no linked contact." % self.student_id.name)
+        billing_partner = partner
+        parent_profile = self.env['parent.profile'].sudo().search(
+            [('student_ids', 'in', [self.student_id.id])], limit=1)
+        if parent_profile and parent_profile.partner_id:
+            billing_partner = parent_profile.partner_id
+        month_label = fields.Date.today().strftime('%B %Y')
+        base_price = plan.price
+        lines = [{'description': '%s - %s' % (plan.product_id.name, month_label),
+                  'product_id': plan.product_id.id,
+                  'quantity': 1,
+                  'unit_price': base_price,
+                  'subtotal': base_price,
+                  'line_type': 'plan'}]
+        total_discounts = 0.0
+        today = fields.Date.today()
+        active_discounts = self.discount_ids.filtered(
+            lambda d: d.active
+            and (not d.date_start or d.date_start <= today)
+            and (not d.date_end or d.date_end >= today)
+        )
+        for disc in active_discounts:
+            disc_amount = disc._compute_discount_amount(base_price)
+            if disc_amount:
+                label = '[Discount] %s' % disc.name
+                if disc.discount_type == 'percentage':
+                    label += ' (%.2f%%)' % disc.value
+                lines.append({'description': label, 'product_id': False,
+                               'quantity': 1, 'unit_price': -abs(disc_amount),
+                               'subtotal': -abs(disc_amount), 'line_type': 'discount'})
+                total_discounts += abs(disc_amount)
+        total_adjustments = 0.0
+        unapplied = self.adjustment_ids.filtered(lambda a: not a.applied_in_invoice)
+        for adj in unapplied:
+            lines.append({'description': '[%s] %s' % (
+                dict(adj._fields['adjustment_type'].selection).get(adj.adjustment_type, ''),
+                adj.description),
+                'product_id': False, 'quantity': 1,
+                'unit_price': adj.signed_amount,
+                'subtotal': adj.signed_amount, 'line_type': 'adjustment'})
+            total_adjustments += adj.signed_amount
+        total_amount = base_price - total_discounts + total_adjustments
+        return {
+            'partner_id': billing_partner.id,
+            'month_label': month_label,
+            'base_price': base_price,
+            'total_discounts': total_discounts,
+            'total_adjustments': total_adjustments,
+            'total_amount': total_amount,
+            'lines': lines,
+            'plan_id': plan.id,
+            'unapplied_adj_ids': unapplied.ids,
+        }
+
+    def _generate_invoice(self):
+        """Used by cron — creates sale order and confirms it directly."""
+        self.ensure_one()
+        preview_vals = self._build_preview_vals()
+        self._create_sale_order(preview_vals)
+        today = fields.Date.today()
+        self.next_billing_date = today.replace(day=1) + relativedelta(months=1)
+
+    def _create_sale_order(self, preview_vals):
+        """Create and confirm a sale order, then create and post the invoice."""
+        self.ensure_one()
+        # Find 15-day payment term
+        payment_term = self.env['account.payment.term'].sudo().search(
+            [('name', 'ilike', '15')], limit=1)
+        if not payment_term:
+            payment_term = self.env['account.payment.term'].sudo().search([], limit=1)
+
+        # Need a generic product for discount/adjustment lines
+        misc_product = self.env['product.product'].sudo().search(
+            [('type', '=', 'service')], limit=1)
+
+        order_lines = []
+        for line in preview_vals['lines']:
+            product = self.env['product.product'].sudo().browse(line['product_id']) \
+                if line.get('product_id') else misc_product
+            if not product:
+                continue
+            order_lines.append((0, 0, {
+                'product_id': product.id,
+                'product_uom_qty': line['quantity'],
+                'price_unit': line['unit_price'],
+                'name': line['description'],
+            }))
+
+        order = self.env['sale.order'].sudo().create({
+            'partner_id': preview_vals['partner_id'],
+            'payment_term_id': payment_term.id if payment_term else False,
+            'tuition_subscription_id': self.id,
+            'order_line': order_lines,
+            'note': 'Tuition: %s | %s' % (self.student_id.name, preview_vals['month_label']),
+        })
+        order.action_confirm()
+
+        # Create and post invoice from sale order
+        invoice = self.env['account.move'].sudo().search([
+            ('invoice_origin', 'like', order.name),
+            ('move_type', '=', 'out_invoice'),
+        ], limit=1)
+        if not invoice:
+            invoice = order._create_invoices()
+        invoice.sudo().write({
+            'tuition_subscription_id': self.id,
+            'tuition_plan_line_id': preview_vals.get('plan_id'),
+        })
+        invoice.sudo().action_post()
+
+        # Mark adjustments as applied and link invoice
+        if preview_vals.get('unapplied_adj_ids'):
+            adjs = self.env['tuition.adjustment'].browse(preview_vals['unapplied_adj_ids'])
+            adjs.write({'applied_in_invoice': True, 'invoice_id': invoice.id})
+
+        return order
+
+    def action_pause(self):
+        self.write({'state': 'paused'})
+
+    def action_activate(self):
+        self.write({'state': 'active'})
+
+    def action_cancel(self):
+        self.write({'state': 'cancelled'})
+
+    def action_schedule_plan_change(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
             'name': 'Schedule Plan Change',
             'res_model': 'tuition.plan.change.wizard',
             'view_mode': 'form',
@@ -1001,70 +1198,6 @@ class TuitionSubscription(models.Model):
             'target': 'new',
             'context': {'default_subscription_id': self.id},
         }
-
-    def action_generate_invoice(self):
-        self.ensure_one()
-        invoice = self._generate_invoice()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Invoice',
-            'res_model': 'account.move',
-            'view_mode': 'form',
-            'res_id': invoice.id,
-        }
-
-    def action_pause(self):
-        self.write({'state': 'paused'})
-
-    def action_activate(self):
-        self.write({'state': 'active'})
-
-    def action_cancel(self):
-        self.write({'state': 'cancelled'})
-
-    def _generate_invoice(self):
-        self.ensure_one()
-        if self.state != 'active':
-            raise UserError("Cannot generate invoice for a %s subscription." % self.state)
-        plan = self.current_plan_id
-        if not plan:
-            raise UserError("No active plan for subscription %s." % self.name)
-        partner = self.student_id.partner_id
-        if not partner:
-            raise UserError("Student %s has no linked contact." % self.student_id.name)
-        # Look up parent for billing
-        billing_partner = partner
-        parent_profile = self.env['parent.profile'].sudo().search(
-            [('student_ids', 'in', [self.student_id.id])], limit=1)
-        if parent_profile and parent_profile.partner_id:
-            billing_partner = parent_profile.partner_id
-        month_label = fields.Date.today().strftime('%B %Y')
-        lines = [(0, 0, {
-            'name': '%s - %s' % (plan.product_id.name, month_label),
-            'product_id': plan.product_id.id,
-            'quantity': 1,
-            'price_unit': plan.price,
-        })]
-        unapplied = self.adjustment_ids.filtered(lambda a: not a.applied_in_invoice)
-        for adj in unapplied:
-            lines.append((0, 0, {
-                'name': '[Adjustment] %s' % (adj.description or 'Adjustment'),
-                'quantity': 1,
-                'price_unit': adj.amount,
-            }))
-        invoice = self.env['account.move'].sudo().create({
-            'move_type': 'out_invoice',
-            'partner_id': billing_partner.id,
-            'tuition_subscription_id': self.id,
-            'invoice_date': fields.Date.today(),
-            'invoice_line_ids': lines,
-            'narration': 'Tuition: %s | %s | %s' % (
-                self.student_id.name, plan.product_id.name, month_label),
-        })
-        unapplied.write({'applied_in_invoice': True, 'invoice_id': invoice.id})
-        today = fields.Date.today()
-        self.next_billing_date = today.replace(day=1) + relativedelta(months=1)
-        return invoice
 
     @api.model
     def _cron_generate_monthly_invoices(self):
@@ -1085,6 +1218,33 @@ class TuitionSubscription(models.Model):
                 })
 
 
+class TuitionDiscount(models.Model):
+    _name = 'tuition.discount'
+    _description = 'Tuition Subscription Discount'
+    _order = 'date_start desc'
+
+    subscription_id = fields.Many2one('tuition.subscription', required=True, ondelete='cascade')
+    name = fields.Char(string='Discount Name', required=True,
+                       help='e.g. Sibling Discount, Referral Discount, 10% Discount')
+    discount_type = fields.Selection([
+        ('percentage', 'Percentage (%)'),
+        ('amount', 'Fixed Amount'),
+    ], string='Type', required=True, default='percentage')
+    value = fields.Float(string='Value', required=True,
+                         help='Enter % value for percentage type, or fixed amount for amount type')
+    date_start = fields.Date(string='From', default=fields.Date.today)
+    date_end = fields.Date(string='Until', help='Leave empty for ongoing discount')
+    active = fields.Boolean(string='Active', default=True)
+    description = fields.Char(string='Notes')
+
+    def _compute_discount_amount(self, base_price):
+        """Return the discount amount to deduct from base_price."""
+        self.ensure_one()
+        if self.discount_type == 'percentage':
+            return base_price * (self.value / 100.0)
+        return abs(self.value)
+
+
 class TuitionPlanLine(models.Model):
     _name = 'tuition.plan.line'
     _description = 'Tuition Plan Line'
@@ -1101,6 +1261,12 @@ class TuitionPlanLine(models.Model):
         ('expired', 'Expired'),
     ], string='Status', compute='_compute_state', store=True)
     notes = fields.Char(string='Notes')
+    has_invoices = fields.Boolean(string='Has Invoices', compute='_compute_has_invoices', store=False)
+
+    @api.onchange('product_id')
+    def _onchange_product_id(self):
+        if self.product_id:
+            self.price = self.product_id.lst_price or 0.0
 
     @api.depends('start_date', 'end_date')
     def _compute_state(self):
@@ -1113,6 +1279,28 @@ class TuitionPlanLine(models.Model):
             else:
                 rec.state = 'active'
 
+    def _compute_has_invoices(self):
+        for rec in self:
+            invoices = self.env['account.move'].sudo().search([
+                ('tuition_subscription_id', '=', rec.subscription_id.id),
+                ('tuition_plan_line_id', '=', rec.id),
+                ('state', '!=', 'cancel'),
+            ], limit=1)
+            rec.has_invoices = bool(invoices)
+
+    def unlink(self):
+        for rec in self:
+            invoices = self.env['account.move'].sudo().search([
+                ('tuition_subscription_id', '=', rec.subscription_id.id),
+                ('tuition_plan_line_id', '=', rec.id),
+                ('state', '!=', 'cancel'),
+            ], limit=1)
+            if invoices:
+                raise UserError(
+                    "Cannot delete plan '%s' because it has invoices linked to it. "
+                    "Cancel the invoices first." % (rec.product_id.name or 'plan'))
+        return super().unlink()
+
     @api.constrains('start_date')
     def _check_start_date(self):
         from odoo.exceptions import ValidationError
@@ -1120,6 +1308,19 @@ class TuitionPlanLine(models.Model):
             if rec.start_date and rec.start_date.day != 1:
                 raise ValidationError(
                     "Plan start date must be the 1st of a month. Got: %s" % rec.start_date)
+
+    def write(self, vals):
+        if 'start_date' in vals:
+            for rec in self:
+                invoices = self.env['account.move'].sudo().search([
+                    ('tuition_plan_line_id', '=', rec.id),
+                    ('state', '!=', 'cancel'),
+                ], limit=1)
+                if invoices:
+                    raise UserError(
+                        "Cannot change start date of plan '%s' because it already has invoices."
+                        % (rec.product_id.name or 'plan'))
+        return super().write(vals)
 
 
 class TuitionAdjustment(models.Model):
@@ -1133,15 +1334,24 @@ class TuitionAdjustment(models.Model):
     date = fields.Date(string='Date', required=True, default=fields.Date.today)
     description = fields.Char(string='Description', required=True)
     amount = fields.Float(string='Amount', required=True,
-                          help='Positive = charge, Negative = credit/refund')
+                          help='Always enter as a positive number. Sign is determined by type.')
     adjustment_type = fields.Selection([
-        ('charge', 'Extra Charge'),
-        ('credit', 'Credit / Refund'),
+        ('extra_charge', 'Extra Charge'),
         ('discount', 'Discount'),
-        ('other', 'Other'),
-    ], string='Type', default='other')
+        ('refund', 'Refund to Customer'),
+    ], string='Type', default='extra_charge', required=True)
+    signed_amount = fields.Float(string='Signed Amount', compute='_compute_signed_amount', store=True,
+                                 help='Positive = added to invoice, Negative = deducted from invoice')
     applied_in_invoice = fields.Boolean(string='Applied', default=False)
     invoice_id = fields.Many2one('account.move', string='Invoice', readonly=True)
+
+    @api.depends('amount', 'adjustment_type')
+    def _compute_signed_amount(self):
+        for rec in self:
+            if rec.adjustment_type == 'extra_charge':
+                rec.signed_amount = abs(rec.amount)
+            else:
+                rec.signed_amount = -abs(rec.amount)
 
 
 class AccountMoveTuitionExt(models.Model):
@@ -1149,6 +1359,9 @@ class AccountMoveTuitionExt(models.Model):
 
     tuition_subscription_id = fields.Many2one(
         'tuition.subscription', string='Tuition Subscription',
+        ondelete='set null', index=True)
+    tuition_plan_line_id = fields.Many2one(
+        'tuition.plan.line', string='Tuition Plan',
         ondelete='set null', index=True)
 
 
@@ -1210,28 +1423,105 @@ class TuitionPlanChangeWizard(models.TransientModel):
         }
 
 
+class SaleOrderTuitionExt(models.Model):
+    _inherit = 'sale.order'
+
+    tuition_subscription_id = fields.Many2one(
+        'tuition.subscription', string='Tuition Subscription',
+        ondelete='set null', index=True)
+
+
+class TuitionInvoicePreviewWizardLine(models.TransientModel):
+    _name = 'tuition.invoice.preview.wizard.line'
+    _description = 'Invoice Preview Line'
+
+    wizard_id = fields.Many2one('tuition.invoice.preview.wizard', ondelete='cascade')
+    description = fields.Char(string='Description', readonly=True)
+    product_id = fields.Many2one('product.product', string='Product', readonly=True)
+    quantity = fields.Float(string='Qty', readonly=True, default=1)
+    unit_price = fields.Float(string='Unit Price', readonly=True)
+    subtotal = fields.Float(string='Subtotal', readonly=True)
+    line_type = fields.Char(string='Type', readonly=True)
+
+
+class TuitionInvoicePreviewWizard(models.TransientModel):
+    _name = 'tuition.invoice.preview.wizard'
+    _description = 'Invoice Preview'
+
+    subscription_id = fields.Many2one('tuition.subscription', required=True)
+    partner_id = fields.Many2one('res.partner', string='Bill To', readonly=True)
+    month_label = fields.Char(string='Billing Month', readonly=True)
+    base_price = fields.Float(string='Base Price', readonly=True)
+    total_discounts = fields.Float(string='Total Discounts', readonly=True)
+    total_adjustments = fields.Float(string='Total Adjustments', readonly=True)
+    total_amount = fields.Float(string='Total Amount', readonly=True)
+    line_ids = fields.One2many('tuition.invoice.preview.wizard.line', 'wizard_id', string='Lines')
+
+    def action_confirm(self):
+        self.ensure_one()
+        sub = self.subscription_id
+        preview_vals = sub._build_preview_vals()
+        order = sub._create_sale_order(preview_vals)
+        today = fields.Date.today()
+        sub.next_billing_date = today.replace(day=1) + relativedelta(months=1)
+        # Find the posted invoice
+        invoice = self.env['account.move'].sudo().search([
+            ('tuition_subscription_id', '=', sub.id),
+            ('move_type', '=', 'out_invoice'),
+            ('state', '=', 'posted'),
+        ], order='id desc', limit=1)
+        if invoice:
+            return {
+                'type': 'ir.actions.act_window',
+                'name': 'Invoice',
+                'res_model': 'account.move',
+                'view_mode': 'form',
+                'res_id': invoice.id,
+            }
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Sale Order',
+            'res_model': 'sale.order',
+            'view_mode': 'form',
+            'res_id': order.id,
+        }
+
+    def action_discard(self):
+        return {'type': 'ir.actions.act_window_close'}
+
+
+class TuitionInvoiceConfirmWizard(models.TransientModel):
+    _description = 'Duplicate Invoice Warning'
+
+    subscription_id = fields.Many2one('tuition.subscription', required=True)
+    existing_invoice_id = fields.Many2one('account.move', string='Existing Invoice', readonly=True)
+    existing_invoice_name = fields.Char(string='Invoice #', readonly=True)
+    existing_invoice_date = fields.Char(string='Invoice Date', readonly=True)
+    existing_invoice_amount = fields.Float(string='Amount', readonly=True)
+    existing_invoice_state = fields.Char(string='Payment State', readonly=True)
+
+    def action_proceed(self):
+        self.ensure_one()
+        return self.subscription_id._open_invoice_preview()
+
+    def action_cancel(self):
+        return {'type': 'ir.actions.act_window_close'}
+
+
 class TuitionAdjustmentWizard(models.TransientModel):
     _name = 'tuition.adjustment.wizard'
     _description = 'Add Manual Adjustment'
 
     subscription_id = fields.Many2one('tuition.subscription', required=True)
     adjustment_type = fields.Selection([
-        ('charge', 'Extra Charge'),
-        ('credit', 'Credit / Refund'),
+        ('extra_charge', 'Extra Charge'),
         ('discount', 'Discount'),
-        ('other', 'Other'),
-    ], string='Type', required=True, default='other')
+        ('refund', 'Refund to Customer'),
+    ], string='Type', required=True, default='extra_charge')
     description = fields.Char(string='Description', required=True)
     amount = fields.Float(string='Amount', required=True,
-                          help='Positive for charge, negative for credit/refund')
+                          help='Always enter as a positive number')
     date = fields.Date(string='Date', default=fields.Date.today, required=True)
-
-    @api.onchange('adjustment_type')
-    def _onchange_type(self):
-        if self.adjustment_type == 'charge' and self.amount < 0:
-            self.amount = abs(self.amount)
-        elif self.adjustment_type in ('credit', 'discount') and self.amount > 0:
-            self.amount = -abs(self.amount)
 
     def action_confirm(self):
         self.ensure_one()
@@ -1239,7 +1529,7 @@ class TuitionAdjustmentWizard(models.TransientModel):
             'subscription_id': self.subscription_id.id,
             'date': self.date,
             'description': self.description,
-            'amount': self.amount,
+            'amount': abs(self.amount),
             'adjustment_type': self.adjustment_type,
         })
         return {
