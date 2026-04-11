@@ -606,29 +606,6 @@ Create your first class schedule
 <field name="view_mode">calendar,list,form</field>
 </record>
 
-<!-- Portal Access Wizard -->
-<record id="view_portal_access_wizard_form" model="ir.ui.view">
-<field name="name">portal.access.wizard.form</field>
-<field name="model">portal.access.wizard</field>
-<field name="arch" type="xml">
-<form string="Set Portal Access">
-<group>
-<field name="profile_model" invisible="1"/>
-<field name="profile_id" invisible="1"/>
-<field name="name" readonly="1"/>
-<field name="email" readonly="1"/>
-<field name="login"/>
-<field name="password" password="True"/>
-<field name="confirm_password" password="True"/>
-</group>
-<footer>
-<button name="action_create_portal_user" type="object" string="Activate Portal Access" class="btn-primary"/>
-<button string="Cancel" class="btn-secondary" special="cancel"/>
-</footer>
-</form>
-</field>
-</record>
-
 <!-- Mark Attendance Wizard -->
 <record id="view_mark_attendance_wizard_form" model="ir.ui.view">
 <field name="name">mark.attendance.wizard.form</field>

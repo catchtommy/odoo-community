@@ -3,6 +3,7 @@ from odoo import models, fields, api
 from odoo.exceptions import UserError
 from datetime import timedelta, date
 import pytz
+from dateutil.relativedelta import relativedelta
 
 
 class SubjectCategory(models.Model):
@@ -809,53 +810,34 @@ class PortalAccessWizard(models.TransientModel):
             raise UserError("Passwords do not match.")
         if len(self.password) < 6:
             raise UserError("Password must be at least 6 characters.")
-
-        # Get the profile record
         profile = self.env[self.profile_model].browse(self.profile_id)
         if not profile.exists():
             raise UserError("Profile record not found.")
-
-        # Check login uniqueness (for both create and update)
         domain = [('login', '=', self.login)]
         if self.is_existing_user and self.existing_user_id:
             domain.append(('id', '!=', self.existing_user_id.id))
         duplicate = self.env['res.users'].sudo().with_context(active_test=False).search(domain, limit=1)
         if duplicate:
-            raise UserError(f"The username '{self.login}' is already taken by another user ({duplicate.name}). Please choose a different username.")
-
-        # If existing user, update login + password
+            raise UserError(f"The username '{self.login}' is already taken by {duplicate.name}.")
         if self.is_existing_user and self.existing_user_id:
             user = self.existing_user_id.sudo()
             update_vals = {'password': self.password, 'active': True}
-            # Allow changing login/username
             if self.login and self.login != user.login:
                 update_vals['login'] = self.login
-                # Also update partner email if login changed
                 if user.partner_id:
                     user.partner_id.sudo().write({'email': self.login})
                 if hasattr(profile, 'email'):
                     profile.sudo().write({'email': self.login})
             user.write(update_vals)
-            # Ensure portal group (and remove internal group)
             self._assign_portal_group(user)
-
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': 'Portal Access Updated',
-                    'message': f'Login and password updated for {self.name}. Login: {self.login}',
-                    'type': 'success',
-                    'sticky': False,
-                    'next': {'type': 'ir.actions.act_window_close'},
-                },
-            }
-
-        # Create or find partner
+            return {'type': 'ir.actions.client', 'tag': 'display_notification',
+                    'params': {'title': 'Portal Access Updated',
+                               'message': f'Updated for {self.name}. Login: {self.login}',
+                               'type': 'success', 'sticky': False,
+                               'next': {'type': 'ir.actions.act_window_close'}}}
         if not profile.partner_id:
             partner = self.env['res.partner'].create({
-                'name': profile.name,
-                'email': profile.email,
+                'name': profile.name, 'email': profile.email,
                 'phone': f"{getattr(profile, 'country_code', '') or ''}{getattr(profile, 'phone', '') or ''}",
             })
             profile.partner_id = partner.id
@@ -863,92 +845,412 @@ class PortalAccessWizard(models.TransientModel):
             partner = profile.partner_id
             if not partner.email:
                 partner.email = profile.email
-
-        # Check if user already exists for this partner
-        existing_user = self.env['res.users'].sudo().with_context(active_test=False).search([
-            ('partner_id', '=', partner.id),
-        ], limit=1)
-
+        existing_user = self.env['res.users'].sudo().with_context(active_test=False).search(
+            [('partner_id', '=', partner.id)], limit=1)
         if existing_user:
-            existing_user.sudo().write({
-                'login': self.login,
-                'password': self.password,
-                'active': True,
-            })
+            existing_user.sudo().write({'login': self.login, 'password': self.password, 'active': True})
             self._assign_portal_group(existing_user.sudo())
         else:
             new_user = self.env['res.users'].sudo().with_context(no_reset_password=True).create({
-                'partner_id': partner.id,
-                'login': self.login,
-                'password': self.password,
-                'active': True,
+                'partner_id': partner.id, 'login': self.login,
+                'password': self.password, 'active': True,
             })
             self._assign_portal_group(new_user)
-
-        return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Portal Access Activated',
-                'message': f'Portal login created for {self.name}. Login: {self.login}',
-                'type': 'success',
-                'sticky': False,
-                'next': {'type': 'ir.actions.act_window_close'},
-            },
-        }
+        return {'type': 'ir.actions.client', 'tag': 'display_notification',
+                'params': {'title': 'Portal Access Activated',
+                           'message': f'Created for {self.name}. Login: {self.login}',
+                           'type': 'success', 'sticky': False,
+                           'next': {'type': 'ir.actions.act_window_close'}}}
 
     def action_deactivate_portal_user(self):
-        """Deactivate the portal user (disable access without deleting)."""
         self.ensure_one()
         if self.is_existing_user and self.existing_user_id:
-            user = self.existing_user_id.sudo()
-            user.write({'active': False})
-            return {
-                'type': 'ir.actions.client',
-                'tag': 'display_notification',
-                'params': {
-                    'title': 'Portal Access Deactivated',
-                    'message': f'Portal access has been disabled for {self.name}.',
-                    'type': 'warning',
-                    'sticky': False,
-                    'next': {'type': 'ir.actions.act_window_close'},
-                },
-            }
+            self.existing_user_id.sudo().write({'active': False})
+            return {'type': 'ir.actions.client', 'tag': 'display_notification',
+                    'params': {'title': 'Deactivated',
+                               'message': f'Access disabled for {self.name}.',
+                               'type': 'warning', 'sticky': False,
+                               'next': {'type': 'ir.actions.act_window_close'}}}
         raise UserError("No existing portal user found to deactivate.")
 
     def action_fix_portal_users(self):
-        """Admin utility: fix all portal profile users to ensure they only have portal group."""
         group_portal = self.env.ref('base.group_portal')
-        group_public = self.env.ref('base.group_public')
-
         for model_name in ['student.profile', 'tutor.profile', 'parent.profile']:
-            profiles = self.env[model_name].sudo().search([('partner_id', '!=', False)])
-            for profile in profiles:
-                user = self.env['res.users'].sudo().search([
-                    ('partner_id', '=', profile.partner_id.id)
-                ], limit=1)
+            for profile in self.env[model_name].sudo().search([('partner_id', '!=', False)]):
+                user = self.env['res.users'].sudo().search(
+                    [('partner_id', '=', profile.partner_id.id)], limit=1)
                 if user and user.id != self.env.ref('base.user_admin').id:
-                    # Strip all groups, add only portal
-                    self.env.cr.execute("""
-                        DELETE FROM res_groups_users_rel
-                        WHERE uid = %s AND gid != %s
-                    """, (user.id, group_portal.id))
-                    self.env.cr.execute("""
-                        INSERT INTO res_groups_users_rel (gid, uid)
-                        SELECT %s, %s WHERE NOT EXISTS (
-                            SELECT 1 FROM res_groups_users_rel WHERE gid = %s AND uid = %s
-                        )
-                    """, (group_portal.id, user.id, group_portal.id, user.id))
-
+                    self.env.cr.execute(
+                        "DELETE FROM res_groups_users_rel WHERE uid=%s AND gid!=%s",
+                        (user.id, group_portal.id))
+                    self.env.cr.execute(
+                        "INSERT INTO res_groups_users_rel(gid,uid) SELECT %s,%s "
+                        "WHERE NOT EXISTS(SELECT 1 FROM res_groups_users_rel WHERE gid=%s AND uid=%s)",
+                        (group_portal.id, user.id, group_portal.id, user.id))
         self.env.invalidate_all()
+        return {'type': 'ir.actions.client', 'tag': 'display_notification',
+                'params': {'title': 'Fixed', 'message': 'All portal users corrected.',
+                           'type': 'success', 'sticky': False,
+                           'next': {'type': 'ir.actions.act_window_close'}}}
+
+# ============================================================
+
+class TuitionSubscription(models.Model):
+    _name = 'tuition.subscription'
+    _description = 'Tuition Subscription'
+    _order = 'create_date desc'
+
+    name = fields.Char(string='Reference', compute='_compute_name', store=True)
+    student_id = fields.Many2one('student.profile', string='Student', required=True,
+                                 ondelete='restrict')
+    enrollment_id = fields.Many2one(
+        'course.enrollment', string='Enrollment', ondelete='restrict',
+        domain="[('student_id', '=', student_id)]")
+    plan_line_ids = fields.One2many('tuition.plan.line', 'subscription_id', string='Plan History')
+    adjustment_ids = fields.One2many('tuition.adjustment', 'subscription_id',
+                                     string='Adjustments')
+    invoice_ids = fields.One2many('account.move', 'tuition_subscription_id', string='Invoices')
+    current_plan_id = fields.Many2one('tuition.plan.line', string='Current Plan',
+                                      compute='_compute_current_plan', store=False)
+    current_plan_product = fields.Char(string='Current Plan',
+                                       compute='_compute_current_plan', store=False)
+    current_plan_price = fields.Float(string='Monthly Price',
+                                      compute='_compute_current_plan', store=False)
+    next_billing_date = fields.Date(string='Next Billing Date')
+    state = fields.Selection([
+        ('active', 'Active'),
+        ('paused', 'Paused'),
+        ('cancelled', 'Cancelled'),
+    ], string='Status', default='active', required=True)
+    invoice_count = fields.Integer(compute='_compute_invoice_count', string='Invoices')
+    unapplied_adjustment_count = fields.Integer(
+        compute='_compute_unapplied_adjustments', string='Pending Adjustments')
+    total_adjustments_applied = fields.Float(
+        compute='_compute_totals', string='Total Adjustments Applied')
+    monthly_revenue = fields.Float(compute='_compute_totals', string='Monthly Revenue')
+
+    @api.depends('student_id', 'enrollment_id')
+    def _compute_name(self):
+        for rec in self:
+            parts = []
+            if rec.student_id:
+                parts.append(rec.student_id.name)
+            if rec.enrollment_id and rec.enrollment_id.course_id:
+                parts.append(rec.enrollment_id.course_id.name)
+            rec.name = ' / '.join(parts) if parts else 'New Subscription'
+
+    @api.depends('plan_line_ids', 'plan_line_ids.state',
+                 'plan_line_ids.start_date', 'plan_line_ids.end_date')
+    def _compute_current_plan(self):
+        today = fields.Date.today()
+        for rec in self:
+            plans = rec.plan_line_ids.filtered(
+                lambda p: p.state == 'active'
+                and p.start_date <= today
+                and (not p.end_date or p.end_date >= today)
+            )
+            plan = plans[0] if plans else False
+            rec.current_plan_id = plan.id if plan else False
+            rec.current_plan_product = plan.product_id.name if plan else ''
+            rec.current_plan_price = plan.price if plan else 0.0
+
+    def _compute_invoice_count(self):
+        for rec in self:
+            rec.invoice_count = len(rec.invoice_ids)
+
+    def _compute_unapplied_adjustments(self):
+        for rec in self:
+            rec.unapplied_adjustment_count = len(
+                rec.adjustment_ids.filtered(lambda a: not a.applied_in_invoice))
+
+    def _compute_totals(self):
+        for rec in self:
+            applied = rec.adjustment_ids.filtered(lambda a: a.applied_in_invoice)
+            rec.total_adjustments_applied = sum(applied.mapped('amount'))
+            plan = rec.current_plan_id
+            rec.monthly_revenue = plan.price if plan else 0.0
+
+    def action_view_invoices(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Invoices',
+            'res_model': 'account.move',
+            'view_mode': 'list,form',
+            'domain': [('tuition_subscription_id', '=', self.id)],
+        }
+
+    def action_schedule_plan_change(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Schedule Plan Change',
+            'res_model': 'tuition.plan.change.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_subscription_id': self.id},
+        }
+
+    def action_add_adjustment(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Add Adjustment',
+            'res_model': 'tuition.adjustment.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_subscription_id': self.id},
+        }
+
+    def action_generate_invoice(self):
+        self.ensure_one()
+        invoice = self._generate_invoice()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Invoice',
+            'res_model': 'account.move',
+            'view_mode': 'form',
+            'res_id': invoice.id,
+        }
+
+    def action_pause(self):
+        self.write({'state': 'paused'})
+
+    def action_activate(self):
+        self.write({'state': 'active'})
+
+    def action_cancel(self):
+        self.write({'state': 'cancelled'})
+
+    def _generate_invoice(self):
+        self.ensure_one()
+        if self.state != 'active':
+            raise UserError("Cannot generate invoice for a %s subscription." % self.state)
+        plan = self.current_plan_id
+        if not plan:
+            raise UserError("No active plan for subscription %s." % self.name)
+        partner = self.student_id.partner_id
+        if not partner:
+            raise UserError("Student %s has no linked contact." % self.student_id.name)
+        # Look up parent for billing
+        billing_partner = partner
+        parent_profile = self.env['parent.profile'].sudo().search(
+            [('student_ids', 'in', [self.student_id.id])], limit=1)
+        if parent_profile and parent_profile.partner_id:
+            billing_partner = parent_profile.partner_id
+        month_label = fields.Date.today().strftime('%B %Y')
+        lines = [(0, 0, {
+            'name': '%s - %s' % (plan.product_id.name, month_label),
+            'product_id': plan.product_id.id,
+            'quantity': 1,
+            'price_unit': plan.price,
+        })]
+        unapplied = self.adjustment_ids.filtered(lambda a: not a.applied_in_invoice)
+        for adj in unapplied:
+            lines.append((0, 0, {
+                'name': '[Adjustment] %s' % (adj.description or 'Adjustment'),
+                'quantity': 1,
+                'price_unit': adj.amount,
+            }))
+        invoice = self.env['account.move'].sudo().create({
+            'move_type': 'out_invoice',
+            'partner_id': billing_partner.id,
+            'tuition_subscription_id': self.id,
+            'invoice_date': fields.Date.today(),
+            'invoice_line_ids': lines,
+            'narration': 'Tuition: %s | %s | %s' % (
+                self.student_id.name, plan.product_id.name, month_label),
+        })
+        unapplied.write({'applied_in_invoice': True, 'invoice_id': invoice.id})
+        today = fields.Date.today()
+        self.next_billing_date = today.replace(day=1) + relativedelta(months=1)
+        return invoice
+
+    @api.model
+    def _cron_generate_monthly_invoices(self):
+        today = fields.Date.today()
+        subs = self.search([('state', '=', 'active'), ('next_billing_date', '<=', today)])
+        for sub in subs:
+            try:
+                sub._generate_invoice()
+            except Exception as e:
+                self.env['ir.logging'].sudo().create({
+                    'name': 'tuition.subscription',
+                    'type': 'server',
+                    'level': 'ERROR',
+                    'message': 'Invoice failed for %s: %s' % (sub.name, str(e)),
+                    'path': 'models/course.py',
+                    'func': '_cron_generate_monthly_invoices',
+                    'line': '0',
+                })
+
+
+class TuitionPlanLine(models.Model):
+    _name = 'tuition.plan.line'
+    _description = 'Tuition Plan Line'
+    _order = 'start_date desc'
+
+    subscription_id = fields.Many2one('tuition.subscription', required=True, ondelete='cascade')
+    product_id = fields.Many2one('product.product', string='Plan Product', required=True)
+    price = fields.Float(string='Monthly Price', required=True)
+    start_date = fields.Date(string='Start Date', required=True)
+    end_date = fields.Date(string='End Date')
+    state = fields.Selection([
+        ('active', 'Active'),
+        ('scheduled', 'Scheduled'),
+        ('expired', 'Expired'),
+    ], string='Status', compute='_compute_state', store=True)
+    notes = fields.Char(string='Notes')
+
+    @api.depends('start_date', 'end_date')
+    def _compute_state(self):
+        today = fields.Date.today()
+        for rec in self:
+            if rec.start_date and rec.start_date > today:
+                rec.state = 'scheduled'
+            elif rec.end_date and rec.end_date < today:
+                rec.state = 'expired'
+            else:
+                rec.state = 'active'
+
+    @api.constrains('start_date')
+    def _check_start_date(self):
+        from odoo.exceptions import ValidationError
+        for rec in self:
+            if rec.start_date and rec.start_date.day != 1:
+                raise ValidationError(
+                    "Plan start date must be the 1st of a month. Got: %s" % rec.start_date)
+
+
+class TuitionAdjustment(models.Model):
+    _name = 'tuition.adjustment'
+    _description = 'Tuition Manual Adjustment'
+    _order = 'date desc'
+
+    subscription_id = fields.Many2one('tuition.subscription', required=True, ondelete='cascade')
+    student_id = fields.Many2one('student.profile', related='subscription_id.student_id',
+                                 store=True)
+    date = fields.Date(string='Date', required=True, default=fields.Date.today)
+    description = fields.Char(string='Description', required=True)
+    amount = fields.Float(string='Amount', required=True,
+                          help='Positive = charge, Negative = credit/refund')
+    adjustment_type = fields.Selection([
+        ('charge', 'Extra Charge'),
+        ('credit', 'Credit / Refund'),
+        ('discount', 'Discount'),
+        ('other', 'Other'),
+    ], string='Type', default='other')
+    applied_in_invoice = fields.Boolean(string='Applied', default=False)
+    invoice_id = fields.Many2one('account.move', string='Invoice', readonly=True)
+
+
+class AccountMoveTuitionExt(models.Model):
+    _inherit = 'account.move'
+
+    tuition_subscription_id = fields.Many2one(
+        'tuition.subscription', string='Tuition Subscription',
+        ondelete='set null', index=True)
+
+
+class TuitionPlanChangeWizard(models.TransientModel):
+    _name = 'tuition.plan.change.wizard'
+    _description = 'Schedule Plan Change'
+
+    subscription_id = fields.Many2one('tuition.subscription', required=True)
+    product_id = fields.Many2one('product.product', string='New Plan Product', required=True)
+    price = fields.Float(string='Monthly Price', required=True)
+    start_date = fields.Date(string='Effective From (auto: 1st of next month)',
+                             compute='_compute_start_date', store=True, readonly=False)
+    notes = fields.Char(string='Notes')
+
+    @api.depends('subscription_id')
+    def _compute_start_date(self):
+        today = fields.Date.today()
+        first_next = today.replace(day=1) + relativedelta(months=1)
+        for rec in self:
+            rec.start_date = first_next
+
+    @api.onchange('product_id')
+    def _onchange_product(self):
+        if self.product_id:
+            self.price = self.product_id.lst_price or 0.0
+
+    def action_confirm(self):
+        self.ensure_one()
+        sub = self.subscription_id
+        if self.start_date.day != 1:
+            raise UserError("Plan change must start on the 1st of a month.")
+        today = fields.Date.today()
+        end_prev = self.start_date - relativedelta(days=1)
+        current = sub.plan_line_ids.filtered(
+            lambda p: p.state == 'active' and (not p.end_date or p.end_date >= today))
+        if current:
+            current[0].write({'end_date': end_prev})
+        scheduled = sub.plan_line_ids.filtered(lambda p: p.state == 'scheduled')
+        if scheduled:
+            scheduled.write({'end_date': end_prev})
+        self.env['tuition.plan.line'].create({
+            'subscription_id': sub.id,
+            'product_id': self.product_id.id,
+            'price': self.price,
+            'start_date': self.start_date,
+            'notes': self.notes or '',
+        })
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',
             'params': {
-                'title': 'Portal Users Fixed',
-                'message': 'All student/tutor/parent portal users have been corrected to portal-only access.',
+                'title': 'Plan Change Scheduled',
+                'message': "Plan '%s' effective from %s." % (
+                    self.product_id.name, self.start_date.strftime('%d %b %Y')),
                 'type': 'success',
                 'sticky': False,
                 'next': {'type': 'ir.actions.act_window_close'},
             },
         }
+
+
+class TuitionAdjustmentWizard(models.TransientModel):
+    _name = 'tuition.adjustment.wizard'
+    _description = 'Add Manual Adjustment'
+
+    subscription_id = fields.Many2one('tuition.subscription', required=True)
+    adjustment_type = fields.Selection([
+        ('charge', 'Extra Charge'),
+        ('credit', 'Credit / Refund'),
+        ('discount', 'Discount'),
+        ('other', 'Other'),
+    ], string='Type', required=True, default='other')
+    description = fields.Char(string='Description', required=True)
+    amount = fields.Float(string='Amount', required=True,
+                          help='Positive for charge, negative for credit/refund')
+    date = fields.Date(string='Date', default=fields.Date.today, required=True)
+
+    @api.onchange('adjustment_type')
+    def _onchange_type(self):
+        if self.adjustment_type == 'charge' and self.amount < 0:
+            self.amount = abs(self.amount)
+        elif self.adjustment_type in ('credit', 'discount') and self.amount > 0:
+            self.amount = -abs(self.amount)
+
+    def action_confirm(self):
+        self.ensure_one()
+        self.env['tuition.adjustment'].create({
+            'subscription_id': self.subscription_id.id,
+            'date': self.date,
+            'description': self.description,
+            'amount': self.amount,
+            'adjustment_type': self.adjustment_type,
+        })
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Adjustment Added',
+                'message': "Adjustment '%s' added." % self.description,
+                'type': 'success',
+                'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
+# END BILLING SYSTEM

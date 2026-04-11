@@ -1268,8 +1268,6 @@
     </t>
 </template>
 
-<!-- TUTOR: LESSONS (duplicate removed, see above) -->
-
 <!-- ═══════════════════════════════════════════════ -->
 <!-- PARENT: DASHBOARD                               -->
 <!-- ═══════════════════════════════════════════════ -->
@@ -1285,6 +1283,9 @@
                     </div>
                     <div class="d-flex gap-3 align-items-center">
                         <div class="tm-hero-stat"><div class="num"><t t-esc="len(child_data)"/></div><div class="lbl">Children</div></div>
+                        <a href="/my/tuition/invoices" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-file-text"/> Invoices
+                        </a>
                         <a href="/my/profile" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
                             <i class="fa fa-user-circle"/> Profile
                         </a>
@@ -1322,6 +1323,331 @@
                                 </div>
                             </t>
                         </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+    </t>
+</template>
+
+<!-- PARENT: PORTAL HOME: ADD INVOICES ENTRY -->
+<template id="portal_my_home_invoices_tuition" inherit_id="portal.portal_my_home" priority="50">
+    <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+        <t t-if="is_parent">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">Invoices</t>
+                <t t-set="url" t-value="'/my/tuition/invoices'"/>
+                <t t-set="text">View and download tuition invoices</t>
+            </t>
+        </t>
+    </xpath>
+</template>
+<record id="view_tuition_subscription_form" model="ir.ui.view">
+    <field name="name">tuition.subscription.form</field>
+    <field name="model">tuition.subscription</field>
+    <field name="arch" type="xml">
+        <form string="Subscription">
+            <header>
+                <button name="action_generate_invoice" string="Generate Invoice"
+                        type="object" class="oe_highlight"
+                        invisible="state != 'active'"/>
+                <button name="action_schedule_plan_change" string="Schedule Plan Change"
+                        type="object" class="btn-secondary"
+                        invisible="state != 'active'"/>
+                <button name="action_add_adjustment" string="Add Adjustment"
+                        type="object" class="btn-secondary"/>
+                <button name="action_pause" string="Pause"
+                        type="object"
+                        invisible="state != 'active'"/>
+                <button name="action_activate" string="Activate"
+                        type="object"
+                        invisible="state == 'active'"/>
+                <button name="action_cancel" string="Cancel"
+                        type="object"
+                        invisible="state == 'cancelled'"/>
+                <field name="state" widget="statusbar"
+                       statusbar_visible="active,paused,cancelled"/>
+            </header>
+            <sheet>
+                <div class="oe_title">
+                    <h1><field name="name" readonly="1"/></h1>
+                </div>
+                <group>
+                    <group>
+                        <field name="student_id"/>
+                        <field name="enrollment_id"/>
+                        <field name="next_billing_date"/>
+                    </group>
+                    <group>
+                        <field name="current_plan_product" readonly="1"/>
+                        <field name="current_plan_price" readonly="1"/>
+                        <field name="monthly_revenue" readonly="1"/>
+                        <field name="total_adjustments_applied" readonly="1"/>
+                    </group>
+                </group>
+                <notebook>
+                    <page string="Plan History" name="plan_history">
+                        <field name="plan_line_ids">
+                            <list editable="bottom" decoration-success="state=='active'"
+                                  decoration-info="state=='scheduled'"
+                                  decoration-muted="state=='expired'">
+                                <field name="product_id"/>
+                                <field name="price"/>
+                                <field name="start_date"/>
+                                <field name="end_date"/>
+                                <field name="state" readonly="1"/>
+                                <field name="notes"/>
+                            </list>
+                        </field>
+                    </page>
+                    <page string="Adjustments" name="adjustments">
+                        <field name="adjustment_ids">
+                            <list decoration-success="amount &gt; 0"
+                                  decoration-danger="amount &lt; 0">
+                                <field name="date"/>
+                                <field name="adjustment_type"/>
+                                <field name="description"/>
+                                <field name="amount"/>
+                                <field name="applied_in_invoice" readonly="1"/>
+                                <field name="invoice_id" readonly="1"/>
+                            </list>
+                        </field>
+                    </page>
+                    <page string="Invoices" name="invoices">
+                        <field name="invoice_ids" readonly="1">
+                            <list>
+                                <field name="name"/>
+                                <field name="invoice_date"/>
+                                <field name="amount_total"/>
+                                <field name="payment_state"/>
+                                <field name="state"/>
+                            </list>
+                        </field>
+                    </page>
+                </notebook>
+            </sheet>
+        </form>
+    </field>
+</record>
+
+<record id="view_tuition_subscription_list" model="ir.ui.view">
+    <field name="name">tuition.subscription.list</field>
+    <field name="model">tuition.subscription</field>
+    <field name="arch" type="xml">
+        <list decoration-success="state=='active'"
+              decoration-warning="state=='paused'"
+              decoration-muted="state=='cancelled'">
+            <field name="name"/>
+            <field name="student_id"/>
+            <field name="current_plan_product"/>
+            <field name="current_plan_price"/>
+            <field name="next_billing_date"/>
+            <field name="unapplied_adjustment_count"/>
+            <field name="invoice_count"/>
+            <field name="state"/>
+        </list>
+    </field>
+</record>
+
+<record id="view_tuition_subscription_search" model="ir.ui.view">
+    <field name="name">tuition.subscription.search</field>
+    <field name="model">tuition.subscription</field>
+    <field name="arch" type="xml">
+        <search>
+            <field name="student_id"/>
+            <field name="state"/>
+            <filter string="Active" name="active" domain="[('state','=','active')]"/>
+            <filter string="Paused" name="paused" domain="[('state','=','paused')]"/>
+            <filter string="Cancelled" name="cancelled" domain="[('state','=','cancelled')]"/>
+            <separator/>
+            <filter string="Group by Student" name="by_student" context="{'group_by': 'student_id'}"/>
+            <filter string="Group by Status" name="by_state" context="{'group_by': 'state'}"/>
+        </search>
+    </field>
+</record>
+
+<record id="action_tuition_subscriptions" model="ir.actions.act_window">
+    <field name="name">Subscriptions</field>
+    <field name="res_model">tuition.subscription</field>
+    <field name="view_mode">list,form</field>
+    <field name="search_view_id" ref="view_tuition_subscription_search"/>
+</record>
+
+<!-- Plan Change Wizard -->
+<record id="view_tuition_plan_change_wizard" model="ir.ui.view">
+    <field name="name">tuition.plan.change.wizard.form</field>
+    <field name="model">tuition.plan.change.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Schedule Plan Change">
+            <group>
+                <field name="subscription_id" readonly="1"/>
+                <field name="product_id"/>
+                <field name="price"/>
+                <field name="start_date"/>
+                <field name="notes"/>
+            </group>
+            <div class="alert alert-info" style="margin:12px 0;">
+                <i class="fa fa-info-circle"/> Plan changes take effect on the
+                <strong>1st of the selected month</strong>. The current plan will be
+                automatically closed at the end of the previous month.
+            </div>
+            <footer>
+                <button name="action_confirm" string="Confirm" type="object"
+                        class="oe_highlight"/>
+                <button string="Cancel" class="btn-secondary" special="cancel"/>
+            </footer>
+        </form>
+    </field>
+</record>
+
+<!-- Adjustment Wizard -->
+<record id="view_tuition_adjustment_wizard" model="ir.ui.view">
+    <field name="name">tuition.adjustment.wizard.form</field>
+    <field name="model">tuition.adjustment.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Add Adjustment">
+            <group>
+                <field name="subscription_id" readonly="1"/>
+                <field name="adjustment_type"/>
+                <field name="description"/>
+                <field name="amount"
+                       help="Positive = extra charge, Negative = credit or refund"/>
+                <field name="date"/>
+            </group>
+            <div class="alert alert-warning" style="margin:12px 0;">
+                <i class="fa fa-exclamation-triangle"/>
+                This adjustment will be included automatically in the
+                <strong>next invoice</strong> and marked as applied.
+            </div>
+            <footer>
+                <button name="action_confirm" string="Add Adjustment" type="object"
+                        class="oe_highlight"/>
+                <button string="Cancel" class="btn-secondary" special="cancel"/>
+            </footer>
+        </form>
+    </field>
+</record>
+
+<!-- Menu Items: Billing under Tuition Management top menu -->
+<menuitem id="menu_tuition_billing_root"
+          name="Billing"
+          parent="menu_tuition_root"
+          sequence="30"
+          groups="base.group_user"/>
+
+<menuitem id="menu_tuition_subscriptions"
+          name="Subscriptions"
+          parent="menu_tuition_billing_root"
+          action="action_tuition_subscriptions"
+          sequence="10"
+          groups="base.group_user"/>
+
+<!-- Cron Job -->
+<record id="ir_cron_generate_tuition_invoices" model="ir.cron">
+    <field name="name">Tuition: Generate Monthly Invoices</field>
+    <field name="model_id" ref="model_tuition_subscription"/>
+    <field name="state">code</field>
+    <field name="code">model._cron_generate_monthly_invoices()</field>
+    <field name="interval_number">1</field>
+    <field name="interval_type">days</field>
+    <field name="active">True</field>
+</record>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PARENT: PORTAL HOME: ADD INVOICES ENTRY         -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_my_home_invoices_tuition" inherit_id="portal.portal_my_home" priority="50">
+    <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+        <t t-if="is_parent">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="title">Invoices</t>
+                <t t-set="url" t-value="'/my/tuition/invoices'"/>
+                <t t-set="text">View and download tuition invoices</t>
+            </t>
+        </t>
+    </xpath>
+</template>
+
+<template id="portal_parent_invoices" name="Parent: Invoices">
+    <t t-call="portal.portal_layout">
+        <t t-call="tuition_management.portal_tuition_css"/>
+        <div class="tm-page mt-3">
+            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <h2><i class="fa fa-file-text me-2"/>Invoices</h2>
+                        <p>View and download your tuition invoices</p>
+                    </div>
+                    <a href="/my/parent/children" class="tm-btn tm-btn-outline"
+                       style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                        <i class="fa fa-arrow-left"/> Dashboard
+                    </a>
+                </div>
+            </div>
+            <t t-if="not invoices">
+                <div class="tm-card">
+                    <div class="tm-empty">
+                        <i class="fa fa-file-o"/>
+                        <p>No invoices found.</p>
+                    </div>
+                </div>
+            </t>
+            <t t-if="invoices">
+                <div class="tm-card">
+                    <div class="table-responsive">
+                        <table class="tm-table">
+                            <thead>
+                                <tr>
+                                    <th>Invoice #</th>
+                                    <th>Student</th>
+                                    <th>Date</th>
+                                    <th>Plan</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="invoices" t-as="inv">
+                                    <tr>
+                                        <td class="fw-bold" style="font-size:12px;">
+                                            <t t-esc="inv.name"/>
+                                        </td>
+                                        <td style="font-size:12px;">
+                                            <t t-if="inv.tuition_subscription_id and inv.tuition_subscription_id.student_id">
+                                                <t t-esc="inv.tuition_subscription_id.student_id.name"/>
+                                            </t>
+                                            <t t-else="">—</t>
+                                        </td>
+                                        <td style="font-size:12px;">
+                                            <t t-if="inv.invoice_date">
+                                                <t t-esc="inv.invoice_date"/>
+                                            </t>
+                                        </td>
+                                        <td style="font-size:12px;">
+                                            <t t-if="inv.tuition_subscription_id">
+                                                <t t-esc="inv.tuition_subscription_id.current_plan_product"/>
+                                            </t>
+                                            <t t-else="">—</t>
+                                        </td>
+                                        <td class="fw-bold" style="font-size:12px;">
+                                            <t t-esc="inv.amount_total"/> <t t-esc="inv.currency_id.symbol"/>
+                                        </td>
+                                        <td>
+                                            <span t-if="inv.payment_state == 'paid'" class="tm-badge tm-badge-green">Paid</span>
+                                            <span t-elif="inv.state == 'posted'" class="tm-badge tm-badge-orange">Unpaid</span>
+                                            <span t-elif="inv.state == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
+                                            <span t-else="" class="tm-badge tm-badge-grey"><t t-esc="inv.state"/></span>
+                                        </td>
+                                        <td>
+                                            <a t-attf-href="/my/invoices/#{inv.id}" class="tm-btn tm-btn-blue tm-btn-sm">
+                                                <i class="fa fa-eye"/> View
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </t>

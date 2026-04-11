@@ -68,6 +68,35 @@ class TuitionPortal(CustomerPortal):
         request.session.logout(keep_db=True)
         return request.redirect('/web/login')
 
+    @http.route(['/my/tuition/invoices'], type='http', auth='user', website=True)
+    def portal_tuition_invoices(self, **kw):
+        parent = self._get_parent()
+        student = self._get_student()
+        if not parent and not student:
+            return request.redirect('/my')
+
+        if parent:
+            child_partners = parent.student_ids.mapped('partner_id').ids if parent.student_ids else []
+            parent_partner = [parent.partner_id.id] if parent.partner_id else []
+            partner_ids = list(set(parent_partner + child_partners))
+            invoices = request.env['account.move'].sudo().search([
+                ('move_type', '=', 'out_invoice'),
+                ('partner_id', 'in', partner_ids),
+                ('tuition_subscription_id', '!=', False),
+            ], order='invoice_date desc')
+        else:
+            partner_id = student.partner_id.id if student.partner_id else 0
+            invoices = request.env['account.move'].sudo().search([
+                ('move_type', '=', 'out_invoice'),
+                ('partner_id', '=', partner_id),
+                ('tuition_subscription_id', '!=', False),
+            ], order='invoice_date desc')
+
+        return request.render('tuition_management.portal_parent_invoices', {
+            'invoices': invoices,
+            'page_name': 'tuition_invoices',
+        })
+
     def _get_student(self):
         return request.env['student.profile'].sudo().search(
             [('partner_id', '=', request.env.user.partner_id.id)], limit=1)
