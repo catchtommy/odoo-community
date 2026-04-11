@@ -1070,8 +1070,15 @@ Create your first attendance record
 <field name="view_mode">kanban,list,form</field>
 </record>
 
+<!-- Dashboard Client Action -->
+<record id="action_tuition_dashboard" model="ir.actions.client">
+<field name="name">Dashboard</field>
+<field name="tag">tuition_dashboard</field>
+</record>
+
 <!-- Top Level Admin Menus -->
 <menuitem id="menu_tuition_root" name="Tuition" sequence="50"/>
+<menuitem id="menu_tuition_dashboard" name="Dashboard" parent="menu_tuition_root" action="action_tuition_dashboard" sequence="1"/>
 
 <!-- Scheduling Menu -->
 <menuitem id="menu_tuition_scheduling" name="Scheduling" parent="menu_tuition_root" sequence="10"/>

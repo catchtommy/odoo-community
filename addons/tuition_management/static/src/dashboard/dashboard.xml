@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="tuition_management.Dashboard">
+        <div class="tm-dashboard">
+            <style>
+                .tm-dashboard {
+                    padding: 24px;
+                    background: #f1f3f5;
+                    min-height: 100%;
+                    font-family: Inter, -apple-system, sans-serif;
+                    overflow-y: auto;
+                    height: calc(100vh - 50px);
+                }
+                .tm-dash-header {
+                    margin-bottom: 28px;
+                }
+                .tm-dash-header h2 {
+                    font-size: 22px;
+                    font-weight: 700;
+                    color: #1a1a2e;
+                    margin: 0 0 4px;
+                }
+                .tm-dash-header p {
+                    font-size: 13px;
+                    color: #6c757d;
+                    margin: 0;
+                }
+                .tm-dash-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+                    gap: 16px;
+                    margin-bottom: 28px;
+                }
+                .tm-stat-card {
+                    background: #fff;
+                    border-radius: 10px;
+                    padding: 20px;
+                    border: 1px solid #e9ecef;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    position: relative;
+                    overflow: hidden;
+                }
+                .tm-stat-card:hover {
+                    box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+                    transform: translateY(-2px);
+                }
+                .tm-stat-icon {
+                    width: 40px;
+                    height: 40px;
+                    border-radius: 10px;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 18px;
+                    color: #fff;
+                    margin-bottom: 14px;
+                }
+                .tm-stat-icon.blue { background: linear-gradient(135deg, #4361ee, #3a56d4); }
+                .tm-stat-icon.green { background: linear-gradient(135deg, #2ec4b6, #20a89c); }
+                .tm-stat-icon.purple { background: linear-gradient(135deg, #7c3aed, #6d28d9); }
+                .tm-stat-icon.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+                .tm-stat-icon.rose { background: linear-gradient(135deg, #e63946, #c1121f); }
+                .tm-stat-icon.teal { background: linear-gradient(135deg, #0d9488, #0f766e); }
+                .tm-stat-number {
+                    font-size: 28px;
+                    font-weight: 800;
+                    color: #1a1a2e;
+                    line-height: 1;
+                    margin-bottom: 4px;
+                }
+                .tm-stat-label {
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #6c757d;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .tm-stat-sub {
+                    font-size: 11px;
+                    color: #adb5bd;
+                    margin-top: 6px;
+                }
+                .tm-stat-sub span {
+                    font-weight: 700;
+                    color: #2ec4b6;
+                }
+                .tm-stat-link {
+                    font-size: 11px;
+                    color: #4361ee;
+                    text-decoration: none;
+                    font-weight: 600;
+                    margin-top: 10px;
+                    display: inline-block;
+                }
+                .tm-stat-link:hover { text-decoration: underline; }
+
+                .tm-dash-section {
+                    margin-bottom: 28px;
+                }
+                .tm-dash-section h4 {
+                    font-size: 15px;
+                    font-weight: 700;
+                    color: #1a1a2e;
+                    margin: 0 0 14px;
+                }
+                .tm-quick-grid {
+                    display: grid;
+                    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+                    gap: 12px;
+                }
+                .tm-quick-btn {
+                    background: #fff;
+                    border: 1px solid #e9ecef;
+                    border-radius: 10px;
+                    padding: 16px;
+                    cursor: pointer;
+                    transition: all 0.2s;
+                    display: flex;
+                    align-items: center;
+                    gap: 12px;
+                    text-decoration: none;
+                    color: #1a1a2e;
+                }
+                .tm-quick-btn:hover {
+                    background: #4361ee;
+                    color: #fff;
+                    border-color: #4361ee;
+                    box-shadow: 0 4px 12px rgba(67,97,238,0.25);
+                }
+                .tm-quick-btn:hover .tm-quick-icon { background: rgba(255,255,255,0.2); color: #fff; }
+                .tm-quick-icon {
+                    width: 36px;
+                    height: 36px;
+                    border-radius: 8px;
+                    background: #f1f3f5;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 15px;
+                    color: #4361ee;
+                    flex-shrink: 0;
+                    transition: all 0.2s;
+                }
+                .tm-quick-label {
+                    font-size: 13px;
+                    font-weight: 600;
+                }
+
+                /* Schedule Section */
+                .tm-schedule-section {
+                    background: #fff;
+                    border-radius: 10px;
+                    border: 1px solid #e9ecef;
+                    padding: 20px;
+                    margin-bottom: 28px;
+                }
+                .tm-schedule-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 16px;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+                .tm-schedule-header h4 {
+                    font-size: 15px;
+                    font-weight: 700;
+                    color: #1a1a2e;
+                    margin: 0;
+                }
+                .tm-schedule-nav {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                .tm-schedule-nav button {
+                    border: 1px solid #dee2e6;
+                    background: #fff;
+                    border-radius: 6px;
+                    padding: 5px 12px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    color: #495057;
+                    transition: all 0.15s;
+                }
+                .tm-schedule-nav button:hover {
+                    background: #4361ee;
+                    color: #fff;
+                    border-color: #4361ee;
+                }
+                .tm-schedule-nav .tm-today-btn {
+                    background: #4361ee;
+                    color: #fff;
+                    border-color: #4361ee;
+                }
+                .tm-schedule-nav .tm-today-btn:hover {
+                    background: #3a56d4;
+                }
+                .tm-schedule-date {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #495057;
+                    min-width: 200px;
+                    text-align: center;
+                }
+                .tm-schedule-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 13px;
+                }
+                .tm-schedule-table th {
+                    background: #f8f9fa;
+                    padding: 10px 12px;
+                    text-align: left;
+                    font-weight: 600;
+                    color: #6c757d;
+                    font-size: 11px;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    border-bottom: 2px solid #e9ecef;
+                }
+                .tm-schedule-table td {
+                    padding: 10px 12px;
+                    border-bottom: 1px solid #f1f3f5;
+                    color: #495057;
+                    vertical-align: middle;
+                }
+                .tm-schedule-table tr {
+                    cursor: pointer;
+                    transition: background 0.15s;
+                }
+                .tm-schedule-table tbody tr:hover {
+                    background: #f0f4ff;
+                }
+                .tm-status-badge {
+                    display: inline-block;
+                    padding: 3px 10px;
+                    border-radius: 20px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: capitalize;
+                }
+                .tm-status-badge.scheduled { background: #e3f2fd; color: #1565c0; }
+                .tm-status-badge.completed { background: #e8f5e9; color: #2e7d32; }
+                .tm-status-badge.cancelled { background: #fce4ec; color: #c62828; }
+                .tm-status-badge.no_show { background: #fff3e0; color: #e65100; }
+                .tm-empty-msg {
+                    text-align: center;
+                    padding: 32px;
+                    color: #adb5bd;
+                    font-size: 14px;
+                }
+            </style>
+
+            <div class="tm-dash-header">
+                <h2><i class="fa fa-graduation-cap" style="margin-right:8px;color:#4361ee;"/> Tuition Dashboard</h2>
+                <p>Overview of your tuition management system</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="tm-dash-grid">
+                <div class="tm-stat-card" t-on-click="viewCourses">
+                    <div class="tm-stat-icon blue"><i class="fa fa-book"/></div>
+                    <div class="tm-stat-number" t-esc="state.courses"/>
+                    <div class="tm-stat-label">Total Courses</div>
+                    <div class="tm-stat-sub"><span t-esc="state.active_courses"/> active</div>
+                    <span class="tm-stat-link">View All →</span>
+                </div>
+
+                <div class="tm-stat-card" t-on-click="viewEnrollments">
+                    <div class="tm-stat-icon green"><i class="fa fa-user-plus"/></div>
+                    <div class="tm-stat-number" t-esc="state.enrollments"/>
+                    <div class="tm-stat-label">Enrollments</div>
+                    <div class="tm-stat-sub"><span t-esc="state.active_enrollments"/> active</div>
+                    <span class="tm-stat-link">View All →</span>
+                </div>
+
+                <div class="tm-stat-card" t-on-click="viewEnquiries">
+                    <div class="tm-stat-icon purple"><i class="fa fa-question-circle"/></div>
+                    <div class="tm-stat-number" t-esc="state.enquiries"/>
+                    <div class="tm-stat-label">Enquiries</div>
+                    <div class="tm-stat-sub"><span t-esc="state.new_enquiries"/> pending</div>
+                    <span class="tm-stat-link">View All →</span>
+                </div>
+
+                <div class="tm-stat-card" t-on-click="viewDemoSessions">
+                    <div class="tm-stat-icon orange"><i class="fa fa-play-circle"/></div>
+                    <div class="tm-stat-number" t-esc="state.demo_sessions"/>
+                    <div class="tm-stat-label">Demo Sessions</div>
+                    <div class="tm-stat-sub"><span t-esc="state.upcoming_demos"/> upcoming</div>
+                    <span class="tm-stat-link">View All →</span>
+                </div>
+
+                <div class="tm-stat-card" t-on-click="viewTodaySchedules">
+                    <div class="tm-stat-icon rose"><i class="fa fa-calendar-check-o"/></div>
+                    <div class="tm-stat-number" t-esc="state.today_schedules"/>
+                    <div class="tm-stat-label">Today's Lessons</div>
+                    <div class="tm-stat-sub">scheduled for today</div>
+                    <span class="tm-stat-link">View All →</span>
+                </div>
+
+                <div class="tm-stat-card" t-on-click="viewStudents">
+                    <div class="tm-stat-icon teal"><i class="fa fa-users"/></div>
+                    <div class="tm-stat-number" t-esc="state.students"/>
+                    <div class="tm-stat-label">Students</div>
+                    <span class="tm-stat-link">View All →</span>
+                </div>
+            </div>
+
+            <!-- Schedule List -->
+            <div class="tm-schedule-section">
+                <div class="tm-schedule-header">
+                    <h4><i class="fa fa-calendar" style="margin-right:6px;color:#4361ee;"/> Lesson Schedule</h4>
+                    <div class="tm-schedule-nav">
+                        <button t-on-click="prevDay"><i class="fa fa-chevron-left"/></button>
+                        <button class="tm-today-btn" t-on-click="goToday">Today</button>
+                        <button t-on-click="nextDay"><i class="fa fa-chevron-right"/></button>
+                    </div>
+                </div>
+                <div class="tm-schedule-date" t-esc="state.schedule_label"/>
+                <table class="tm-schedule-table" t-if="state.schedule_rows.length > 0">
+                    <thead>
+                        <tr>
+                            <th>Time</th>
+                            <th>Lesson</th>
+                            <th>Course</th>
+                            <th>Tutor</th>
+                            <th>Status</th>
+                            <th>Attendance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr t-foreach="state.schedule_rows" t-as="row" t-key="row.id"
+                            t-on-click="openOccurrence" t-att-data-id="row.id">
+                            <td><strong t-esc="row.start_time"/> — <span t-esc="row.stop_time"/></td>
+                            <td t-esc="row.name"/>
+                            <td t-esc="row.course_name"/>
+                            <td t-esc="row.tutor_name"/>
+                            <td>
+                                <span t-attf-class="tm-status-badge {{row.lesson_status}}" t-esc="row.lesson_status"/>
+                            </td>
+                            <td>
+                                <i t-if="row.attendance_marked" class="fa fa-check-circle" style="color:#2e7d32;"/>
+                                <span t-else="" style="color:#adb5bd;">—</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="tm-empty-msg" t-else="">
+                    <i class="fa fa-calendar-o" style="font-size:24px;margin-bottom:8px;display:block;"/>
+                    No lessons scheduled for this day
+                </div>
+                <div style="text-align:right;margin-top:12px;" t-if="state.schedule_rows.length > 0">
+                    <span class="tm-stat-link" t-on-click="viewTodaySchedules" style="cursor:pointer;">
+                        Open full list →
+                    </span>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div class="tm-dash-section">
+                <h4><i class="fa fa-bolt" style="margin-right:6px;color:#f59e0b;"/> Quick Actions</h4>
+                <div class="tm-quick-grid">
+                    <div class="tm-quick-btn" t-on-click="viewTodaySchedules">
+                        <div class="tm-quick-icon"><i class="fa fa-calendar"/></div>
+                        <div class="tm-quick-label">Today's Schedule</div>
+                    </div>
+                    <div class="tm-quick-btn" t-on-click="viewCalendar">
+                        <div class="tm-quick-icon"><i class="fa fa-calendar-o"/></div>
+                        <div class="tm-quick-label">Schedule Calendar</div>
+                    </div>
+                    <div class="tm-quick-btn" t-on-click="viewDemoSessions">
+                        <div class="tm-quick-icon"><i class="fa fa-play-circle"/></div>
+                        <div class="tm-quick-label">Demo Sessions</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

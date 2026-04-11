@@ -23,4 +23,10 @@
     "installable": True,
     "application": True,
     "post_init_hook": "_create_default_enquiry_stages",
+    "assets": {
+        "web.assets_backend": [
+            "tuition_management/static/src/dashboard/dashboard.js",
+            "tuition_management/static/src/dashboard/dashboard.xml",
+        ],
+    },
 }
