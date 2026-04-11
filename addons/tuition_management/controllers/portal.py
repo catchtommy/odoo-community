@@ -702,6 +702,9 @@ class TuitionPortal(CustomerPortal):
 
         enrolled_students = course.enrollment_ids.filtered(lambda e: e.status == 'active')
         course_assignments = course.assignment_ids
+        course_progress_reports = request.env['progress.report'].sudo().search([
+            ('course_id', '=', course.id),
+        ], order='report_date desc')
 
         # Pre-compute active enrollments (avoid lambda in QWeb)
         active_enrollments = course.enrollment_ids.filtered(lambda e: e.status == 'active')
@@ -719,11 +722,11 @@ class TuitionPortal(CustomerPortal):
             'active_enrollment_count': active_enrollment_count,
             'enrolled_students': enrolled_students,
             'course_assignments': course_assignments,
-            'active_enrollments': active_enrollments,
-            'active_enrollment_count': active_enrollment_count,
+            'course_progress_reports': course_progress_reports,
             'lessons_url': f'/my/tutor/courses/{course.id}/lessons',
             'assignments_url': f'/my/tutor/courses/{course.id}/assignments',
             'page_name': 'tutor_course_detail',
+            'page_title': course.name,
         })
 
     @http.route(['/my/tutor/courses/<int:course_id>/lessons',
@@ -978,6 +981,125 @@ class TuitionPortal(CustomerPortal):
         })
 
         return request.redirect(f'/my/tutor/assignment/{submission.assignment_id.id}?graded=1')
+
+    @http.route(['/my/tutor/all-assignments'], type='http', auth='user', website=True)
+    def portal_tutor_all_assignments(self, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        courses = request.env['course.master'].sudo().search([
+            ('tutor_id', '=', tutor.id),
+        ])
+        assignments = request.env['course.assignment'].sudo().search([
+            ('course_id', 'in', courses.ids),
+        ], order='due_date desc')
+        return request.render('tuition_management.portal_tutor_all_assignments', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
+            'tutor': tutor,
+            'assignments': assignments,
+            'page_name': 'tutor_all_assignments',
+            'page_title': 'All Assignments',
+        })
+
+    @http.route(['/my/tutor/progress'], type='http', auth='user', website=True)
+    def portal_tutor_progress(self, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        courses = request.env['course.master'].sudo().search([
+            ('tutor_id', '=', tutor.id),
+        ])
+        reports = request.env['progress.report'].sudo().search([
+            ('course_id', 'in', courses.ids),
+        ], order='report_date desc')
+        return request.render('tuition_management.portal_tutor_all_progress', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
+            'tutor': tutor,
+            'reports': reports,
+            'page_name': 'tutor_progress',
+            'page_title': 'Progress Reports',
+        })
+
+    @http.route(['/my/tutor/courses/<int:course_id>/progress/new'], type='http', auth='user', website=True)
+    def portal_tutor_progress_new(self, course_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        course = request.env['course.master'].sudo().browse(course_id)
+        if not course.exists() or course.tutor_id.id != tutor.id:
+            return request.redirect('/my/tutor/courses')
+        enrolled_students = course.enrollment_ids.filtered(lambda e: e.status == 'active')
+        return request.render('tuition_management.portal_tutor_progress_new', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
+            'tutor': tutor,
+            'course': course,
+            'enrolled_students': enrolled_students,
+            'page_name': 'tutor_course_detail',
+            'page_title': 'New Progress Report',
+            'csrf_token': request.csrf_token(),
+        })
+
+    @http.route(['/my/tutor/courses/<int:course_id>/progress/create'], type='http',
+                auth='user', website=True, methods=['POST'], csrf=True)
+    def portal_tutor_progress_create(self, course_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        course = request.env['course.master'].sudo().browse(course_id)
+        if not course.exists() or course.tutor_id.id != tutor.id:
+            return request.redirect('/my/tutor/courses')
+        vals = {
+            'name': kw.get('name', 'Progress Report'),
+            'course_id': course.id,
+            'student_id': int(kw.get('student_id', 0)),
+            'report_date': kw.get('report_date') or fields.Date.today(),
+            'overall_rating': kw.get('overall_rating', ''),
+            'score': float(kw.get('score', 0) or 0),
+            'max_score': float(kw.get('max_score', 100) or 100),
+            'comments': kw.get('comments', ''),
+            'strengths': kw.get('strengths', ''),
+            'areas_to_improve': kw.get('areas_to_improve', ''),
+        }
+        request.env['progress.report'].sudo().create(vals)
+        return request.redirect(f'/my/tutor/courses/{course_id}?progress_created=1')
+
+    @http.route(['/my/tutor/payments'], type='http', auth='user', website=True)
+    def portal_tutor_payments(self, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        partner = tutor.partner_id
+        # Fetch bills (vendor bills) addressed to this tutor's partner
+        all_bills = request.env['account.move'].sudo().search([
+            ('partner_id', '=', partner.id),
+            ('move_type', '=', 'in_invoice'),
+        ], order='invoice_date desc')
+        paid_bills = all_bills.filtered(lambda b: b.payment_state == 'paid')
+        pending_bills = all_bills.filtered(lambda b: b.payment_state != 'paid' and b.state == 'posted')
+        total_paid = sum(paid_bills.mapped('amount_total'))
+        total_pending = sum(pending_bills.mapped('amount_residual'))
+        return request.render('tuition_management.portal_tutor_payments', {
+            'user': request.env.user,
+            'is_tutor': True,
+            'is_student': False,
+            'is_parent': False,
+            'tutor': tutor,
+            'paid_bills': paid_bills,
+            'pending_bills': pending_bills,
+            'total_paid': total_paid,
+            'total_pending': total_pending,
+            'page_name': 'tutor_payments',
+            'page_title': 'Payments',
+        })
 
     # ──────────────────────────────────────────────
     # PARENT PORTAL

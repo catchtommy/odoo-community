@@ -79,6 +79,22 @@
                                 <i class="fa fa-calendar"/>
                                 Schedule
                             </a>
+                            <a href="/my/tutor/all-assignments"
+                               t-attf-class="tm-nav-item #{page_name == 'tutor_all_assignments' and 'active' or ''}">
+                                <i class="fa fa-tasks"/>
+                                Assignments
+                            </a>
+                            <a href="/my/tutor/progress"
+                               t-attf-class="tm-nav-item #{page_name == 'tutor_progress' and 'active' or ''}">
+                                <i class="fa fa-line-chart"/>
+                                Progress
+                            </a>
+                            <div class="tm-sidebar-section">Billing</div>
+                            <a href="/my/tutor/payments"
+                               t-attf-class="tm-nav-item #{page_name == 'tutor_payments' and 'active' or ''}">
+                                <i class="fa fa-money"/>
+                                Payments
+                            </a>
                         </t>
 
                         <t t-if="is_parent">
@@ -964,6 +980,261 @@
                 <div class="tm-empty"><i class="fa fa-child"/><p>No children found.</p></div>
             </div>
         </t>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TUTOR: ALL ASSIGNMENTS                              -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_tutor_all_assignments">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_all_assignments</t>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-tasks"/> All Assignments</h5>
+
+        <div class="tm-card">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-list"/> Assignments</div>
+            </div>
+            <t t-if="assignments">
+                <table class="tm-table">
+                    <thead><tr><th>Title</th><th>Course</th><th>Type</th><th>Due</th><th>Status</th><th>Submissions</th><th></th></tr></thead>
+                    <tbody>
+                        <t t-foreach="assignments" t-as="asgn">
+                            <tr>
+                                <td class="fw-bold"><t t-esc="asgn.name"/></td>
+                                <td><t t-esc="asgn.course_id.name"/></td>
+                                <td><span class="tm-badge tm-badge-grey"><t t-esc="asgn.assignment_type or '—'"/></span></td>
+                                <td style="white-space:nowrap;"><t t-if="asgn.due_date" t-esc="asgn.due_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
+                                <td><span t-attf-class="tm-badge #{asgn.status == 'completed' and 'tm-badge-green' or asgn.status == 'assigned' and 'tm-badge-blue' or 'tm-badge-grey'}"><t t-esc="asgn.status.capitalize()"/></span></td>
+                                <td><span class="tm-badge tm-badge-purple"><t t-esc="len(asgn.submission_ids)"/></span></td>
+                                <td><a t-attf-href="/my/tutor/assignment/#{asgn.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> Review</a></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else="">
+                <div class="tm-empty"><i class="fa fa-tasks"/><p>No assignments found.</p></div>
+            </t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TUTOR: ALL PROGRESS REPORTS                         -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_tutor_all_progress">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_progress</t>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-line-chart"/> Progress Reports</h5>
+
+        <div class="tm-card">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-list"/> All Reports</div>
+            </div>
+            <t t-if="reports">
+                <table class="tm-table">
+                    <thead><tr><th>Date</th><th>Student</th><th>Course</th><th>Title</th><th>Rating</th><th>Score</th></tr></thead>
+                    <tbody>
+                        <t t-foreach="reports" t-as="rpt">
+                            <tr>
+                                <td style="white-space:nowrap;"><t t-esc="rpt.report_date"/></td>
+                                <td class="fw-bold"><t t-esc="rpt.student_id.name"/></td>
+                                <td><t t-esc="rpt.course_id.name"/></td>
+                                <td><t t-esc="rpt.name"/></td>
+                                <td>
+                                    <t t-if="rpt.overall_rating">
+                                        <span t-attf-class="tm-badge #{rpt.overall_rating == 'excellent' and 'tm-badge-green' or rpt.overall_rating == 'good' and 'tm-badge-blue' or rpt.overall_rating == 'satisfactory' and 'tm-badge-orange' or 'tm-badge-red'}">
+                                            <t t-esc="rpt.overall_rating.replace('_',' ').capitalize()"/>
+                                        </span>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td><t t-esc="rpt.score and ('%.0f / %.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else="">
+                <div class="tm-empty"><i class="fa fa-line-chart"/><p>No progress reports yet.</p></div>
+            </t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TUTOR: NEW PROGRESS REPORT                          -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_tutor_progress_new">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_course_detail</t>
+
+        <div style="margin-bottom:16px;">
+            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+        </div>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-plus"/> New Progress Report — <t t-esc="course.name"/></h5>
+
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Report Details</div></div>
+            <div class="tm-card-body">
+                <form t-attf-action="/my/tutor/courses/#{course.id}/progress/create" method="POST">
+                    <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                        <div>
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Title *</label>
+                            <input type="text" name="name" class="form-control form-control-sm" required="required" placeholder="e.g. Monthly Progress"/>
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Student *</label>
+                            <select name="student_id" class="form-select form-select-sm" required="required">
+                                <option value="">Select student...</option>
+                                <t t-foreach="enrolled_students" t-as="enr">
+                                    <option t-att-value="enr.student_id.id"><t t-esc="enr.student_id.name"/></option>
+                                </t>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Report Date</label>
+                            <input type="date" name="report_date" class="form-control form-control-sm"/>
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Overall Rating</label>
+                            <select name="overall_rating" class="form-select form-select-sm">
+                                <option value="">Select...</option>
+                                <option value="excellent">Excellent</option>
+                                <option value="good">Good</option>
+                                <option value="satisfactory">Satisfactory</option>
+                                <option value="needs_improvement">Needs Improvement</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Score</label>
+                            <input type="number" name="score" class="form-control form-control-sm" step="0.1" min="0" placeholder="0"/>
+                        </div>
+                        <div>
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Max Score</label>
+                            <input type="number" name="max_score" class="form-control form-control-sm" step="0.1" min="0" value="100"/>
+                        </div>
+                    </div>
+                    <div style="margin-top:16px;">
+                        <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Strengths</label>
+                        <textarea name="strengths" class="form-control form-control-sm" rows="2" placeholder="What the student excels at..."/>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Areas to Improve</label>
+                        <textarea name="areas_to_improve" class="form-control form-control-sm" rows="2" placeholder="Where improvement is needed..."/>
+                    </div>
+                    <div style="margin-top:12px;">
+                        <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Comments</label>
+                        <textarea name="comments" class="form-control form-control-sm" rows="3" placeholder="General comments..."/>
+                    </div>
+                    <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
+                        <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline">Cancel</a>
+                        <button type="submit" class="tm-btn tm-btn-green"><i class="fa fa-save"/> Save Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- TUTOR: PAYMENTS                                     -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_tutor_payments">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_payments</t>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-money"/> Payments</h5>
+
+        <!-- Stat Cards -->
+        <div class="tm-stat-grid" style="margin-bottom:20px;">
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value" style="color:var(--tm-green);">£<t t-esc="'%.2f' % total_paid"/></div>
+                        <div class="tm-stat-label">Total Paid</div>
+                    </div>
+                    <div class="tm-stat-icon green"><i class="fa fa-check-circle"/></div>
+                </div>
+            </div>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value" style="color:var(--tm-orange);">£<t t-esc="'%.2f' % total_pending"/></div>
+                        <div class="tm-stat-label">Pending</div>
+                    </div>
+                    <div class="tm-stat-icon orange"><i class="fa fa-clock-o"/></div>
+                </div>
+            </div>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="len(paid_bills) + len(pending_bills)"/></div>
+                        <div class="tm-stat-label">Total Records</div>
+                    </div>
+                    <div class="tm-stat-icon blue"><i class="fa fa-file-text-o"/></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tm-grid-2">
+            <!-- Pending Payments -->
+            <div class="tm-card">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-clock-o"/> Pending Payments</div>
+                    <span class="tm-badge tm-badge-orange" style="font-size:11px;"><t t-esc="len(pending_bills)"/> pending</span>
+                </div>
+                <t t-if="pending_bills">
+                    <table class="tm-table">
+                        <thead><tr><th>Invoice #</th><th>Date</th><th>Amount</th><th>Due</th></tr></thead>
+                        <tbody>
+                            <t t-foreach="pending_bills" t-as="bill">
+                                <tr>
+                                    <td class="fw-bold"><t t-esc="bill.name"/></td>
+                                    <td style="white-space:nowrap;"><t t-if="bill.invoice_date" t-esc="bill.invoice_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
+                                    <td>£<t t-esc="'%.2f' % bill.amount_total"/></td>
+                                    <td style="color:var(--tm-orange);font-weight:600;">£<t t-esc="'%.2f' % bill.amount_residual"/></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+                <t t-else="">
+                    <div class="tm-empty"><i class="fa fa-check-circle"/><p>No pending payments.</p></div>
+                </t>
+            </div>
+
+            <!-- Paid Payments -->
+            <div class="tm-card">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-check-circle"/> Paid Payments</div>
+                    <span class="tm-badge tm-badge-green" style="font-size:11px;"><t t-esc="len(paid_bills)"/> paid</span>
+                </div>
+                <t t-if="paid_bills">
+                    <table class="tm-table">
+                        <thead><tr><th>Invoice #</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+                        <tbody>
+                            <t t-foreach="paid_bills" t-as="bill">
+                                <tr>
+                                    <td class="fw-bold"><t t-esc="bill.name"/></td>
+                                    <td style="white-space:nowrap;"><t t-if="bill.invoice_date" t-esc="bill.invoice_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
+                                    <td>£<t t-esc="'%.2f' % bill.amount_total"/></td>
+                                    <td><span class="tm-badge tm-badge-green">Paid</span></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+                <t t-else="">
+                    <div class="tm-empty"><i class="fa fa-money"/><p>No payment records.</p></div>
+                </t>
+            </div>
+        </div>
     </t>
 </template>
 
