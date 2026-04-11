@@ -366,36 +366,32 @@ class CourseEnrollment(models.Model):
     name = fields.Char(string='Enrollment Reference', required=True, copy=False, readonly=True, default='New')
     course_id = fields.Many2one('course.master', string='Course', required=True, ondelete='cascade')
     student_id = fields.Many2one('student.profile', string='Student', required=True, ondelete='cascade')
-    fee = fields.Float(string='Fee')
-    fee_type = fields.Selection([
-        ('per_lesson', 'Per Lesson'),
-        ('fixed_monthly', 'Fixed Monthly'),
-    ], string='Fee Type', default='per_lesson')
-    currency_id = fields.Many2one('res.currency', string='Currency', default=lambda self: self.env.company.currency_id)
-    discount_amount = fields.Float(string='Discount Amount')
-    net_fee = fields.Float(string='Net Fee', compute='_compute_net_fee', store=True)
     status = fields.Selection([
         ('draft', 'Draft'),
         ('active', 'Active'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
     ], string='Status', default='active')
-    invoice_type = fields.Selection([
-        ('one_time', 'One Time'),
-        ('recurring', 'Recurring'),
-    ], string='Invoice Type', default='one_time')
-    billing_cycle = fields.Selection([
-        ('monthly', 'Monthly'),
-        ('quarterly', 'Quarterly'),
-        ('yearly', 'Yearly'),
-    ], string='Billing Cycle')
-    invoice_start_date = fields.Date(string='Invoice Start Date')
-    invoice_generation_date = fields.Integer(string='Invoice Generation Day', help='Day of month for invoice generation')
+    subscription_id = fields.Many2one(
+        'tuition.subscription', string='Subscription',
+        ondelete='set null',
+        help='Link to the tuition subscription for billing')
 
-    @api.depends('fee', 'discount_amount')
-    def _compute_net_fee(self):
+    # Computed fields from subscription for display
+    sub_plan_name = fields.Char(string='Plan', compute='_compute_sub_info', store=False)
+    sub_price = fields.Float(string='Monthly Price', compute='_compute_sub_info', store=False)
+    sub_state = fields.Selection(related='subscription_id.state', string='Subscription Status', store=False)
+    sub_next_billing = fields.Date(related='subscription_id.next_billing_date', string='Next Billing', store=False)
+
+    @api.depends('subscription_id', 'subscription_id.current_plan_product', 'subscription_id.current_plan_price')
+    def _compute_sub_info(self):
         for rec in self:
-            rec.net_fee = rec.fee - (rec.discount_amount or 0)
+            if rec.subscription_id:
+                rec.sub_plan_name = rec.subscription_id.current_plan_product or ''
+                rec.sub_price = rec.subscription_id.current_plan_price or 0.0
+            else:
+                rec.sub_plan_name = ''
+                rec.sub_price = 0.0
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -463,7 +459,6 @@ class ClassSchedule(models.Model):
     def _generate_occurrences(self):
         """Generate individual occurrence records for recurring schedules."""
         for record in self:
-            # Only delete occurrences that are still in 'scheduled' status
             scheduled_occurrences = record.occurrence_ids.filtered(lambda o: o.lesson_status == 'scheduled')
             scheduled_occurrences.sudo().unlink()
 
@@ -532,7 +527,6 @@ class ClassSchedule(models.Model):
 class ClassScheduleOccurrence(models.Model):
     _name = 'class.schedule.occurrence'
     _description = 'Class Schedule Occurrence'
-    _order = 'start_datetime'
 
     name = fields.Char(string='Name', required=True)
     schedule_id = fields.Many2one('class.schedule', string='Schedule', ondelete='set null')
