@@ -185,6 +185,14 @@
                             sidebar.classList.toggle('open');
                         });
                     }
+                    // Close dropdown menus on outside click
+                    document.addEventListener('click', function(e) {
+                        document.querySelectorAll('.tm-dropdown-menu.tm-dropdown-open').forEach(function(menu) {
+                            if (!menu.parentElement.contains(e.target)) {
+                                menu.classList.remove('tm-dropdown-open');
+                            }
+                        });
+                    });
                 });
             </script>
         </body>
@@ -990,7 +998,23 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_all_assignments</t>
 
-        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-tasks"/> All Assignments</h5>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h5 style="margin:0;font-weight:700;"><i class="fa fa-tasks"/> All Assignments</h5>
+            <div style="position:relative;">
+                <button class="tm-btn tm-btn-green" onclick="document.getElementById('tm-new-asgn-picker').classList.toggle('tm-dropdown-open');" type="button">
+                    <i class="fa fa-plus"/> Add New
+                </button>
+                <div id="tm-new-asgn-picker" class="tm-dropdown-menu">
+                    <div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--tm-text-light);border-bottom:1px solid var(--tm-border);">Select Course</div>
+                    <t t-foreach="tutor_courses" t-as="c">
+                        <a t-attf-href="/my/tutor/courses/#{c.id}/assignments" class="tm-dropdown-item"><t t-esc="c.name"/></a>
+                    </t>
+                    <t t-if="not tutor_courses">
+                        <div style="padding:8px 12px;font-size:12px;color:var(--tm-text-light);">No courses found</div>
+                    </t>
+                </div>
+            </div>
+        </div>
 
         <div class="tm-card">
             <div class="tm-card-header">
@@ -1028,7 +1052,23 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_progress</t>
 
-        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-line-chart"/> Progress Reports</h5>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h5 style="margin:0;font-weight:700;"><i class="fa fa-line-chart"/> Progress Reports</h5>
+            <div style="position:relative;">
+                <button class="tm-btn tm-btn-green" onclick="document.getElementById('tm-new-prog-picker').classList.toggle('tm-dropdown-open');" type="button">
+                    <i class="fa fa-plus"/> Add New
+                </button>
+                <div id="tm-new-prog-picker" class="tm-dropdown-menu">
+                    <div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--tm-text-light);border-bottom:1px solid var(--tm-border);">Select Course</div>
+                    <t t-foreach="tutor_courses" t-as="c">
+                        <a t-attf-href="/my/tutor/courses/#{c.id}/progress/new" class="tm-dropdown-item"><t t-esc="c.name"/></a>
+                    </t>
+                    <t t-if="not tutor_courses">
+                        <div style="padding:8px 12px;font-size:12px;color:var(--tm-text-light);">No courses found</div>
+                    </t>
+                </div>
+            </div>
+        </div>
 
         <div class="tm-card">
             <div class="tm-card-header">
@@ -1083,14 +1123,14 @@
             <div class="tm-card-body">
                 <form t-attf-action="/my/tutor/courses/#{course.id}/progress/create" method="POST">
                     <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                         <div>
-                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Title *</label>
-                            <input type="text" name="name" class="form-control form-control-sm" required="required" placeholder="e.g. Monthly Progress"/>
+                            <label class="form-label">Title *</label>
+                            <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Monthly Progress"/>
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Student *</label>
-                            <select name="student_id" class="form-select form-select-sm" required="required">
+                            <label class="form-label">Student *</label>
+                            <select name="student_id" class="form-select" required="required">
                                 <option value="">Select student...</option>
                                 <t t-foreach="enrolled_students" t-as="enr">
                                     <option t-att-value="enr.student_id.id"><t t-esc="enr.student_id.name"/></option>
@@ -1098,12 +1138,12 @@
                             </select>
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Report Date</label>
-                            <input type="date" name="report_date" class="form-control form-control-sm"/>
+                            <label class="form-label">Report Date</label>
+                            <input type="date" name="report_date" class="form-control"/>
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Overall Rating</label>
-                            <select name="overall_rating" class="form-select form-select-sm">
+                            <label class="form-label">Overall Rating</label>
+                            <select name="overall_rating" class="form-select">
                                 <option value="">Select...</option>
                                 <option value="excellent">Excellent</option>
                                 <option value="good">Good</option>
@@ -1112,25 +1152,25 @@
                             </select>
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Score</label>
-                            <input type="number" name="score" class="form-control form-control-sm" step="0.1" min="0" placeholder="0"/>
+                            <label class="form-label">Score</label>
+                            <input type="number" name="score" class="form-control" step="0.1" min="0" placeholder="0"/>
                         </div>
                         <div>
-                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Max Score</label>
-                            <input type="number" name="max_score" class="form-control form-control-sm" step="0.1" min="0" value="100"/>
+                            <label class="form-label">Max Score</label>
+                            <input type="number" name="max_score" class="form-control" step="0.1" min="0" value="100"/>
                         </div>
                     </div>
-                    <div style="margin-top:16px;">
-                        <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Strengths</label>
-                        <textarea name="strengths" class="form-control form-control-sm" rows="2" placeholder="What the student excels at..."/>
+                    <div style="margin-top:14px;">
+                        <label class="form-label">Strengths</label>
+                        <textarea name="strengths" class="form-control" rows="2" placeholder="What the student excels at..."/>
                     </div>
-                    <div style="margin-top:12px;">
-                        <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Areas to Improve</label>
-                        <textarea name="areas_to_improve" class="form-control form-control-sm" rows="2" placeholder="Where improvement is needed..."/>
+                    <div style="margin-top:14px;">
+                        <label class="form-label">Areas to Improve</label>
+                        <textarea name="areas_to_improve" class="form-control" rows="2" placeholder="Where improvement is needed..."/>
                     </div>
-                    <div style="margin-top:12px;">
-                        <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Comments</label>
-                        <textarea name="comments" class="form-control form-control-sm" rows="3" placeholder="General comments..."/>
+                    <div style="margin-top:14px;">
+                        <label class="form-label">Comments</label>
+                        <textarea name="comments" class="form-control" rows="3" placeholder="General comments..."/>
                     </div>
                     <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
                         <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline">Cancel</a>

@@ -1000,6 +1000,7 @@ class TuitionPortal(CustomerPortal):
             'is_parent': False,
             'tutor': tutor,
             'assignments': assignments,
+            'tutor_courses': courses,
             'page_name': 'tutor_all_assignments',
             'page_title': 'All Assignments',
         })
@@ -1022,6 +1023,7 @@ class TuitionPortal(CustomerPortal):
             'is_parent': False,
             'tutor': tutor,
             'reports': reports,
+            'tutor_courses': courses,
             'page_name': 'tutor_progress',
             'page_title': 'Progress Reports',
         })
