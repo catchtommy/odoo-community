@@ -15,6 +15,7 @@
     ],
     "data": [
         "security/ir.model.access.csv",
+        "data/ir_sequence_data.xml",
         "views/tuition_views.xml",
         "views/portal_layout.xml",
         "views/portal_templates.xml",

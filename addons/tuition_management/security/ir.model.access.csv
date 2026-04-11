@@ -1,46 +1,50 @@
 id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_subject_category_admin,subject.category admin,model_subject_category,base.group_user,1,1,1,1
-access_subject_category_portal,subject.category portal,model_subject_category,base.group_portal,1,0,0,0
-access_subject_master_admin,subject.master admin,model_subject_master,base.group_user,1,1,1,1
-access_subject_master_portal,subject.master portal,model_subject_master,base.group_portal,1,0,0,0
-access_grade_master_admin,grade.master admin,model_grade_master,base.group_user,1,1,1,1
-access_grade_master_portal,grade.master portal,model_grade_master,base.group_portal,1,0,0,0
-access_tutor_availability_admin,tutor.availability admin,model_tutor_availability,base.group_user,1,1,1,1
-access_tuition_time_slot_admin,tuition.time.slot admin,model_tuition_time_slot,base.group_user,1,1,1,1
-access_mark_attendance_wizard_admin,mark.attendance.wizard admin,model_mark_attendance_wizard,base.group_user,1,1,1,1
-access_mark_attendance_wizard_line_admin,mark.attendance.wizard.line admin,model_mark_attendance_wizard_line,base.group_user,1,1,1,1
-access_progress_report_admin,progress.report admin,model_progress_report,base.group_user,1,1,1,1
-access_progress_report_portal,progress.report portal,model_progress_report,base.group_portal,1,0,0,0
-access_course_assignment_admin,course.assignment admin,model_course_assignment,base.group_user,1,1,1,1
-access_course_assignment_portal,course.assignment portal,model_course_assignment,base.group_portal,1,0,0,0
-access_assignment_submission_admin,assignment.submission admin,model_assignment_submission,base.group_user,1,1,1,1
-access_assignment_submission_portal,assignment.submission portal,model_assignment_submission,base.group_portal,1,0,0,0
-access_portal_access_wizard_admin,portal.access.wizard admin,model_portal_access_wizard,base.group_user,1,1,1,1
-access_student_profile_admin,student.profile admin,model_student_profile,base.group_user,1,1,1,1
-access_student_profile_portal,student.profile portal,model_student_profile,base.group_portal,1,0,0,0
-access_tutor_profile_admin,tutor.profile admin,model_tutor_profile,base.group_user,1,1,1,1
-access_tutor_profile_portal,tutor.profile portal,model_tutor_profile,base.group_portal,1,0,0,0
-access_parent_profile_admin,parent.profile admin,model_parent_profile,base.group_user,1,1,1,1
-access_parent_profile_portal,parent.profile portal,model_parent_profile,base.group_portal,1,0,0,0
-access_course_master_admin,course.master admin,model_course_master,base.group_user,1,1,1,1
-access_course_master_portal,course.master portal,model_course_master,base.group_portal,1,0,0,0
-access_course_enrollment_admin,course.enrollment admin,model_course_enrollment,base.group_user,1,1,1,1
-access_course_enrollment_portal,course.enrollment portal,model_course_enrollment,base.group_portal,1,0,0,0
-access_class_schedule_admin,class.schedule admin,model_class_schedule,base.group_user,1,1,1,1
-access_class_schedule_portal,class.schedule portal,model_class_schedule,base.group_portal,1,0,0,0
-access_class_schedule_occurrence_admin,class.schedule.occurrence admin,model_class_schedule_occurrence,base.group_user,1,1,1,1
-access_class_schedule_occurrence_portal,class.schedule.occurrence portal,model_class_schedule_occurrence,base.group_portal,1,0,0,0
-access_attendance_record_admin,attendance.record admin,model_attendance_record,base.group_user,1,1,1,1
-access_attendance_record_portal,attendance.record portal,model_attendance_record,base.group_portal,1,0,0,0
-access_tuition_subscription_admin,tuition.subscription admin,model_tuition_subscription,base.group_user,1,1,1,1
-access_tuition_subscription_portal,tuition.subscription portal,model_tuition_subscription,base.group_portal,1,0,0,0
-access_tuition_plan_line_admin,tuition.plan.line admin,model_tuition_plan_line,base.group_user,1,1,1,1
-access_tuition_plan_line_portal,tuition.plan.line portal,model_tuition_plan_line,base.group_portal,1,0,0,0
-access_tuition_adjustment_admin,tuition.adjustment admin,model_tuition_adjustment,base.group_user,1,1,1,1
-access_tuition_adjustment_portal,tuition.adjustment portal,model_tuition_adjustment,base.group_portal,1,0,0,0
-access_tuition_plan_change_wizard,tuition.plan.change.wizard,model_tuition_plan_change_wizard,base.group_user,1,1,1,1
-access_tuition_adjustment_wizard,tuition.adjustment.wizard,model_tuition_adjustment_wizard,base.group_user,1,1,1,1
-access_tuition_discount_admin,tuition.discount admin,model_tuition_discount,base.group_user,1,1,1,1
-access_tuition_invoice_confirm_wizard,tuition.invoice.confirm.wizard,model_tuition_invoice_confirm_wizard,base.group_user,1,1,1,1
-access_tuition_invoice_preview_wizard,tuition.invoice.preview.wizard,model_tuition_invoice_preview_wizard,base.group_user,1,1,1,1
-access_tuition_invoice_preview_wizard_line,tuition.invoice.preview.wizard.line,model_tuition_invoice_preview_wizard_line,base.group_user,1,1,1,1
+access_subject_category,access_subject_category,model_subject_category,base.group_user,1,1,1,1
+access_subject_master,access_subject_master,model_subject_master,base.group_user,1,1,1,1
+access_grade_master,access_grade_master,model_grade_master,base.group_user,1,1,1,1
+access_student_profile,access_student_profile,model_student_profile,base.group_user,1,1,1,1
+access_tutor_profile,access_tutor_profile,model_tutor_profile,base.group_user,1,1,1,1
+access_tutor_availability,access_tutor_availability,model_tutor_availability,base.group_user,1,1,1,1
+access_parent_profile,access_parent_profile,model_parent_profile,base.group_user,1,1,1,1
+access_tuition_time_slot,access_tuition_time_slot,model_tuition_time_slot,base.group_user,1,1,1,1
+access_course_master,access_course_master,model_course_master,base.group_user,1,1,1,1
+access_course_enrollment,access_course_enrollment,model_course_enrollment,base.group_user,1,1,1,1
+access_class_schedule,access_class_schedule,model_class_schedule,base.group_user,1,1,1,1
+access_class_schedule_occurrence,access_class_schedule_occurrence,model_class_schedule_occurrence,base.group_user,1,1,1,1
+access_attendance_record,access_attendance_record,model_attendance_record,base.group_user,1,1,1,1
+access_mark_attendance_wizard,access_mark_attendance_wizard,model_mark_attendance_wizard,base.group_user,1,1,1,1
+access_mark_attendance_wizard_line,access_mark_attendance_wizard_line,model_mark_attendance_wizard_line,base.group_user,1,1,1,1
+access_progress_report,access_progress_report,model_progress_report,base.group_user,1,1,1,1
+access_course_assignment,access_course_assignment,model_course_assignment,base.group_user,1,1,1,1
+access_assignment_submission,access_assignment_submission,model_assignment_submission,base.group_user,1,1,1,1
+access_portal_access_wizard,access_portal_access_wizard,model_portal_access_wizard,base.group_user,1,1,1,1
+access_enquiry_stage,access_enquiry_stage,model_enquiry_stage,base.group_user,1,1,1,1
+access_enquiry,access_enquiry,model_enquiry,base.group_user,1,1,1,1
+access_demo_session,access_demo_session,model_demo_session,base.group_user,1,1,1,1
+access_tuition_subscription,access_tuition_subscription,model_tuition_subscription,base.group_user,1,1,1,1
+access_tuition_plan_line,access_tuition_plan_line,model_tuition_plan_line,base.group_user,1,1,1,1
+access_tuition_adjustment,access_tuition_adjustment,model_tuition_adjustment,base.group_user,1,1,1,1
+access_tuition_discount,access_tuition_discount,model_tuition_discount,base.group_user,1,1,1,1
+access_tuition_plan_change_wizard,access_tuition_plan_change_wizard,model_tuition_plan_change_wizard,base.group_user,1,1,1,1
+access_tuition_adjustment_wizard,access_tuition_adjustment_wizard,model_tuition_adjustment_wizard,base.group_user,1,1,1,1
+access_tuition_invoice_preview_wizard,access_tuition_invoice_preview_wizard,model_tuition_invoice_preview_wizard,base.group_user,1,1,1,1
+access_tuition_invoice_preview_wizard_line,access_tuition_invoice_preview_wizard_line,model_tuition_invoice_preview_wizard_line,base.group_user,1,1,1,1
+access_tuition_invoice_confirm_wizard,access_tuition_invoice_confirm_wizard,model_tuition_invoice_confirm_wizard,base.group_user,1,1,1,1
+access_subject_category_portal,access_subject_category_portal,model_subject_category,base.group_portal,1,0,0,0
+access_subject_master_portal,access_subject_master_portal,model_subject_master,base.group_portal,1,0,0,0
+access_grade_master_portal,access_grade_master_portal,model_grade_master,base.group_portal,1,0,0,0
+access_student_profile_portal,access_student_profile_portal,model_student_profile,base.group_portal,1,0,0,0
+access_tutor_profile_portal,access_tutor_profile_portal,model_tutor_profile,base.group_portal,1,0,0,0
+access_parent_profile_portal,access_parent_profile_portal,model_parent_profile,base.group_portal,1,0,0,0
+access_course_master_portal,access_course_master_portal,model_course_master,base.group_portal,1,0,0,0
+access_course_enrollment_portal,access_course_enrollment_portal,model_course_enrollment,base.group_portal,1,0,0,0
+access_class_schedule_portal,access_class_schedule_portal,model_class_schedule,base.group_portal,1,0,0,0
+access_class_schedule_occurrence_portal,access_class_schedule_occurrence_portal,model_class_schedule_occurrence,base.group_portal,1,0,0,0
+access_attendance_record_portal,access_attendance_record_portal,model_attendance_record,base.group_portal,1,1,1,0
+access_progress_report_portal,access_progress_report_portal,model_progress_report,base.group_portal,1,1,1,0
+access_course_assignment_portal,access_course_assignment_portal,model_course_assignment,base.group_portal,1,0,0,0
+access_assignment_submission_portal,access_assignment_submission_portal,model_assignment_submission,base.group_portal,1,1,1,0
+access_tuition_subscription_portal,access_tuition_subscription_portal,model_tuition_subscription,base.group_portal,1,0,0,0
+access_tuition_plan_line_portal,access_tuition_plan_line_portal,model_tuition_plan_line,base.group_portal,1,0,0,0
+access_tuition_discount_portal,access_tuition_discount_portal,model_tuition_discount,base.group_portal,1,0,0,0
+access_tuition_adjustment_portal,access_tuition_adjustment_portal,model_tuition_adjustment,base.group_portal,1,0,0,0

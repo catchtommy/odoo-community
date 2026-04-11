@@ -1485,6 +1485,7 @@ class TuitionInvoicePreviewWizard(models.TransientModel):
 
 
 class TuitionInvoiceConfirmWizard(models.TransientModel):
+    _name = 'tuition.invoice.confirm.wizard'
     _description = 'Duplicate Invoice Warning'
 
     subscription_id = fields.Many2one('tuition.subscription', required=True)
