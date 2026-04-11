@@ -865,8 +865,11 @@ Create your first attendance record
 <header>
 <field name="is_enrolled_stage" invisible="1"/>
 <field name="is_enrolled" invisible="1"/>
-<button name="action_enroll_to_course" type="object" string="Enroll to Course" class="btn-primary" invisible="not is_enrolled_stage or is_enrolled"/>
+<button name="action_enroll_to_course" type="object" string="Convert to Course" class="btn-primary" icon="fa-graduation-cap" invisible="not is_enrolled_stage or is_enrolled"/>
 </header>
+<div class="alert alert-success" role="status" invisible="not is_enrolled">
+<strong><i class="fa fa-check-circle"/> Enrolled!</strong> This enquiry has been converted to a course enrollment.
+</div>
 <div class="alert alert-info" role="status">
 <field name="stage_id" nolabel="1" widget="statusbar" options="{'clickable': True}" readonly="is_enrolled"/>
 </div>

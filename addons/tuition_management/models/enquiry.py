@@ -1,4 +1,7 @@
 from odoo import models, fields, api
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class EnquiryStage(models.Model):
@@ -39,9 +42,65 @@ class Enquiry(models.Model):
 
     demo_session_ids = fields.One2many('demo.session', 'enquiry_id', string='Demo Sessions')
 
+    _stages_cleaned = False  # reset to re-run cleanup after code change
+
     @api.model
     def _read_group_stage_ids(self, stages, domain):
-        return self.env['enquiry.stage'].search([])
+        if not Enquiry._stages_cleaned:
+            self._cleanup_stages()
+            Enquiry._stages_cleaned = True
+        return self.env['enquiry.stage'].search([], order='sequence')
+
+    @api.model
+    def _cleanup_stages(self):
+        """One-time cleanup of duplicate/non-official enquiry stages."""
+        cr = self.env.cr
+        _logger.info("=== ENQUIRY STAGE LAZY CLEANUP ===")
+
+        # Dedup: keep MIN(id) per name
+        cr.execute("""
+            SELECT name, MIN(id) as keep_id, array_agg(id ORDER BY id) as all_ids
+            FROM enquiry_stage GROUP BY name HAVING COUNT(*) > 1
+        """)
+        for name, keep_id, all_ids in cr.fetchall():
+            delete_ids = [i for i in all_ids if i != keep_id]
+            if delete_ids:
+                cr.execute("UPDATE enquiry SET stage_id = %s WHERE stage_id = ANY(%s)", (keep_id, delete_ids))
+                cr.execute("DELETE FROM ir_model_data WHERE model='enquiry.stage' AND res_id = ANY(%s)", (delete_ids,))
+                cr.execute("DELETE FROM enquiry_stage WHERE id = ANY(%s)", (delete_ids,))
+
+        # Remove non-official
+        official = ['New', 'Demo Scheduled', 'Demo Completed', 'Enrolled', 'Lost']
+        cr.execute("SELECT id FROM enquiry_stage WHERE name != ALL(%s)", (official,))
+        bad = [r[0] for r in cr.fetchall()]
+        if bad:
+            cr.execute("SELECT id FROM enquiry_stage WHERE name='New' ORDER BY id LIMIT 1")
+            new_id = cr.fetchone()
+            if new_id:
+                cr.execute("UPDATE enquiry SET stage_id = %s WHERE stage_id = ANY(%s)", (new_id[0], bad))
+            cr.execute("DELETE FROM ir_model_data WHERE model='enquiry.stage' AND res_id = ANY(%s)", (bad,))
+            cr.execute("DELETE FROM enquiry_stage WHERE id = ANY(%s)", (bad,))
+
+        # Ensure all 5 exist and fix sequences
+        official_defs = [('New',10,False),('Demo Scheduled',20,False),('Demo Completed',30,False),('Enrolled',40,True),('Lost',50,False)]
+        for name, seq, is_enr in official_defs:
+            cr.execute("SELECT id FROM enquiry_stage WHERE name=%s", (name,))
+            row = cr.fetchone()
+            if not row:
+                cr.execute(
+                    "INSERT INTO enquiry_stage (name,sequence,is_enrolled_stage,create_uid,write_uid,create_date,write_date) VALUES (%s,%s,%s,1,1,now(),now())",
+                    (name, seq, is_enr))
+            else:
+                cr.execute(
+                    "UPDATE enquiry_stage SET sequence=%s, is_enrolled_stage=%s WHERE id=%s",
+                    (seq, is_enr, row[0]))
+
+        cr.execute("SELECT id, name FROM enquiry_stage ORDER BY sequence")
+        _logger.info("After cleanup: %s", cr.fetchall())
+        self.env.cr.commit()
+
+    def _register_hook(self):
+        return super()._register_hook()
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -51,7 +110,7 @@ class Enquiry(models.Model):
         return super().create(vals_list)
 
     def action_enroll_to_course(self):
-        """Enroll the student to a course from enquiry."""
+        """Convert enquiry to a course with enrollment."""
         self.ensure_one()
         # Create parent profile if not exists
         if not self.parent_profile_id:
@@ -92,6 +151,25 @@ class Enquiry(models.Model):
             self.enrollment_id = enrollment.id
 
         self.is_enrolled = True
+
+        # Move to "Enrolled" stage automatically
+        enrolled_stage = self.env['enquiry.stage'].search([
+            ('is_enrolled_stage', '=', True)
+        ], limit=1)
+        if enrolled_stage:
+            self.stage_id = enrolled_stage.id
+
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Enrolled Successfully',
+                'message': f'{self.student_name or self.name} has been enrolled in {self.course_id.name}.',
+                'type': 'success',
+                'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
 
     def action_delete_enquiry(self):
         """Delete the enquiry."""
