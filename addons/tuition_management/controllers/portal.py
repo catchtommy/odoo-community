@@ -78,6 +78,7 @@ class TuitionPortal(CustomerPortal):
                 ('student_id', '=', student.id), ('status', '=', 'present')])
             attendance_rate = ('%d%%' % round(present_sessions * 100 / total_sessions)) if total_sessions else '—'
             values.update({
+                'student': student,
                 'course_count': len(enrollments),
                 'pending_assignments': len(assignments),
                 'unpaid_invoices': len(invoices),
@@ -100,13 +101,33 @@ class TuitionPortal(CustomerPortal):
             student_ids = request.env['course.enrollment'].sudo().search([
                 ('course_id', 'in', courses.ids), ('status', '=', 'active')
             ]).mapped('student_id').ids
+
+            # This week's lesson count
+            start_of_week = today - timedelta(days=today.weekday())
+            end_of_week = start_of_week + timedelta(days=6)
+            this_week_lesson_count = request.env['class.schedule.occurrence'].sudo().search_count([
+                ('tutor_id', '=', tutor.id),
+                ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
+                ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
+            ])
+
+            # Upcoming lessons (next 7 days, max 10)
+            upcoming_lessons = request.env['class.schedule.occurrence'].sudo().search([
+                ('tutor_id', '=', tutor.id),
+                ('start_datetime', '>=', fields.Datetime.now()),
+                ('start_datetime', '<=', datetime.combine(today + timedelta(days=7), datetime.max.time())),
+            ], order='start_datetime asc', limit=10)
+
             values.update({
+                'tutor': tutor,
                 'tutor_course_count': len(courses),
                 'today_sessions': today_sessions,
                 'total_students': len(set(student_ids)),
                 'tutor_courses': courses,
+                'this_week_lesson_count': this_week_lesson_count,
+                'upcoming_lessons': upcoming_lessons,
             })
-            return request.render('tuition_management.portal_tutor_dashboard', values)
+            return request.render('tuition_management.portal_tutor_home_dashboard', values)
         if parent:
             child_data = []
             total_enrollments = 0
@@ -409,6 +430,9 @@ class TuitionPortal(CustomerPortal):
         assignments = request.env['course.assignment'].sudo().search([
             ('course_id', 'in', course_ids), ('status', 'in', ['assigned', 'completed']),
         ], order='due_date asc')
+        # Pre-compute student submission for template (avoid lambda in QWeb)
+        for asgn in assignments:
+            asgn.student_submission = asgn.submission_ids.filtered(lambda s: s.student_id.id == student.id)
         return request.render('tuition_management.portal_student_assignments', {
             'user': request.env.user,
             'is_student': True,
@@ -498,7 +522,7 @@ class TuitionPortal(CustomerPortal):
     # ──────────────────────────────────────────────
 
     @http.route(['/my/tutor/courses'], type='http', auth='user', website=True)
-    def portal_tutor_courses(self, **kw):
+    def portal_tutor_dashboard(self, **kw):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
@@ -598,6 +622,10 @@ class TuitionPortal(CustomerPortal):
         enrolled_students = course.enrollment_ids.filtered(lambda e: e.status == 'active')
         course_assignments = course.assignment_ids
 
+        # Pre-compute active enrollments (avoid lambda in QWeb)
+        active_enrollments = course.enrollment_ids.filtered(lambda e: e.status == 'active')
+        active_enrollment_count = len(active_enrollments)
+
         return request.render('tuition_management.portal_tutor_course_detail', {
             'user': request.env.user,
             'is_tutor': True,
@@ -606,8 +634,12 @@ class TuitionPortal(CustomerPortal):
             'tutor': tutor,
             'course': course,
             'this_week_lessons': this_week_lessons,
+            'active_enrollments': active_enrollments,
+            'active_enrollment_count': active_enrollment_count,
             'enrolled_students': enrolled_students,
             'course_assignments': course_assignments,
+            'active_enrollments': active_enrollments,
+            'active_enrollment_count': active_enrollment_count,
             'lessons_url': f'/my/tutor/courses/{course.id}/lessons',
             'assignments_url': f'/my/tutor/courses/{course.id}/assignments',
             'page_name': 'tutor_course_detail',

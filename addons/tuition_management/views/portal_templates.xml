@@ -472,10 +472,10 @@
                             <div class="tm-card-body">
                                 <div class="text-end mb-2">
                                     <span class="tm-badge tm-badge-red" style="font-size:11px;">
-                                        Total: <t t-esc="len(course.enrollment_ids.filtered(lambda e: e.status == 'active'))"/>
+                                        Total: <t t-esc="active_enrollment_count"/>
                                     </span>
                                 </div>
-                                <t t-foreach="course.enrollment_ids.filtered(lambda e: e.status == 'active')" t-as="enr">
+                                <t t-foreach="active_enrollments" t-as="enr">
                                     <div class="d-flex align-items-center gap-3 py-2" style="border-bottom:1px solid #f5f5f5;">
                                         <div class="tm-avatar tm-avatar-teal" style="width:34px;height:34px;font-size:13px;">
                                             <t t-esc="enr.student_id.name[:1].upper()"/>
@@ -490,38 +490,7 @@
                     </div>
                 </div>
 
-                <div class="col-lg-4 col-md-12">
-                    <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-purple), #7E57C2);"
-                             data-bs-toggle="collapse" data-bs-target="#secProgress">
-                            <span><i class="fa fa-line-chart me-2"/>Progress Reports</span>
-                            <i class="fa fa-chevron-down tm-chevron"/>
-                        </div>
-                        <div id="secProgress" class="collapse show">
-                            <div class="tm-card-body">
-                                <t t-if="not student_reports">
-                                    <div class="tm-empty" style="padding:24px 10px;">
-                                        <i class="fa fa-bar-chart" style="font-size:32px;"/>
-                                        <p>No reports yet</p>
-                                    </div>
-                                </t>
-                                <t t-foreach="student_reports" t-as="rpt">
-                                    <div class="tm-progress-item">
-                                        <div style="flex:1; min-width:0;">
-                                            <div class="fw-bold text-truncate" style="font-size:12px;" t-esc="rpt.name"/>
-                                            <div style="font-size:10px; color:var(--tm-text-light);" t-esc="rpt.report_date" t-options='{"widget": "date"}'/>
-                                        </div>
-                                        <span t-if="rpt.overall_rating == 'excellent'" class="tm-badge tm-badge-green">Excellent</span>
-                                        <span t-if="rpt.overall_rating == 'good'" class="tm-badge tm-badge-blue">Good</span>
-                                        <span t-if="rpt.overall_rating == 'satisfactory'" class="tm-badge tm-badge-orange">Satisfactory</span>
-                                        <span t-if="rpt.overall_rating == 'needs_improvement'" class="tm-badge tm-badge-orange">Needs Improvement</span>
-                                        <span t-if="rpt.overall_rating == 'poor'" class="tm-badge tm-badge-red">Poor</span>
-                                    </div>
-                                </t>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+            
             </div>
 
             <!-- Row 2 -->
@@ -560,11 +529,11 @@
                                                             <span t-if="lesson.lesson_status == 'no_show'" class="tm-badge tm-badge-orange">No Show</span>
                                                         </td>
                                                         <td>
-                                                            <t t-set="att" t-value="lesson.attendance_ids.filtered(lambda a: a.student_id.id == student.id)"/>
-                                                            <span t-if="att and att[0].status == 'present'" class="tm-badge tm-badge-green">Present</span>
-                                                            <span t-elif="att and att[0].status == 'absent'" class="tm-badge tm-badge-red">Absent</span>
-                                                            <span t-elif="att and att[0].status == 'late'" class="tm-badge tm-badge-orange">Late</span>
-                                                            <span t-elif="att and att[0].status == 'excused'" class="tm-badge tm-badge-grey">Excused</span>
+                                                            <t t-set="att" t-value="lesson.student_attendance"/>
+                                                            <span t-if="att and att.status == 'present'" class="tm-badge tm-badge-green">Present</span>
+                                                            <span t-elif="att and att.status == 'absent'" class="tm-badge tm-badge-red">Absent</span>
+                                                            <span t-elif="att and att.status == 'late'" class="tm-badge tm-badge-orange">Late</span>
+                                                            <span t-elif="att and att.status == 'excused'" class="tm-badge tm-badge-grey">Excused</span>
                                                             <span t-else="" style="font-size:11px; color:var(--tm-text-light);">—</span>
                                                         </td>
                                                         <td>
@@ -607,7 +576,7 @@
                                             <i class="fa fa-file-text" style="color:var(--tm-teal); flex-shrink:0;"/>
                                             <span class="text-truncate"><t t-esc="asgn.name"/></span>
                                         </a>
-                                        <t t-set="sub" t-value="asgn.submission_ids.filtered(lambda s: s.student_id.id == student.id)"/>
+                                        <t t-set="sub" t-value="asgn.student_submission"/>
                                         <span t-if="sub and sub[0].status == 'submitted'" class="tm-badge tm-badge-green" style="flex-shrink:0;">Submitted</span>
                                         <span t-elif="sub and sub[0].status == 'graded'" class="tm-badge tm-badge-blue" style="flex-shrink:0;">Graded</span>
                                         <span t-else="" class="tm-badge tm-badge-orange" style="flex-shrink:0;">Pending</span>
@@ -709,7 +678,7 @@
                                         <td><span class="tm-badge tm-badge-grey" t-esc="dict(asgn._fields['assignment_type'].selection).get(asgn.assignment_type, '')"/></td>
                                         <td style="font-size:12px;"><t t-if="asgn.due_date" t-esc="asgn.due_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
                                         <td>
-                                            <t t-set="sub" t-value="asgn.submission_ids.filtered(lambda s: s.student_id.id == student.id)"/>
+                                            <t t-set="sub" t-value="asgn.student_submission"/>
                                             <span t-if="sub and sub[0].status == 'submitted'" class="tm-badge tm-badge-green">Submitted</span>
                                             <span t-elif="sub and sub[0].status == 'graded'" class="tm-badge tm-badge-blue">Graded</span>
                                             <span t-else="" class="tm-badge tm-badge-orange">Pending</span>
@@ -792,6 +761,77 @@
                         </div>
                     </div>
                 </div>
+            </div>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: COURSES LIST (HOME)                      -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_dashboard" name="Tutor: My Courses">
+    <t t-call="tuition_management.portal_sidebar_layout">
+
+        <div class="tm-page mt-3">
+            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));">
+                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+                    <div>
+                        <h2><i class="fa fa-chalkboard-teacher me-2"/>Welcome, <t t-esc="tutor.name"/>!</h2>
+                        <p>Here are the courses you teach</p>
+                    </div>
+                    <div class="d-flex gap-3 align-items-center">
+                        <div class="tm-hero-stat">
+                            <div class="num"><t t-esc="len(courses)"/></div>
+                            <div class="lbl">Courses</div>
+                        </div>
+                        <a href="/my/profile" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-user-circle"/> Profile
+                        </a>
+                        <a href="/my/logout" class="tm-btn tm-btn-outline" style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
+                            <i class="fa fa-sign-out"/> Logout
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <t t-if="not courses">
+                <div class="tm-card">
+                    <div class="tm-empty">
+                        <i class="fa fa-book"/>
+                        <p>You have no courses assigned yet.</p>
+                    </div>
+                </div>
+            </t>
+            <div class="row" t-if="courses">
+                <t t-foreach="courses" t-as="c">
+                    <t t-set="grad_colors" t-value="['var(--tm-indigo),var(--tm-indigo-dark)', 'var(--tm-teal),var(--tm-teal-dark)', 'var(--tm-blue),var(--tm-blue-dark)', 'var(--tm-purple),#6A4FA0', 'var(--tm-green),var(--tm-green-dark)', 'var(--tm-rose),var(--tm-rose-dark)']"/>
+                    <t t-set="gc" t-value="grad_colors[c_index % len(grad_colors)]"/>
+                    <div class="col-lg-4 col-md-6 mb-3">
+                        <div class="tm-course-card">
+                            <div class="card-top" t-attf-style="background: linear-gradient(135deg, #{gc.split(',')[0]}, #{gc.split(',')[1]});">
+                                <h6><i class="fa fa-book me-2"/><t t-esc="c.name"/></h6>
+                            </div>
+                            <div class="card-middle">
+                                <div class="meta-row" t-if="c.subject_id">
+                                    <i class="fa fa-tag"/> <t t-esc="c.subject_id.name"/>
+                                </div>
+                                <div class="meta-row" t-if="c.grade_id">
+                                    <i class="fa fa-graduation-cap"/> <t t-esc="c.grade_id.name"/>
+                                </div>
+                                <div class="meta-row" t-if="c.start_date">
+                                    <i class="fa fa-calendar"/>
+                                    <t t-esc="c.start_date" t-options='{"widget": "date"}'/>
+                                    <t t-if="c.end_date"> — <t t-esc="c.end_date" t-options='{"widget": "date"}'/></t>
+                                </div>
+                            </div>
+                            <div class="card-bottom text-center">
+                                <a t-attf-href="/my/tutor/courses/#{c.id}" class="tm-btn tm-btn-blue w-100 justify-content-center">
+                                    Manage Course <i class="fa fa-arrow-right"/>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </t>
             </div>
         </div>
     </t>
@@ -1177,18 +1217,8 @@
             </t>
         </div>
     </t>
-</template><!-- PARENT: PORTAL HOME: ADD INVOICES ENTRY -->
-<template id="portal_my_home_invoices_tuition" inherit_id="portal.portal_my_home" priority="50">
-    <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
-        <t t-if="is_parent">
-            <t t-call="portal.portal_docs_entry">
-                <t t-set="title">Invoices</t>
-                <t t-set="url" t-value="'/my/tuition/invoices'"/>
-                <t t-set="text">View and download tuition invoices</t>
-            </t>
-        </t>
-    </xpath>
 </template>
+
 <record id="view_tuition_subscription_form" model="ir.ui.view">
     <field name="name">tuition.subscription.form</field>
     <field name="model">tuition.subscription</field>

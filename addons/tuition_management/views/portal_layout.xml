@@ -221,7 +221,7 @@
                 </div>
                 <div class="tm-stat-action">View Invoices →</div>
             </a>
-            <a href="/my/attendance" class="tm-stat-card">
+            <div class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div>
                         <div class="tm-stat-value"><t t-esc="attendance_rate or '—'"/></div>
@@ -229,40 +229,30 @@
                     </div>
                     <div class="tm-stat-icon green"><i class="fa fa-calendar-check-o"/></div>
                 </div>
-                <div class="tm-stat-action">View Attendance →</div>
-            </a>
+            </div>
         </div>
 
-        <!-- Recent Courses -->
+        <!-- Recent Courses + Upcoming Assignments -->
         <div class="tm-grid-2">
             <div>
                 <div class="tm-card">
                     <div class="tm-card-header">
-                        <div class="tm-card-title"><i class="fa fa-book"/> Recent Courses</div>
+                        <div class="tm-card-title"><i class="fa fa-book"/> My Courses</div>
                         <a href="/my/courses" class="tm-card-action">View All</a>
                     </div>
                     <t t-if="recent_courses">
                         <table class="tm-table">
                             <thead>
-                                <tr>
-                                    <th>Course</th>
-                                    <th>Status</th>
-                                    <th>Start Date</th>
-                                    <th></th>
-                                </tr>
+                                <tr><th>Course</th><th>Subject</th><th>Tutor</th><th></th></tr>
                             </thead>
                             <tbody>
                                 <t t-foreach="recent_courses" t-as="enr">
                                     <tr>
                                         <td class="fw-bold"><t t-esc="enr.course_id.name"/></td>
+                                        <td><t t-esc="enr.course_id.subject_id.name or '—'"/></td>
+                                        <td><t t-esc="enr.course_id.tutor_id.name or '—'"/></td>
                                         <td>
-                                            <span t-attf-class="tm-badge #{enr.status == 'active' and 'tm-badge-green' or enr.status == 'completed' and 'tm-badge-blue' or 'tm-badge-grey'}">
-                                                <t t-esc="enr.status.capitalize()"/>
-                                            </span>
-                                        </td>
-                                        <td><t t-esc="enr.invoice_start_date or '—'"/></td>
-                                        <td>
-                                            <a t-attf-href="/my/courses/#{enr.id}" class="tm-btn tm-btn-outline tm-btn-sm">View</a>
+                                            <a t-attf-href="/my/courses/#{enr.course_id.id}" class="tm-btn tm-btn-outline tm-btn-sm">View</a>
                                         </td>
                                     </tr>
                                 </t>
@@ -278,7 +268,6 @@
                 </div>
             </div>
 
-            <!-- Upcoming Assignments -->
             <div>
                 <div class="tm-card">
                     <div class="tm-card-header">
@@ -288,21 +277,20 @@
                     <t t-if="upcoming_assignments">
                         <table class="tm-table">
                             <thead>
-                                <tr>
-                                    <th>Assignment</th>
-                                    <th>Course</th>
-                                    <th>Due</th>
-                                </tr>
+                                <tr><th>Assignment</th><th>Course</th><th>Due</th><th>Status</th></tr>
                             </thead>
                             <tbody>
                                 <t t-foreach="upcoming_assignments" t-as="a">
                                     <tr>
-                                        <td class="fw-bold"><t t-esc="a.title"/></td>
+                                        <td class="fw-bold"><t t-esc="a.name"/></td>
                                         <td><t t-esc="a.course_id.name"/></td>
                                         <td>
-                                            <span t-attf-class="tm-badge #{(a.due_date and a.due_date &lt; today) and 'tm-badge-red' or 'tm-badge-orange'}">
+                                            <span t-attf-class="tm-badge #{a.due_date and a.due_date &lt; today and 'tm-badge-red' or 'tm-badge-orange'}">
                                                 <t t-esc="a.due_date or '—'"/>
                                             </span>
+                                        </td>
+                                        <td>
+                                            <span class="tm-badge tm-badge-orange">Pending</span>
                                         </td>
                                     </tr>
                                 </t>
@@ -324,13 +312,14 @@
 <!-- ═══════════════════════════════════════════════════ -->
 <!-- TUTOR DASHBOARD                                     -->
 <!-- ═══════════════════════════════════════════════════ -->
-<template id="portal_tutor_dashboard">
+<template id="portal_tutor_home_dashboard">
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_title">Dashboard</t>
         <t t-set="page_name">dashboard</t>
 
         <p class="tm-page-subtitle">Welcome back, <strong><t t-esc="user.name"/></strong></p>
 
+        <!-- Stat Cards -->
         <div class="tm-stat-grid">
             <a href="/my/tutor/courses" class="tm-stat-card">
                 <div class="tm-stat-card-top">
@@ -361,32 +350,89 @@
                     <div class="tm-stat-icon green"><i class="fa fa-users"/></div>
                 </div>
             </div>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="this_week_lesson_count or 0"/></div>
+                        <div class="tm-stat-label">This Week's Lessons</div>
+                    </div>
+                    <div class="tm-stat-icon orange"><i class="fa fa-clock-o"/></div>
+                </div>
+            </div>
         </div>
 
-        <div class="tm-card">
-            <div class="tm-card-header">
-                <div class="tm-card-title"><i class="fa fa-book"/> My Courses</div>
-                <a href="/my/tutor/courses" class="tm-card-action">View All</a>
+        <!-- Courses Table -->
+        <div class="tm-grid-2">
+            <div>
+                <div class="tm-card">
+                    <div class="tm-card-header">
+                        <div class="tm-card-title"><i class="fa fa-book"/> My Courses</div>
+                        <a href="/my/tutor/courses" class="tm-card-action">View All</a>
+                    </div>
+                    <t t-if="tutor_courses">
+                        <table class="tm-table">
+                            <thead>
+                                <tr><th>Course</th><th>Subject</th><th>Students</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="tutor_courses" t-as="c">
+                                    <tr>
+                                        <td class="fw-bold"><t t-esc="c.name"/></td>
+                                        <td><t t-esc="c.subject_id.name or '—'"/></td>
+                                        <td><span class="tm-badge tm-badge-purple"><t t-esc="c.student_count or 0"/> students</span></td>
+                                        <td><a t-attf-href="/my/tutor/courses/#{c.id}" class="tm-btn tm-btn-outline tm-btn-sm">Manage</a></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                    <t t-else="">
+                        <div class="tm-empty"><i class="fa fa-book"/><p>No courses assigned.</p></div>
+                    </t>
+                </div>
             </div>
-            <t t-if="tutor_courses or course_data">
-                <table class="tm-table">
-                    <thead>
-                        <tr><th>Course</th><th>Subject</th><th>Status</th><th>Students</th><th></th></tr>
-                    </thead>
-                    <tbody>
-                        <t t-foreach="tutor_courses or (cd['course'] for cd in (course_data or []))" t-as="c">
-                            <tr>
-                                <td class="fw-bold"><t t-esc="c.name"/></td>
-                                <td><t t-esc="c.subject_id.name or '—'"/></td>
-                                <td><span t-attf-class="tm-badge #{c.status == 'active' and 'tm-badge-green' or 'tm-badge-grey'}"><t t-esc="(c.status or 'draft').capitalize()"/></span></td>
-                                <td><t t-esc="len(c.enrollment_ids) or 0"/></td>
-                                <td><a t-attf-href="/my/tutor/courses/#{c.id}" class="tm-btn tm-btn-outline tm-btn-sm">View</a></td>
-                            </tr>
-                        </t>
-                    </tbody>
-                </table>
-            </t>
-            <t t-else=""><div class="tm-empty"><i class="fa fa-book"/><p>No courses assigned.</p></div></t>
+
+            <!-- Upcoming Sessions -->
+            <div>
+                <div class="tm-card">
+                    <div class="tm-card-header">
+                        <div class="tm-card-title"><i class="fa fa-calendar"/> Upcoming Sessions</div>
+                        <a href="/my/tutor/schedule" class="tm-card-action">Full Schedule</a>
+                    </div>
+                    <t t-if="upcoming_lessons">
+                        <table class="tm-table">
+                            <thead>
+                                <tr><th>Date</th><th>Course</th><th>Status</th><th></th></tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="upcoming_lessons" t-as="lesson">
+                                    <tr>
+                                        <td style="white-space:nowrap;" class="fw-bold">
+                                            <t t-esc="lesson.start_datetime and lesson.start_datetime.strftime('%a %d %b, %H:%M') or '—'"/>
+                                        </td>
+                                        <td><t t-esc="lesson.course_id.name or '—'"/></td>
+                                        <td>
+                                            <span t-attf-class="tm-badge #{lesson.lesson_status == 'completed' and 'tm-badge-green' or lesson.lesson_status == 'cancelled' and 'tm-badge-red' or 'tm-badge-blue'}">
+                                                <t t-esc="lesson.lesson_status.capitalize()"/>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm">
+                                                <i class="fa fa-check-square-o"/>
+                                                <t t-if="lesson.attendance_marked">Edit</t>
+                                                <t t-else="">Mark</t>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                    <t t-else="">
+                        <div class="tm-empty"><i class="fa fa-calendar"/><p>No upcoming sessions.</p></div>
+                    </t>
+                </div>
+            </div>
         </div>
     </t>
 </template>
@@ -445,7 +491,7 @@
                             <i class="fa fa-user-circle"/>
                             <t t-esc="cd['student'].name"/>
                             <t t-if="cd['student'].grade_id">
-                                <span class="tm-badge tm-badge-purple" style="font-size:11px;">
+                                <span class="tm-badge tm-badge-purple" style="font-size:11px;margin-left:8px;">
                                     <t t-esc="cd['student'].grade_id.name"/>
                                 </span>
                             </t>
