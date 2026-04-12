@@ -324,6 +324,7 @@
 <form string="Course">
 <header>
 <button name="action_enroll_student" string="Enroll Student" type="object" class="btn-primary" icon="fa-user-plus"/>
+<button name="action_cancel_course" string="Cancel Course" type="object" class="btn-danger" icon="fa-times-circle" invisible="status == 'cancelled'" confirm="Are you sure you want to cancel this course?"/>
 <field name="status" widget="statusbar"/>
 </header>
 <sheet>
@@ -1068,6 +1069,43 @@ Create your first attendance record
 <field name="name">Enquiries</field>
 <field name="res_model">enquiry</field>
 <field name="view_mode">kanban,list,form</field>
+</record>
+
+<!-- Course Cancel Confirmation Wizard -->
+<record id="view_course_cancel_wizard_form" model="ir.ui.view">
+<field name="name">course.cancel.wizard.form</field>
+<field name="model">course.cancel.wizard</field>
+<field name="arch" type="xml">
+<form string="Confirm Course Cancellation">
+<field name="course_id" invisible="1"/>
+<div class="alert alert-warning" role="alert">
+<strong><i class="fa fa-exclamation-triangle"/> Warning</strong>
+<p><field name="message" nolabel="1" readonly="1"/></p>
+</div>
+<group string="Schedules Without Attendance">
+<field name="line_ids" nolabel="1" readonly="1">
+<list string="Unmarked Schedules" create="false" delete="false">
+<field name="schedule_date" string="Date"/>
+<field name="lesson_name" string="Session"/>
+<field name="tutor_name" string="Tutor"/>
+</list>
+</field>
+</group>
+<div class="alert alert-danger mt-2" role="alert">
+<strong>On cancellation:</strong>
+<ul class="mb-0">
+<li>All future schedules will be cancelled</li>
+<li>Unmarked past schedules (listed above) will be cancelled</li>
+<li>All enrolments will be cancelled</li>
+<li>All linked subscriptions will be cancelled</li>
+</ul>
+</div>
+<footer>
+<button name="action_confirm_cancel" type="object" string="Confirm Cancellation" class="btn-danger"/>
+<button name="action_discard" type="object" string="Go Back" class="btn-secondary"/>
+</footer>
+</form>
+</field>
 </record>
 
 <!-- Portal Access Wizard Form -->

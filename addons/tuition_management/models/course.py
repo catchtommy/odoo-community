@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 from datetime import timedelta, date
 import pytz
 from dateutil.relativedelta import relativedelta
@@ -158,6 +158,122 @@ class CourseMaster(models.Model):
             'context': {'default_course_id': self.id},
         }
 
+    def action_cancel_course(self):
+        """Initiate course cancellation with validations."""
+        self.ensure_one()
+        now = fields.Datetime.now()
+
+        # Validation 1: future schedules with attendance marked
+        future_with_attendance = self.env['class.schedule.occurrence'].search([
+            ('course_id', '=', self.id),
+            ('start_datetime', '>=', now),
+            ('attendance_marked', '=', True),
+        ])
+        if future_with_attendance:
+            raise ValidationError(
+                "Unable to cancel the course. Attendance is already marked for future schedules. "
+                "Please correct attendance before cancelling."
+            )
+
+        # Validation 2: unpaid/pending invoices
+        enrollment_ids = self.enrollment_ids.ids
+        if enrollment_ids:
+            subscriptions = self.env['tuition.subscription'].search([
+                ('enrollment_id', 'in', enrollment_ids),
+            ])
+            if subscriptions:
+                pending_invoices = self.env['account.move'].search([
+                    ('tuition_subscription_id', 'in', subscriptions.ids),
+                    ('move_type', '=', 'out_invoice'),
+                    ('payment_state', 'in', ['not_paid', 'partial']),
+                    ('state', '=', 'posted'),
+                ])
+                if pending_invoices:
+                    raise ValidationError(
+                        "Cannot cancel the course as there are pending invoices associated with enrolments."
+                    )
+
+        # Check for past/current schedules without attendance
+        unmarked_occurrences = self.env['class.schedule.occurrence'].search([
+            ('course_id', '=', self.id),
+            ('start_datetime', '<', now),
+            ('attendance_marked', '=', False),
+            ('lesson_status', '=', 'scheduled'),
+        ])
+
+        if unmarked_occurrences:
+            wizard = self.env['course.cancel.wizard'].create({
+                'course_id': self.id,
+                'message': 'Some schedules do not have attendance marked. If you proceed with cancellation, '
+                           'these schedules will be marked as Cancelled.',
+            })
+            for occ in unmarked_occurrences:
+                self.env['course.cancel.wizard.line'].create({
+                    'wizard_id': wizard.id,
+                    'occurrence_id': occ.id,
+                    'schedule_date': occ.start_datetime,
+                    'lesson_name': occ.name,
+                    'tutor_name': occ.tutor_id.name if occ.tutor_id else '',
+                })
+            return {
+                'type': 'ir.actions.act_window',
+                'name': 'Confirm Course Cancellation',
+                'res_model': 'course.cancel.wizard',
+                'view_mode': 'form',
+                'res_id': wizard.id,
+                'target': 'new',
+            }
+
+        self._execute_cancellation()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Course Cancelled',
+                'message': f'Course "{self.name}" has been cancelled successfully.',
+                'type': 'warning',
+                'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
+
+    def _execute_cancellation(self):
+        """Execute all cascading cancellation updates."""
+        self.ensure_one()
+        tomorrow = fields.Date.today() + timedelta(days=1)
+        now = fields.Datetime.now()
+
+        for schedule in self.schedule_ids:
+            schedule.write({'end_date': tomorrow, 'status': 'cancelled'})
+
+        future_occurrences = self.env['class.schedule.occurrence'].search([
+            ('course_id', '=', self.id),
+            ('start_datetime', '>=', now),
+            ('lesson_status', '=', 'scheduled'),
+        ])
+        if future_occurrences:
+            future_occurrences.sudo().write({'lesson_status': 'cancelled'})
+
+        past_unmarked = self.env['class.schedule.occurrence'].search([
+            ('course_id', '=', self.id),
+            ('start_datetime', '<', now),
+            ('attendance_marked', '=', False),
+            ('lesson_status', '=', 'scheduled'),
+        ])
+        if past_unmarked:
+            past_unmarked.sudo().write({'lesson_status': 'cancelled'})
+
+        for enrollment in self.enrollment_ids:
+            enrollment.write({'status': 'cancelled'})
+
+        subscriptions = self.env['tuition.subscription'].search([
+            ('enrollment_id', 'in', self.enrollment_ids.ids),
+        ])
+        if subscriptions:
+            subscriptions.write({'state': 'cancelled'})
+
+        self.write({'status': 'cancelled'})
+
 
 class CourseEnrollment(models.Model):
     _name = 'course.enrollment'
@@ -177,7 +293,6 @@ class CourseEnrollment(models.Model):
         ondelete='set null',
         help='Link to the tuition subscription for billing')
 
-    # Computed fields from subscription for display
     sub_plan_name = fields.Char(string='Plan', compute='_compute_sub_info', store=False)
     sub_price = fields.Float(string='Monthly Price', compute='_compute_sub_info', store=False)
     sub_state = fields.Selection(related='subscription_id.state', string='Subscription Status', store=False)
@@ -349,7 +464,6 @@ class ClassScheduleOccurrence(models.Model):
             rec.attendance_marked = bool(rec.attendance_ids)
 
     def write(self, vals):
-        # Only admin/managers can cancel a lesson
         if vals.get('lesson_status') == 'cancelled':
             if not self.env.user.has_group('base.group_system') and not self.env.user.has_group('base.group_erp_manager'):
                 raise UserError(
@@ -359,7 +473,6 @@ class ClassScheduleOccurrence(models.Model):
         return super().write(vals)
 
     def unlink(self):
-        """Prevent deletion of lessons that have a status other than scheduled."""
         protected = self.filtered(lambda r: r.lesson_status and r.lesson_status != 'scheduled')
         if protected:
             raise UserError(
@@ -369,21 +482,17 @@ class ClassScheduleOccurrence(models.Model):
         return super().unlink()
 
     def action_mark_attendance(self):
-        """Open the mark attendance wizard for this occurrence."""
         self.ensure_one()
-        # Get enrolled students for this course
         enrollments = self.env['course.enrollment'].search([
             ('course_id', '=', self.course_id.id),
             ('status', '=', 'active'),
         ])
         student_ids = enrollments.mapped('student_id').ids
 
-        # Create wizard with student lines
         wizard = self.env['mark.attendance.wizard'].create({
             'occurrence_id': self.id,
             'lesson_status': self.lesson_status or 'scheduled',
         })
-        # Pre-populate student lines
         existing_attendance = {att.student_id.id: att for att in self.attendance_ids}
         lines = []
         for student_id in student_ids:
@@ -422,11 +531,8 @@ class MarkAttendanceWizard(models.TransientModel):
     line_ids = fields.One2many('mark.attendance.wizard.line', 'wizard_id', string='Students')
 
     def action_confirm(self):
-        """Confirm attendance and update lesson status."""
         self.ensure_one()
         occurrence = self.occurrence_id
-
-        # Create or update attendance records
         for line in self.line_ids:
             existing = self.env['attendance.record'].search([
                 ('class_schedule_occurrence_id', '=', occurrence.id),
@@ -444,10 +550,7 @@ class MarkAttendanceWizard(models.TransientModel):
                 existing.write(vals)
             else:
                 self.env['attendance.record'].create(vals)
-
-        # Update lesson status
         occurrence.write({'lesson_status': self.lesson_status})
-
         return {'type': 'ir.actions.act_window_close'}
 
 
@@ -575,7 +678,6 @@ class PortalAccessWizard(models.TransientModel):
 
     @api.model
     def _generate_login_from_name(self, name):
-        """Generate a login from name: lowercase, no spaces, append counter if duplicate."""
         import re
         base_login = re.sub(r'[^a-z0-9]', '', (name or 'user').lower())
         if not base_login:
@@ -590,7 +692,6 @@ class PortalAccessWizard(models.TransientModel):
 
     @api.model
     def _generate_password(self):
-        """Generate password: 2 random words + @ + 4 digit number."""
         import random
         words = [
             'apple', 'brave', 'cloud', 'delta', 'eagle', 'flame', 'grace', 'honey',
@@ -750,6 +851,7 @@ class PortalAccessWizard(models.TransientModel):
                            'type': 'success', 'sticky': False,
                            'next': {'type': 'ir.actions.act_window_close'}}}
 
+
 # ============================================================
 
 class TuitionSubscription(models.Model):
@@ -758,14 +860,12 @@ class TuitionSubscription(models.Model):
     _order = 'create_date desc'
 
     name = fields.Char(string='Reference', compute='_compute_name', store=True)
-    student_id = fields.Many2one('student.profile', string='Student', required=True,
-                                 ondelete='restrict')
+    student_id = fields.Many2one('student.profile', string='Student', required=True, ondelete='restrict')
     enrollment_id = fields.Many2one(
         'course.enrollment', string='Enrollment', ondelete='restrict',
         domain="[('student_id', '=', student_id)]")
     plan_line_ids = fields.One2many('tuition.plan.line', 'subscription_id', string='Plan History')
-    adjustment_ids = fields.One2many('tuition.adjustment', 'subscription_id',
-                                     string='Adjustments')
+    adjustment_ids = fields.One2many('tuition.adjustment', 'subscription_id', string='Adjustments')
     invoice_ids = fields.One2many('account.move', 'tuition_subscription_id', string='Invoices')
     discount_ids = fields.One2many('tuition.discount', 'subscription_id', string='Discounts')
     current_plan_id = fields.Many2one('tuition.plan.line', string='Current Plan',
@@ -838,20 +938,8 @@ class TuitionSubscription(models.Model):
             'domain': [('tuition_subscription_id', '=', self.id)],
         }
 
-    def action_schedule_plan_change(self):
-        self.ensure_one()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Add Adjustment',
-            'res_model': 'tuition.adjustment.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': {'default_subscription_id': self.id},
-        }
-
     def action_generate_invoice(self):
         self.ensure_one()
-        # Check for duplicate invoice this month
         today = fields.Date.today()
         month_start = today.replace(day=1)
         existing = self.env['account.move'].sudo().search([
@@ -1081,21 +1169,18 @@ class TuitionDiscount(models.Model):
     _order = 'date_start desc'
 
     subscription_id = fields.Many2one('tuition.subscription', required=True, ondelete='cascade')
-    name = fields.Char(string='Discount Name', required=True,
-                       help='e.g. Sibling Discount, Referral Discount, 10% Discount')
+    name = fields.Char(string='Discount Name', required=True)
     discount_type = fields.Selection([
         ('percentage', 'Percentage (%)'),
         ('amount', 'Fixed Amount'),
     ], string='Type', required=True, default='percentage')
-    value = fields.Float(string='Value', required=True,
-                         help='Enter % value for percentage type, or fixed amount for amount type')
+    value = fields.Float(string='Value', required=True)
     date_start = fields.Date(string='From', default=fields.Date.today)
-    date_end = fields.Date(string='Until', help='Leave empty for ongoing discount')
+    date_end = fields.Date(string='Until')
     active = fields.Boolean(string='Active', default=True)
     description = fields.Char(string='Notes')
 
     def _compute_discount_amount(self, base_price):
-        """Return the discount amount to deduct from base_price."""
         self.ensure_one()
         if self.discount_type == 'percentage':
             return base_price * (self.value / 100.0)
@@ -1160,7 +1245,6 @@ class TuitionPlanLine(models.Model):
 
     @api.constrains('start_date')
     def _check_start_date(self):
-        from odoo.exceptions import ValidationError
         for rec in self:
             if rec.start_date and rec.start_date.day != 1:
                 raise ValidationError(
@@ -1186,19 +1270,16 @@ class TuitionAdjustment(models.Model):
     _order = 'date desc'
 
     subscription_id = fields.Many2one('tuition.subscription', required=True, ondelete='cascade')
-    student_id = fields.Many2one('student.profile', related='subscription_id.student_id',
-                                 store=True)
+    student_id = fields.Many2one('student.profile', related='subscription_id.student_id', store=True)
     date = fields.Date(string='Date', required=True, default=fields.Date.today)
     description = fields.Char(string='Description', required=True)
-    amount = fields.Float(string='Amount', required=True,
-                          help='Always enter as a positive number. Sign is determined by type.')
+    amount = fields.Float(string='Amount', required=True)
     adjustment_type = fields.Selection([
         ('extra_charge', 'Extra Charge'),
         ('discount', 'Discount'),
         ('refund', 'Refund to Customer'),
     ], string='Type', default='extra_charge', required=True)
-    signed_amount = fields.Float(string='Signed Amount', compute='_compute_signed_amount', store=True,
-                                 help='Positive = added to invoice, Negative = deducted from invoice')
+    signed_amount = fields.Float(string='Signed Amount', compute='_compute_signed_amount', store=True)
     applied_in_invoice = fields.Boolean(string='Applied', default=False)
     invoice_id = fields.Many2one('account.move', string='Invoice', readonly=True)
 
@@ -1229,7 +1310,7 @@ class TuitionPlanChangeWizard(models.TransientModel):
     subscription_id = fields.Many2one('tuition.subscription', required=True)
     product_id = fields.Many2one('product.product', string='New Plan Product', required=True)
     price = fields.Float(string='Monthly Price', required=True)
-    start_date = fields.Date(string='Effective From (auto: 1st of next month)',
+    start_date = fields.Date(string='Effective From',
                              compute='_compute_start_date', store=True, readonly=False)
     notes = fields.Char(string='Notes')
 
@@ -1321,7 +1402,6 @@ class TuitionInvoicePreviewWizard(models.TransientModel):
         order = sub._create_sale_order(preview_vals)
         today = fields.Date.today()
         sub.next_billing_date = today.replace(day=1) + relativedelta(months=1)
-        # Find the posted invoice
         invoice = self.env['account.move'].sudo().search([
             ('tuition_subscription_id', '=', sub.id),
             ('move_type', '=', 'out_invoice'),
@@ -1366,6 +1446,44 @@ class TuitionInvoiceConfirmWizard(models.TransientModel):
         return {'type': 'ir.actions.act_window_close'}
 
 
+class CourseCancelWizard(models.TransientModel):
+    _name = 'course.cancel.wizard'
+    _description = 'Course Cancellation Confirmation'
+
+    course_id = fields.Many2one('course.master', string='Course', required=True, readonly=True)
+    message = fields.Text(string='Warning', readonly=True)
+    line_ids = fields.One2many('course.cancel.wizard.line', 'wizard_id', string='Unmarked Schedules')
+
+    def action_confirm_cancel(self):
+        self.ensure_one()
+        self.course_id._execute_cancellation()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': 'Course Cancelled',
+                'message': 'Course "%s" has been cancelled successfully.' % self.course_id.name,
+                'type': 'warning',
+                'sticky': False,
+                'next': {'type': 'ir.actions.act_window_close'},
+            },
+        }
+
+    def action_discard(self):
+        return {'type': 'ir.actions.act_window_close'}
+
+
+class CourseCancelWizardLine(models.TransientModel):
+    _name = 'course.cancel.wizard.line'
+    _description = 'Course Cancel Wizard Line'
+
+    wizard_id = fields.Many2one('course.cancel.wizard', required=True, ondelete='cascade')
+    occurrence_id = fields.Many2one('class.schedule.occurrence', string='Lesson', readonly=True)
+    schedule_date = fields.Datetime(string='Date', readonly=True)
+    lesson_name = fields.Char(string='Session', readonly=True)
+    tutor_name = fields.Char(string='Tutor', readonly=True)
+
+
 class TuitionAdjustmentWizard(models.TransientModel):
     _name = 'tuition.adjustment.wizard'
     _description = 'Add Manual Adjustment'
@@ -1377,8 +1495,7 @@ class TuitionAdjustmentWizard(models.TransientModel):
         ('refund', 'Refund to Customer'),
     ], string='Type', required=True, default='extra_charge')
     description = fields.Char(string='Description', required=True)
-    amount = fields.Float(string='Amount', required=True,
-                          help='Always enter as a positive number')
+    amount = fields.Float(string='Amount', required=True)
     date = fields.Date(string='Date', default=fields.Date.today, required=True)
 
     def action_confirm(self):
@@ -1402,6 +1519,7 @@ class TuitionAdjustmentWizard(models.TransientModel):
             },
         }
 
+
 class ParentProfile(models.Model):
     _name = 'parent.profile'
     _description = 'Parent Profile'
@@ -1419,7 +1537,6 @@ class ParentProfile(models.Model):
     partner_id = fields.Many2one('res.partner', string='Contact')
     notes = fields.Html(string='Notes')
 
-    # Portal access info (computed)
     portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
     portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
@@ -1433,7 +1550,6 @@ class ParentProfile(models.Model):
             rec.has_portal_access = bool(user)
 
     def action_invite_to_portal(self):
-        """Open wizard to set or update portal credentials for this parent."""
         self.ensure_one()
         if not self.email:
             raise UserError("Email is required to create a portal login.")
@@ -1444,7 +1560,6 @@ class ParentProfile(models.Model):
             'default_email': self.email,
             'default_login': self.email,
         }
-        # Check for existing portal user
         if self.partner_id:
             user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
             if user:
@@ -1460,7 +1575,6 @@ class ParentProfile(models.Model):
             'context': ctx,
         }
 
-
     def write(self, vals):
         res = super().write(vals)
         for rec in self:
@@ -1475,6 +1589,7 @@ class ParentProfile(models.Model):
                 if partner_vals:
                     rec.partner_id.write(partner_vals)
         return res
+
 
 class StudentProfile(models.Model):
     _name = 'student.profile'
@@ -1495,7 +1610,6 @@ class StudentProfile(models.Model):
     zip_code = fields.Char(string='Zip Code')
     active = fields.Boolean(default=True)
 
-    # Portal access info (computed)
     portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
     portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
@@ -1509,7 +1623,6 @@ class StudentProfile(models.Model):
             rec.has_portal_access = bool(user)
 
     def action_invite_to_portal(self):
-        """Open wizard to set or update portal credentials for this student."""
         self.ensure_one()
         if not self.email:
             raise UserError("Email is required to create a portal login.")
@@ -1587,7 +1700,6 @@ class TutorProfile(models.Model):
             rec.has_portal_access = bool(user)
 
     def action_invite_to_portal(self):
-        """Open wizard to set or update portal credentials for this tutor."""
         self.ensure_one()
         if not self.email:
             raise UserError("Email is required to create a portal login.")
