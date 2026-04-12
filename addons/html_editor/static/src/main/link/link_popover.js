@@ -99,14 +99,6 @@ export class LinkPopover extends Component {
 
         const computedStyle = this.props.document.defaultView.getComputedStyle(linkElement);
         const currentRelValues = linkElement.rel.split(" ");
-        const hasButtonSizeOrShapeOrCustom = this.props.linkElement.className.match(
-            /btn-(lg|sm|xs|custom)|rounded-circle|(?:^|\\s)(outline|fill|flat)(?:\\s|$)/
-        );
-        const buttonType = hasButtonSizeOrShapeOrCustom
-            ? "custom"
-            : this.props.linkElement.className
-                  .match(/btn(-[a-z0-9_-]*)(primary|secondary)/)
-                  ?.pop() || "";
         this.state = useState({
             editing: this.props.LinkPopoverState.editing,
             // `.getAttribute("href")` instead of `.href` to keep relative url
@@ -121,7 +113,10 @@ export class LinkPopover extends Component {
             urlDescription: "",
             linkPreviewName: "",
             imgSrc: "",
-            type: this.props.type || buttonType,
+            type:
+                this.props.type ||
+                linkElement.className.match(/btn(-[a-z0-9_-]*)(primary|secondary|custom)/)?.pop() ||
+                "",
             linkTarget: linkElement.target === "_blank" ? "_blank" : "",
             directDownload: true,
             isDocument: false,
@@ -568,7 +563,9 @@ export class LinkPopover extends Component {
             const internalMetadata = await this.props
                 .getInternalMetaData(url.href)
                 .catch((error) => {
-                    console.warn(`Error fetching internal metadata for ${url.href}:`, error);
+                    if (!session.test_mode) {
+                        console.warn(`Error fetching internal metadata for ${url.href}:`, error);
+                    }
                     return {};
                 });
             if (internalMetadata.favicon) {

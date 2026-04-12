@@ -47,8 +47,8 @@ msgstr ""
 "Project-Id-Version: Odoo Server 16.0\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-02-24 14:12+0000\n"
-"PO-Revision-Date: 2026-03-27 12:00+0000\n"
-"Last-Translator: Jarmo Kortetjärvi <jarmo.kortetjarvi@futural.fi>\n"
+"PO-Revision-Date: 2026-04-10 14:45+0000\n"
+"Last-Translator: Saara Hakanen <sahak@odoo.com>\n"
 "Language-Team: Finnish <https://translate.odoo.com/projects/odoo-19/base/fi/>"
 "\n"
 "Language: fi\n"
@@ -4017,7 +4017,7 @@ msgstr ""
 "\n"
 "Lajittele asiakirjasi automaattisesti.\n"
 "Tätä moduulia käytetään ainoastaan asiakirjojen automaatiseen lajitteluun. "
-"Sitä ei voi käyttää tekoölyasiakirjoihin liittyviin ominaisuuksiin, koska se "
+"Sitä ei voi käyttää tekoälyasiakirjoihin liittyviin ominaisuuksiin, koska se "
 "pohjautuu myös base_automations.\n"
 "Sen nimi tulisi muuttaa mylhemmin ai_documents_automation.\n"
 
@@ -4837,7 +4837,7 @@ msgid ""
 msgstr ""
 "\n"
 "Siltamoduuli, joka integroi Belgian kirjanpitoraportit\n"
-"Belgian henkilöstöhallinnon Palkanlaskenta-moduuliin\n"
+"Belgian henkilöstöhallinnon Palkanlaskenta-moduulin kanssa\n"
 
 #. module: base
 #: model:ir.module.module,description:base.module_project_timesheet_holidays
@@ -5785,7 +5785,7 @@ msgid ""
 "E-invoice implementation for Guatemala\n"
 msgstr ""
 "\n"
-"Sähköisen laskutuksen toteutus Guatemalaan\n"
+"Sähköisen laskutuksen toteutus Guatemalassa\n"
 
 #. module: base
 #: model:ir.module.module,description:base.module_l10n_ro_edi
@@ -21227,7 +21227,7 @@ msgstr "Tilintarkastus ja sertifiointi"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_accountant_knowledge
 msgid "Audit Reports"
-msgstr "Tilintarkastuskertomus"
+msgstr "Tilintarkastuskertomukset"
 
 #. module: base
 #: model:res.currency,currency_subunit_label:base.ISK
@@ -21798,7 +21798,7 @@ msgstr "Virheellinen tiedostomuoto: %s"
 #. module: base
 #: model:ir.model.fields,field_description:base.field_res_users__barcode
 msgid "Badge ID"
-msgstr "Tunnuskortin ID"
+msgstr "Tunnisteen tunnus"
 
 #. module: base
 #: model:res.country,name:base.bs
@@ -32316,7 +32316,7 @@ msgstr "Asennettu versio"
 #: model_terms:ir.ui.view,arch_db:base.module_form
 #: model_terms:ir.ui.view,arch_db:base.module_view_kanban
 msgid "Installing"
-msgstr "Asennetaan"
+msgstr "Asennus"
 
 #. module: base
 #: model:ir.module.module,description:base.module_bus
@@ -33438,7 +33438,7 @@ msgstr "Kiribati"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_website_sale_mrp
 msgid "Kit Availability"
-msgstr "Paketin saatavuus"
+msgstr "Setin saatavuus"
 
 #. module: base
 #: model:ir.module.module,summary:base.module_sale_mrp_renting
@@ -35379,7 +35379,7 @@ msgstr "Massapostitustekstiviestit myyntitilauksille"
 #: model:ir.module.module,description:base.module_hr_recruitment_sms
 #: model:ir.module.module,summary:base.module_hr_recruitment_sms
 msgid "Mass mailing sms to job applicants"
-msgstr "Joukkoviestien lähettäminen työnhakijoille (SMS)"
+msgstr "Joukkotekstiviestien lähettäminen työnhakijoille"
 
 #. module: base
 #: model:ir.module.category,name:base.module_category_master_data
@@ -36642,7 +36642,7 @@ msgstr "Uutiskirjeen tilauspainike"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_website_mass_mailing_sms
 msgid "Newsletter Subscribe SMS Template"
-msgstr "Uutiskirjeen tilaus SMS malli"
+msgstr "Uutiskirjeen tilauksen tekstiviestipohja"
 
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_cron__nextcall
@@ -40065,7 +40065,7 @@ msgstr ""
 "Laskumme on maksettava 21 työpäivän kuluessa, ellei laskussa tai tilauksessa "
 "ole ilmoitettu muuta maksuaikaa. Jos laskua ei makseta eräpäivään mennessä, "
 "My Company (San Francisco) pidättää oikeuden vaatia kiinteää korkoa, jonka "
-"määrä on 10% of jäljellä olevasta erääntyneestä summasta. My Company (San "
+"määrä on 10% jäljellä olevasta erääntyneestä summasta. My Company (San "
 "Francisco) on oikeutettu keskeyttämään palvelujen tarjoamisen ilman "
 "ennakkovaroitusta, jos maksu viivästyy."
 
@@ -40348,7 +40348,7 @@ msgstr "POS UrbanPiper - Uber Eats"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_pos_imin
 msgid "POS iMin"
-msgstr "Kassajärjestelmä iMin"
+msgstr "Kassajärjestelmän iMin"
 
 #. module: base
 #: model:ir.model.fields.selection,name:base.selection__res_partner__tz__prc
@@ -41155,7 +41155,7 @@ msgstr "Henkilökohtainen valmentaja"
 #: model_terms:res.partner,website_description:base.res_partner_2
 #: model_terms:res.partner,website_description:base.res_partner_4
 msgid "Personnel Administration"
-msgstr "Henkilökunnan hallinto"
+msgstr "Henkilöstöhallinto"
 
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.view_res_partner_filter
@@ -41919,7 +41919,7 @@ msgstr "Tuotteiden voimassaolopäivä"
 #. module: base
 #: model:ir.module.module,summary:base.module_documents_project_sale
 msgid "Products Folder Templates"
-msgstr "Tuottekansioiden mallipohjat"
+msgstr "Tuotekansioiden mallipohjat"
 
 #. module: base
 #: model:ir.module.module,summary:base.module_documents_product
@@ -42004,7 +42004,7 @@ msgstr "Projekti - Osto - Varasto"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_project_sms
 msgid "Project - SMS"
-msgstr "Projekti - SMS"
+msgstr "Projekti - Tekstiviesti"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_project_sale_expense
@@ -43032,7 +43032,7 @@ msgstr "Rekrytointi"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_hr_recruitment_sms
 msgid "Recruitment - SMS"
-msgstr "Rekrytointi – SMS"
+msgstr "Rekrytointi - Tekstiviesti"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_hr_recruitment_sign
@@ -43288,7 +43288,7 @@ msgstr "Raportti"
 #. module: base
 #: model:ir.model,name:base.model_ir_actions_report
 msgid "Report Action"
-msgstr "Raporttin"
+msgstr "Raporttitoiminto"
 
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_actions_report__report_file
@@ -43822,7 +43822,7 @@ msgstr "Tekstiviestimarkkinointi markkinoinnin automaatiossa"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_test_mail_sms
 msgid "SMS Tests"
-msgstr "SMS-testit"
+msgstr "Tekstiviestitestit"
 
 #. module: base
 #: model:ir.module.module,summary:base.module_test_mail_sms
@@ -43832,12 +43832,12 @@ msgstr "Tekstiviestitestit: tekstiviestien esitykset ja testit"
 #. module: base
 #: model:ir.module.module,summary:base.module_sms
 msgid "SMS Text Messaging"
-msgstr "SMS-tekstiviestit"
+msgstr "Tekstiviestiyhdyskäytävä"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_sms
 msgid "SMS gateway"
-msgstr "SMS gateway"
+msgstr "Tekstiviestiyhdyskäytävä"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_crm_sms
@@ -44000,7 +44000,7 @@ msgstr "Myynti- ja ostotilausten EDI-testit: Varmista työnkulun iskunkestävyys
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_sale_sms
 msgid "Sale - SMS"
-msgstr "Myynti - SMS"
+msgstr "Myynti - Tekstiviestit"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_sale_account_accountant
@@ -45341,7 +45341,7 @@ msgstr "Allekirjoita asiakirjat itsme®-tunnisteella"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_sign_emsigner
 msgid "Sign emSigner"
-msgstr "Allekirjoita & emSigner"
+msgstr "emSigner-allekirjoitus"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_sign_itsme
@@ -46068,7 +46068,7 @@ msgstr "Datataulukoiden koontinäyttö työaikakirjauksille"
 #: model:ir.module.module,description:base.module_documents_spreadsheet_survey
 #: model:ir.module.module,summary:base.module_documents_spreadsheet_survey
 msgid "Spreadsheet for Survey results"
-msgstr "Datataulukko kyselyn tuloksille"
+msgstr "Datataulukko kyselytuloksille"
 
 #. module: base
 #: model:ir.model.fields,field_description:base.field_ir_profile__sql
@@ -46210,7 +46210,7 @@ msgstr "Varasto - Huolto"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_stock_sms
 msgid "Stock - SMS"
-msgstr "Varasto - SMS"
+msgstr "Varasto - Tekstiviestit"
 
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_whatsapp_stock
@@ -46784,7 +46784,7 @@ msgstr "Kykyjenhankinta"
 #: model_terms:res.partner,website_description:base.res_partner_2
 #: model_terms:res.partner,website_description:base.res_partner_4
 msgid "Talent Management"
-msgstr "Taitojen hallinta"
+msgstr "Kykyjen hallinta"
 
 #. module: base
 #: model:res.currency,currency_subunit_label:base.MWK
@@ -49266,7 +49266,7 @@ msgstr "Traces Sync"
 #. module: base
 #: model:ir.module.module,shortdesc:base.module_mass_mailing_event_track_sms
 msgid "Track Speakers SMS Marketing"
-msgstr "Esiintyjien SMS-markkinointi"
+msgstr "Seuraa puhujien tekstiviestimarkkinointia"
 
 #. module: base
 #: model:ir.module.module,summary:base.module_hr_attendance
@@ -52476,7 +52476,7 @@ msgstr "ei sisällä käännettävissä olevia termejä.<br/>"
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.wizard_lang_export
 msgid "documentation"
-msgstr "dokumentointi"
+msgstr "dokumentaatio"
 
 #. module: base
 #: model_terms:ir.ui.view,arch_db:base.wizard_lang_export
