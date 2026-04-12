@@ -511,15 +511,18 @@ class TuitionPortal(CustomerPortal):
         assignments = request.env['course.assignment'].sudo().search([
             ('course_id', 'in', course_ids), ('status', 'in', ['assigned', 'completed']),
         ], order='due_date asc')
-        # Pre-compute student submission for template (avoid lambda in QWeb)
+        # Pre-compute student submissions
+        submission_map = {}
         for asgn in assignments:
-            asgn.student_submission = asgn.submission_ids.filtered(lambda s: s.student_id.id == student.id)
+            sub = asgn.submission_ids.filtered(lambda s: s.student_id.id == student.id)
+            submission_map[asgn.id] = sub
         return request.render('tuition_management.portal_student_assignments', {
             'user': request.env.user,
             'is_student': True,
             'is_tutor': False,
             'is_parent': False,
             'assignments': assignments,
+            'submission_map': submission_map,
             'student': student,
             'page_name': 'assignments',
         })
@@ -1069,7 +1072,6 @@ class TuitionPortal(CustomerPortal):
             'max_score': float(kw.get('max_score', 100) or 100),
             'comments': kw.get('comments', ''),
             'strengths': kw.get('strengths', ''),
-            'areas_to_improve': kw.get('areas_to_improve', ''),
         }
         request.env['progress.report'].sudo().create(vals)
         return request.redirect(f'/my/tutor/courses/{course_id}?progress_created=1')
