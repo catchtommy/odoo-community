@@ -442,7 +442,8 @@
 <field name="status"/>
 </group>
 <group string="Subscription">
-<field name="subscription_id" domain="[('student_id', '=', student_id)]" options="{'no_quick_create': True}"/>
+<field name="subscription_id" domain="[('student_id', '=', student_id)]" options="{'no_quick_create': True}" context="{'default_student_id': student_id, 'default_enrollment_id': id}"/>
+<button name="action_create_subscription" type="object" string="+ Create Subscription" class="btn-link ps-0" icon="fa-plus" invisible="subscription_id or not student_id"/>
 <field name="sub_plan_name" string="Current Plan" readonly="1" invisible="not subscription_id"/>
 <field name="sub_price" string="Monthly Price" readonly="1" widget="monetary" invisible="not subscription_id"/>
 <field name="sub_state" string="Status" readonly="1" invisible="not subscription_id"/>

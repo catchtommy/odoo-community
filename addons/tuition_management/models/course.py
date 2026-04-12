@@ -315,6 +315,21 @@ class CourseEnrollment(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('course.enrollment') or 'New'
         return super().create(vals_list)
 
+    def action_create_subscription(self):
+        """Open subscription form pre-populated with student and enrollment."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'New Subscription',
+            'res_model': 'tuition.subscription',
+            'view_mode': 'form',
+            'target': 'current',
+            'context': {
+                'default_student_id': self.student_id.id,
+                'default_enrollment_id': self.id,
+            },
+        }
+
 
 class ClassSchedule(models.Model):
     _name = 'class.schedule'

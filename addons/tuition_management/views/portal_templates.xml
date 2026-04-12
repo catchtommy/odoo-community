@@ -238,7 +238,7 @@
         .tm-page { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--tm-text); }
         .tm-hero { padding: 24px 28px; border-radius: 14px; margin-bottom: 20px; color: #fff; }
         .tm-hero h2 { font-weight: 700; margin: 0 0 4px; font-size: 20px; }
-        .tm-hero p { margin: 0; opacity: 0.85; font-size: 13px; }
+        .tm-hero p { margin: 0; opacity: 0.7; font-size: 13px; }
         .tm-hero-stat { background: rgba(255,255,255,0.18); border-radius: 10px; padding: 12px 16px; text-align: center; min-width: 90px; backdrop-filter: blur(4px); }
         .tm-hero-stat .num { font-size: 24px; font-weight: 800; line-height: 1; }
         .tm-hero-stat .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; margin-top: 2px; }
@@ -1229,7 +1229,7 @@
                                                 </div>
                                             </div>
                                         </div>
-                                        <span t-if="sub.status == 'submitted'" class="tm-badge tm-badge-blue">Submitted</span>
+                                        <span t-if="sub.status == 'submitted'" class="tm-badge tm-badge-green">Submitted</span>
                                         <span t-if="sub.status == 'graded'" class="tm-badge tm-badge-green">Graded</span>
                                         <span t-if="sub.status == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
                                     </div>
@@ -1603,88 +1603,309 @@
 
 <template id="portal_parent_invoices" name="Parent: Invoices">
     <t t-call="tuition_management.portal_sidebar_layout">
-        
-        <div class="tm-page mt-3">
-            <div class="tm-hero" style="background: linear-gradient(135deg, var(--tm-indigo), var(--tm-indigo-dark));">
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <t t-set="page_name">tuition_invoices</t>
+        <t t-set="page_title">Invoices</t>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-file-text-o"/> Invoices</h5>
+
+        <!-- Summary Cards -->
+        <div class="tm-stat-grid" style="margin-bottom:20px;">
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
                     <div>
-                        <h2><i class="fa fa-file-text me-2"/>Invoices</h2>
-                        <p>View and download your tuition invoices</p>
+                        <div class="tm-stat-value"><t t-esc="len(invoices)"/></div>
+                        <div class="tm-stat-label">Total Invoices</div>
                     </div>
-                    <a href="/my/parent/children" class="tm-btn tm-btn-outline"
-                       style="background:rgba(255,255,255,0.15); color:#fff; border-color:rgba(255,255,255,0.3);">
-                        <i class="fa fa-arrow-left"/> Dashboard
-                    </a>
+                    <div class="tm-stat-icon blue"><i class="fa fa-file-text-o"/></div>
                 </div>
             </div>
-            <t t-if="not invoices">
-                <div class="tm-card">
-                    <div class="tm-empty">
-                        <i class="fa fa-file-o"/>
-                        <p>No invoices found.</p>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value" style="color:var(--tm-green);"><t t-esc="len(invoices.filtered(lambda i: i.payment_state == 'paid'))"/></div>
+                        <div class="tm-stat-label">Paid</div>
                     </div>
+                    <div class="tm-stat-icon green"><i class="fa fa-check-circle"/></div>
                 </div>
-            </t>
-            <t t-if="invoices">
-                <div class="tm-card">
-                    <div class="table-responsive">
-                        <table class="tm-table">
-                            <thead>
-                                <tr>
-                                    <th>Invoice #</th>
-                                    <th>Student</th>
-                                    <th>Date</th>
-                                    <th>Plan</th>
-                                    <th>Amount</th>
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <t t-foreach="invoices" t-as="inv">
-                                    <tr>
-                                        <td class="fw-bold" style="font-size:12px;">
-                                            <t t-esc="inv.name"/>
-                                        </td>
-                                        <td style="font-size:12px;">
-                                            <t t-if="inv.tuition_subscription_id and inv.tuition_subscription_id.student_id">
-                                                <t t-esc="inv.tuition_subscription_id.student_id.name"/>
-                                            </t>
-                                            <t t-else="">—</t>
-                                        </td>
-                                        <td style="font-size:12px;">
-                                            <t t-if="inv.invoice_date">
-                                                <t t-esc="inv.invoice_date"/>
-                                            </t>
-                                        </td>
-                                        <td style="font-size:12px;">
-                                            <t t-if="inv.tuition_subscription_id">
-                                                <t t-esc="inv.tuition_subscription_id.current_plan_product"/>
-                                            </t>
-                                            <t t-else="">—</t>
-                                        </td>
-                                        <td class="fw-bold" style="font-size:12px;">
-                                            <t t-esc="inv.amount_total"/> <t t-esc="inv.currency_id.symbol"/>
-                                        </td>
-                                        <td>
-                                            <span t-if="inv.payment_state == 'paid'" class="tm-badge tm-badge-green">Paid</span>
-                                            <span t-elif="inv.state == 'posted'" class="tm-badge tm-badge-orange">Unpaid</span>
-                                            <span t-elif="inv.state == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
-                                            <span t-else="" class="tm-badge tm-badge-grey"><t t-esc="inv.state"/></span>
-                                        </td>
-                                        <td>
-                                            <a t-attf-href="/my/invoices/#{inv.id}" class="tm-btn tm-btn-blue tm-btn-sm">
-                                                <i class="fa fa-eye"/> View
-                                            </a>
-                                        </td>
-                                    </tr>
-                                </t>
-                            </tbody>
-                        </table>
+            </div>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value" style="color:var(--tm-orange);"><t t-esc="len(invoices.filtered(lambda i: i.payment_state != 'paid' and i.state == 'posted'))"/></div>
+                        <div class="tm-stat-label">Unpaid</div>
                     </div>
+                    <div class="tm-stat-icon orange"><i class="fa fa-clock-o"/></div>
                 </div>
-            </t>
+            </div>
         </div>
+
+        <t t-if="not invoices">
+            <div class="tm-card">
+                <div class="tm-empty">
+                    <i class="fa fa-file-o"/>
+                    <p>No invoices found.</p>
+                </div>
+            </div>
+        </t>
+        <t t-if="invoices">
+            <div class="tm-card">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-list"/> All Invoices</div>
+                </div>
+                <div class="table-responsive">
+                    <table class="tm-table">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date</th>
+                                <th>Due Date</th>
+                                <th>Student</th>
+                                <th style="text-align:right;">Amount</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="invoices" t-as="inv">
+                                <tr>
+                                    <td class="fw-bold"><t t-esc="inv.name"/></td>
+                                    <td style="white-space:nowrap;">
+                                        <t t-if="inv.invoice_date" t-esc="inv.invoice_date" t-options='{"widget": "date"}'/>
+                                        <t t-else="">—</t>
+                                    </td>
+                                    <td style="white-space:nowrap;">
+                                        <t t-if="inv.invoice_date_due">
+                                            <span style="color:var(--tm-orange);font-weight:600;"><t t-esc="inv.invoice_date_due" t-options='{"widget": "date"}'/></span>
+                                        </t>
+                                        <t t-else="">—</t>
+                                    </td>
+                                    <td>
+                                        <t t-if="inv.tuition_subscription_id and inv.tuition_subscription_id.student_id">
+                                            <span class="tm-badge tm-badge-purple" style="font-size:10px;"><t t-esc="inv.tuition_subscription_id.student_id.name"/></span>
+                                        </t>
+                                        <t t-else="">—</t>
+                                    </td>
+                                    <td style="text-align:right;font-weight:600;">
+                                        <t t-esc="'%.2f' % inv.amount_total"/> <t t-esc="inv.currency_id.symbol"/>
+                                    </td>
+                                    <td>
+                                        <span t-if="inv.payment_state == 'paid'" class="tm-badge tm-badge-green">Paid</span>
+                                        <span t-elif="inv.payment_state == 'partial'" class="tm-badge tm-badge-orange">Partial</span>
+                                        <span t-elif="inv.state == 'posted'" class="tm-badge tm-badge-red">Unpaid</span>
+                                        <span t-elif="inv.state == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
+                                        <span t-else="" class="tm-badge tm-badge-grey"><t t-esc="inv.state"/></span>
+                                    </td>
+                                    <td>
+                                        <a t-attf-href="/my/invoices/#{inv.id}" class="tm-btn tm-btn-outline tm-btn-sm">
+                                            <i class="fa fa-eye"/> View
+                                        </a>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </t>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PARENT: INVOICE DETAIL                          -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_parent_invoice_detail" name="Parent: Invoice Detail">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tuition_invoices</t>
+        <t t-set="page_title">Invoice</t>
+
+        <div style="margin-bottom:16px;">
+            <a href="/my/tuition/invoices" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Invoices</a>
+        </div>
+
+        <!-- Invoice Header Card -->
+        <div class="tm-card" style="margin-bottom:20px;">
+            <div class="tm-card-body">
+                <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:16px;">
+                        <div style="width:52px;height:52px;border-radius:10px;background:var(--tm-primary-light);color:var(--tm-primary);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+                            <i class="fa fa-file-text-o"/>
+                        </div>
+                        <div>
+                            <h2 style="font-size:18px;font-weight:700;margin:0 0 6px;"><t t-esc="invoice.name"/></h2>
+                            <div style="font-size:13px;color:var(--tm-text-light);display:flex;gap:16px;flex-wrap:wrap;">
+                                <t t-if="invoice.invoice_date">
+                                    <span><i class="fa fa-calendar"/> <t t-esc="invoice.invoice_date" t-options='{"widget": "date"}'/></span>
+                                </t>
+                                <t t-if="invoice.invoice_date_due">
+                                    <span><i class="fa fa-clock-o"/> Due: <t t-esc="invoice.invoice_date_due" t-options='{"widget": "date"}'/></span>
+                                </t>
+                                <t t-if="invoice.tuition_subscription_id and invoice.tuition_subscription_id.student_id">
+                                    <span><i class="fa fa-child"/> <t t-esc="invoice.tuition_subscription_id.student_id.name"/></span>
+                                </t>
+                                <span t-if="invoice.payment_state == 'paid'" class="tm-badge tm-badge-green">Paid</span>
+                                <span t-elif="invoice.payment_state == 'partial'" class="tm-badge tm-badge-orange">Partially Paid</span>
+                                <span t-elif="invoice.state == 'posted'" class="tm-badge tm-badge-red">Unpaid</span>
+                                <span t-elif="invoice.state == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
+                                <span t-elif="invoice.state == 'cancel'" class="tm-badge tm-badge-red">Cancelled</span>
+                                <span t-else="" class="tm-badge tm-badge-grey"><t t-esc="invoice.state"/></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                        <t t-if="invoice.virtual_class_url">
+                            <a t-att-href="invoice.virtual_class_url" target="_blank" class="tm-btn tm-btn-green"><i class="fa fa-video-camera"/> Launch Class</a>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invoice Details -->
+        <div class="tm-card" style="margin-bottom:20px;">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-info-circle"/> Invoice Details</div>
+            </div>
+            <div class="tm-card-body">
+                <div class="tm-label">Invoice Number</div>
+                <div class="tm-value fw-bold"><t t-esc="invoice.name"/></div>
+
+                <div class="tm-label">Invoice Date</div>
+                <div class="tm-value"><t t-if="invoice.invoice_date" t-esc="invoice.invoice_date" t-options='{"widget": "date"}'/><t t-else="">—</t></div>
+
+                <div class="tm-label">Due Date</div>
+                <div class="tm-value">
+                    <t t-if="invoice.invoice_date_due">
+                        <span style="font-weight:600;color:var(--tm-orange);"><t t-esc="invoice.invoice_date_due" t-options='{"widget": "date"}'/></span>
+                    </t>
+                    <t t-else="">—</t>
+                </div>
+
+                <t t-if="invoice.ref">
+                    <div class="tm-label">Reference</div>
+                    <div class="tm-value"><t t-esc="invoice.ref"/></div>
+                </t>
+
+                <t t-if="invoice.invoice_origin">
+                    <div class="tm-label">Source</div>
+                    <div class="tm-value"><t t-esc="invoice.invoice_origin"/></div>
+                </t>
+            </div>
+        </div>
+
+        <!-- Billing Info -->
+        <div class="tm-card" style="margin-bottom:20px;">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-user"/> Billing Information</div>
+            </div>
+            <div class="tm-card-body">
+                <div class="tm-label">Billed To</div>
+                <div class="tm-value fw-bold"><t t-esc="invoice.partner_id.name"/></div>
+
+                <t t-if="invoice.partner_id.email">
+                    <div class="tm-label">Email</div>
+                    <div class="tm-value"><t t-esc="invoice.partner_id.email"/></div>
+                </t>
+
+                <t t-if="invoice.partner_id.phone">
+                    <div class="tm-label">Phone</div>
+                    <div class="tm-value"><t t-esc="invoice.partner_id.phone"/></div>
+                </t>
+
+                <t t-if="invoice.tuition_subscription_id">
+                    <div class="tm-label">Student</div>
+                    <div class="tm-value">
+                        <span class="tm-badge tm-badge-purple">
+                            <t t-esc="invoice.tuition_subscription_id.student_id.name"/>
+                        </span>
+                    </div>
+
+                    <t t-if="invoice.tuition_subscription_id.current_plan_product">
+                        <div class="tm-label">Plan</div>
+                        <div class="tm-value"><t t-esc="invoice.tuition_subscription_id.current_plan_product"/></div>
+                    </t>
+                </t>
+            </div>
+        </div>
+
+        <!-- Invoice Lines -->
+        <div class="tm-card" style="margin-bottom:20px;">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-list"/> Invoice Lines</div>
+            </div>
+            <table class="tm-table">
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th style="text-align:right;">Qty</th>
+                        <th style="text-align:right;">Unit Price</th>
+                        <th style="text-align:right;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <t t-foreach="invoice.invoice_line_ids.filtered(lambda l: not l.display_type)" t-as="line">
+                        <tr>
+                            <td class="fw-bold"><t t-esc="line.name or line.product_id.name or '—'"/></td>
+                            <td style="text-align:right;"><t t-esc="'%.2f' % line.quantity"/></td>
+                            <td style="text-align:right;"><t t-esc="'%.2f' % line.price_unit"/> <t t-esc="invoice.currency_id.symbol"/></td>
+                            <td style="text-align:right;font-weight:600;"><t t-esc="'%.2f' % line.price_subtotal"/> <t t-esc="invoice.currency_id.symbol"/></td>
+                        </tr>
+                    </t>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Totals + Payment -->
+        <div class="tm-card" style="margin-bottom:20px;">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-calculator"/> Summary</div>
+            </div>
+            <div class="tm-card-body">
+                <div style="max-width:380px;margin-left:auto;">
+                    <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid var(--tm-border);">
+                        <span style="color:var(--tm-text-light);">Untaxed Amount</span>
+                        <span><t t-esc="'%.2f' % invoice.amount_untaxed"/> <t t-esc="invoice.currency_id.symbol"/></span>
+                    </div>
+                    <t t-if="invoice.amount_tax">
+                        <div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid var(--tm-border);">
+                            <span style="color:var(--tm-text-light);">Tax</span>
+                            <span><t t-esc="'%.2f' % invoice.amount_tax"/> <t t-esc="invoice.currency_id.symbol"/></span>
+                        </div>
+                    </t>
+                    <div style="display:flex;justify-content:space-between;padding:12px 0;font-size:16px;font-weight:700;border-bottom:1px solid var(--tm-border);">
+                        <span>Total</span>
+                        <span><t t-esc="'%.2f' % invoice.amount_total"/> <t t-esc="invoice.currency_id.symbol"/></span>
+                    </div>
+                    <t t-if="invoice.payment_state == 'paid'">
+                        <div style="display:flex;justify-content:space-between;padding:12px 0;font-size:14px;font-weight:600;color:var(--tm-green);">
+                            <span><i class="fa fa-check-circle"/> Paid</span>
+                            <span><t t-esc="'%.2f' % invoice.amount_total"/> <t t-esc="invoice.currency_id.symbol"/></span>
+                        </div>
+                    </t>
+                    <t t-if="invoice.payment_state != 'paid' and invoice.state == 'posted'">
+                        <div style="display:flex;justify-content:space-between;padding:12px 0;font-size:14px;font-weight:600;color:var(--tm-orange);">
+                            <span>Amount Due</span>
+                            <span><t t-esc="'%.2f' % invoice.amount_residual"/> <t t-esc="invoice.currency_id.symbol"/></span>
+                        </div>
+                        <div style="padding:12px 0;text-align:right;">
+                            <a t-attf-href="/my/invoices/#{invoice.id}" class="tm-btn tm-btn-green" style="padding:10px 28px;">
+                                <i class="fa fa-credit-card"/> Pay Now
+                            </a>
+                        </div>
+                    </t>
+                </div>
+            </div>
+        </div>
+
+        <t t-if="invoice.narration">
+            <div class="tm-card" style="margin-bottom:20px;">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-sticky-note"/> Notes</div>
+                </div>
+                <div class="tm-card-body">
+                    <div style="font-size:13px;" t-raw="invoice.narration"/>
+                </div>
+            </div>
+        </t>
     </t>
 </template>
 
