@@ -1070,6 +1070,38 @@ Create your first attendance record
 <field name="view_mode">kanban,list,form</field>
 </record>
 
+<!-- Portal Access Wizard Form -->
+<record id="view_portal_access_wizard_form" model="ir.ui.view">
+<field name="name">portal.access.wizard.form</field>
+<field name="model">portal.access.wizard</field>
+<field name="arch" type="xml">
+<form string="Manage Portal Access">
+<field name="profile_model" invisible="1"/>
+<field name="profile_id" invisible="1"/>
+<field name="is_existing_user" invisible="1"/>
+<field name="existing_user_id" invisible="1"/>
+<group>
+<field name="name" readonly="1"/>
+<field name="email" readonly="1"/>
+<field name="login"/>
+</group>
+<group string="Password">
+<field name="password"/>
+<field name="confirm_password"/>
+<div colspan="2">
+<button name="action_generate_password" type="object" string="🔄 Generate New Password" class="btn-link ps-0"/>
+</div>
+</group>
+<footer>
+<button name="action_create_portal_user" type="object" string="Activate Portal Access" class="btn-primary" invisible="is_existing_user"/>
+<button name="action_create_portal_user" type="object" string="Update Credentials" class="btn-primary" invisible="not is_existing_user"/>
+<button name="action_deactivate_portal_user" type="object" string="Deactivate" class="btn-danger" invisible="not is_existing_user"/>
+<button string="Cancel" class="btn-secondary" special="cancel"/>
+</footer>
+</form>
+</field>
+</record>
+
 <!-- Dashboard Client Action -->
 <record id="action_tuition_dashboard" model="ir.actions.client">
 <field name="name">Dashboard</field>

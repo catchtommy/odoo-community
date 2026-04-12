@@ -107,30 +107,149 @@ class Enquiry(models.Model):
         for vals in vals_list:
             if vals.get('enquiry_name', 'New') == 'New':
                 vals['enquiry_name'] = self.env['ir.sequence'].next_by_code('enquiry') or 'New'
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        for rec in records:
+            rec._auto_create_parent_and_student()
+        return records
 
-    def action_enroll_to_course(self):
-        """Convert enquiry to a course with enrollment."""
+    def write(self, vals):
+        res = super().write(vals)
+        # Sync parent fields if changed
+        parent_fields = {'name', 'email', 'phone', 'country_code'}
+        student_fields = {'student_name', 'grade_id'}
+        if parent_fields & set(vals.keys()):
+            for rec in self:
+                if rec.parent_profile_id:
+                    parent_vals = {}
+                    if 'name' in vals:
+                        parent_vals['name'] = rec.name
+                    if 'email' in vals:
+                        parent_vals['email'] = rec.email
+                    if 'phone' in vals:
+                        parent_vals['phone'] = rec.phone
+                    if 'country_code' in vals:
+                        parent_vals['country_code'] = rec.country_code
+                    if parent_vals:
+                        rec.parent_profile_id.write(parent_vals)
+        if student_fields & set(vals.keys()):
+            for rec in self:
+                if rec.student_profile_id:
+                    student_vals = {}
+                    if 'student_name' in vals:
+                        student_vals['name'] = rec.student_name
+                    if 'grade_id' in vals:
+                        student_vals['grade_id'] = rec.grade_id.id if rec.grade_id else False
+                    if student_vals:
+                        rec.student_profile_id.write(student_vals)
+        return res
+
+    def _auto_create_parent_and_student(self):
+        """Auto-create parent profile, student profile, and contacts on enquiry creation."""
         self.ensure_one()
-        # Create parent profile if not exists
+
+        # --- Parent ---
         if not self.parent_profile_id:
-            parent = self.env['parent.profile'].create({
-                'name': self.name,
-                'email': self.email,
-                'country_code': self.country_code,
-                'phone': self.phone,
-                'partner_id': self.partner_id.id if self.partner_id else False,
-            })
+            parent = self._find_or_create_parent()
             self.parent_profile_id = parent.id
 
-        # Create student profile if not exists
-        if not self.student_profile_id:
-            student = self.env['student.profile'].create({
-                'name': self.student_name or self.name,
-                'grade_id': self.grade_id.id if self.grade_id else False,
-                'parent_id': self.parent_profile_id.id,
-            })
+        # --- Student ---
+        if not self.student_profile_id and self.student_name:
+            student = self._find_or_create_student(self.parent_profile_id)
             self.student_profile_id = student.id
+
+    def _find_or_create_parent(self):
+        """Find existing parent by email/phone or create a new one with contact."""
+        Parent = self.env['parent.profile']
+        Partner = self.env['res.partner']
+
+        # Try to find existing parent by email
+        if self.email:
+            existing = Parent.search([('email', '=', self.email)], limit=1)
+            if existing:
+                return existing
+
+        # Try to find existing parent by phone
+        if self.phone:
+            existing = Parent.search([
+                ('phone', '=', self.phone),
+                ('country_code', '=', self.country_code or '+1'),
+            ], limit=1)
+            if existing:
+                return existing
+
+        # Create contact (res.partner)
+        phone_full = '%s%s' % (self.country_code or '', self.phone or '')
+        partner = Partner.create({
+            'name': self.name,
+            'email': self.email,
+            'phone': phone_full,
+            'type': 'contact',
+            'company_type': 'person',
+        })
+
+        # Also link enquiry partner_id if not set
+        if not self.partner_id:
+            self.partner_id = partner.id
+
+        # Create parent profile
+        parent = Parent.create({
+            'name': self.name,
+            'email': self.email,
+            'phone': self.phone,
+            'country_code': self.country_code or '+1',
+            'partner_id': partner.id,
+        })
+        return parent
+
+    def _find_or_create_student(self, parent):
+        """Find existing student under same parent or create a new one with contact."""
+        Student = self.env['student.profile']
+        Partner = self.env['res.partner']
+
+        # Check if student with same name already exists under this parent
+        if parent:
+            existing = Student.search([
+                ('name', '=', self.student_name),
+                ('parent_id', '=', parent.id),
+            ], limit=1)
+            if existing:
+                return existing
+
+        # Create student contact as child of parent contact
+        student_partner_vals = {
+            'name': self.student_name,
+            'type': 'contact',
+            'company_type': 'person',
+        }
+        if parent and parent.partner_id:
+            student_partner_vals['parent_id'] = parent.partner_id.id
+        student_partner = Partner.create(student_partner_vals)
+
+        # Create student profile
+        student = Student.create({
+            'name': self.student_name,
+            'grade_id': self.grade_id.id if self.grade_id else False,
+            'parent_id': parent.id if parent else False,
+            'partner_id': student_partner.id,
+        })
+        return student
+
+    def action_enroll_to_course(self):
+        """Convert enquiry to a course with enrollment, reusing existing parent/student."""
+        self.ensure_one()
+
+        # Ensure parent exists (should already be created on enquiry creation)
+        if not self.parent_profile_id:
+            self.parent_profile_id = self._find_or_create_parent()
+
+        # Ensure student exists
+        if not self.student_profile_id:
+            if self.student_name:
+                self.student_profile_id = self._find_or_create_student(self.parent_profile_id)
+            else:
+                # Fallback: create student from parent name
+                self.student_name = self.name
+                self.student_profile_id = self._find_or_create_student(self.parent_profile_id)
 
         # Create course if not exists
         if not self.course_id:

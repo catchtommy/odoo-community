@@ -30,206 +30,6 @@ class GradeMaster(models.Model):
     name = fields.Char(string='Grade Name', required=True)
 
 
-class ParentProfile(models.Model):
-    _name = 'parent.profile'
-    _description = 'Parent Profile'
-
-    name = fields.Char(string='Full Name', required=True)
-    email = fields.Char(string='Email')
-    country_code = fields.Char(string='Country Code', default='+1')
-    phone = fields.Char(string='Phone')
-    student_ids = fields.One2many('student.profile', 'parent_id', string='Students')
-    address_line_1 = fields.Char(string='Address Line 1')
-    address_line_2 = fields.Char(string='Address Line 2')
-    address_line_3 = fields.Char(string='Address Line 3')
-    address_line_4 = fields.Char(string='Address Line 4')
-    zip_code = fields.Char(string='Zip Code')
-    partner_id = fields.Many2one('res.partner', string='Contact')
-    notes = fields.Html(string='Notes')
-
-    # Portal access info (computed)
-    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
-    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
-    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
-
-    @api.depends('partner_id')
-    def _compute_portal_access(self):
-        for rec in self:
-            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
-            rec.portal_user_id = user.id if user else False
-            rec.portal_login = user.login if user else ''
-            rec.has_portal_access = bool(user)
-
-    def action_invite_to_portal(self):
-        """Open wizard to set or update portal credentials for this parent."""
-        self.ensure_one()
-        if not self.email:
-            raise UserError("Email is required to create a portal login.")
-        ctx = {
-            'default_profile_model': 'parent.profile',
-            'default_profile_id': self.id,
-            'default_name': self.name,
-            'default_email': self.email,
-            'default_login': self.email,
-        }
-        # Check for existing portal user
-        if self.partner_id:
-            user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
-            if user:
-                ctx['default_is_existing_user'] = True
-                ctx['default_existing_user_id'] = user.id
-                ctx['default_login'] = user.login
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Manage Portal Access',
-            'res_model': 'portal.access.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': ctx,
-        }
-
-
-class StudentProfile(models.Model):
-    _name = 'student.profile'
-    _description = 'Student Profile'
-
-    name = fields.Char(string='Full Name', required=True)
-    email = fields.Char(string='Email')
-    country_code = fields.Char(string='Country Code', default='+1')
-    phone = fields.Char(string='Phone')
-    grade_id = fields.Many2one('grade.master', string='Grade')
-    subjects_ids = fields.Many2many('subject.master', string='Subjects')
-    parent_id = fields.Many2one('parent.profile', string='Parent')
-    partner_id = fields.Many2one('res.partner', string='Contact')
-    address_line_1 = fields.Char(string='Address Line 1')
-    address_line_2 = fields.Char(string='Address Line 2')
-    address_line_3 = fields.Char(string='Address Line 3')
-    address_line_4 = fields.Char(string='Address Line 4')
-    zip_code = fields.Char(string='Zip Code')
-    active = fields.Boolean(default=True)
-
-    # Portal access info (computed)
-    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
-    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
-    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
-
-    @api.depends('partner_id')
-    def _compute_portal_access(self):
-        for rec in self:
-            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
-            rec.portal_user_id = user.id if user else False
-            rec.portal_login = user.login if user else ''
-            rec.has_portal_access = bool(user)
-
-    def action_invite_to_portal(self):
-        """Open wizard to set or update portal credentials for this student."""
-        self.ensure_one()
-        if not self.email:
-            raise UserError("Email is required to create a portal login.")
-        ctx = {
-            'default_profile_model': 'student.profile',
-            'default_profile_id': self.id,
-            'default_name': self.name,
-            'default_email': self.email,
-            'default_login': self.email,
-        }
-        if self.partner_id:
-            user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
-            if user:
-                ctx['default_is_existing_user'] = True
-                ctx['default_existing_user_id'] = user.id
-                ctx['default_login'] = user.login
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Manage Portal Access',
-            'res_model': 'portal.access.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': ctx,
-        }
-
-    def action_view_parent(self):
-        self.ensure_one()
-        if self.parent_id:
-            return {
-                'type': 'ir.actions.act_window',
-                'name': 'Parent',
-                'res_model': 'parent.profile',
-                'view_mode': 'form',
-                'res_id': self.parent_id.id,
-            }
-
-
-class TutorProfile(models.Model):
-    _name = 'tutor.profile'
-    _description = 'Tutor Profile'
-
-    name = fields.Char(string='Full Name', required=True)
-    email = fields.Char(string='Email')
-    country_code = fields.Char(string='Country Code', default='+1')
-    phone = fields.Char(string='Phone')
-    subject_ids = fields.Many2many('subject.master', string='Subjects')
-    availability_ids = fields.One2many('tutor.availability', 'tutor_id', string='Availability')
-    partner_id = fields.Many2one('res.partner', string='Contact')
-    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
-    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
-    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
-    active = fields.Boolean(default=True)
-
-    @api.depends('partner_id')
-    def _compute_portal_access(self):
-        for rec in self:
-            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
-            rec.portal_user_id = user.id if user else False
-            rec.portal_login = user.login if user else ''
-            rec.has_portal_access = bool(user)
-
-    def action_invite_to_portal(self):
-        """Open wizard to set or update portal credentials for this tutor."""
-        self.ensure_one()
-        if not self.email:
-            raise UserError("Email is required to create a portal login.")
-        ctx = {
-            'default_profile_model': 'tutor.profile',
-            'default_profile_id': self.id,
-            'default_name': self.name,
-            'default_email': self.email,
-            'default_login': self.email,
-        }
-        if self.partner_id:
-            user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
-            if user:
-                ctx['default_is_existing_user'] = True
-                ctx['default_existing_user_id'] = user.id
-                ctx['default_login'] = user.login
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Manage Portal Access',
-            'res_model': 'portal.access.wizard',
-            'view_mode': 'form',
-            'target': 'new',
-            'context': ctx,
-        }
-
-
-class TutorAvailability(models.Model):
-    _name = 'tutor.availability'
-    _description = 'Tutor Availability'
-
-    tutor_id = fields.Many2one('tutor.profile', string='Tutor', required=True, ondelete='cascade')
-    day_of_week = fields.Selection([
-        ('monday', 'Monday'),
-        ('tuesday', 'Tuesday'),
-        ('wednesday', 'Wednesday'),
-        ('thursday', 'Thursday'),
-        ('friday', 'Friday'),
-        ('saturday', 'Saturday'),
-        ('sunday', 'Sunday'),
-    ], string='Day of Week', required=True)
-    start_time = fields.Float(string='Start Time')
-    end_time = fields.Float(string='End Time')
-
-
 class TuitionTimeSlot(models.Model):
     _name = 'tuition.time.slot'
     _description = 'Time Slot'
@@ -774,11 +574,47 @@ class PortalAccessWizard(models.TransientModel):
     existing_user_id = fields.Many2one('res.users', string='Existing Portal User', readonly=True)
 
     @api.model
+    def _generate_login_from_name(self, name):
+        """Generate a login from name: lowercase, no spaces, append counter if duplicate."""
+        import re
+        base_login = re.sub(r'[^a-z0-9]', '', (name or 'user').lower())
+        if not base_login:
+            base_login = 'user'
+        login = base_login
+        counter = 1
+        while self.env['res.users'].sudo().with_context(active_test=False).search(
+                [('login', '=', login)], limit=1):
+            counter += 1
+            login = '%s%d' % (base_login, counter)
+        return login
+
+    @api.model
+    def _generate_password(self):
+        """Generate password: 2 random words + @ + 4 digit number."""
+        import random
+        words = [
+            'apple', 'brave', 'cloud', 'delta', 'eagle', 'flame', 'grace', 'honey',
+            'ivory', 'jewel', 'knack', 'lemon', 'mango', 'noble', 'ocean', 'pearl',
+            'quest', 'river', 'solar', 'tiger', 'ultra', 'vivid', 'whale', 'xenon',
+            'yacht', 'zebra', 'amber', 'blaze', 'coral', 'drift', 'ember', 'frost',
+            'gleam', 'haven', 'indie', 'jolly', 'karma', 'lunar', 'maple', 'nexus',
+            'orbit', 'prism', 'quilt', 'ridge', 'spark', 'theta', 'unity', 'vapor',
+            'willow', 'zephyr', 'bloom', 'crisp', 'dusk', 'fern', 'glow', 'haze',
+            'jade', 'kite', 'lily', 'mint', 'nest', 'opal', 'pine', 'reed',
+            'sage', 'thorn', 'vine', 'wave', 'birch', 'cedar', 'daisy', 'elm',
+        ]
+        word1 = random.choice(words).capitalize()
+        word2 = random.choice(words).capitalize()
+        digits = random.randint(1000, 9999)
+        return '%s%s@%d' % (word1, word2, digits)
+
+    @api.model
     def default_get(self, fields_list):
         res = super().default_get(fields_list)
-        # Auto-detect existing portal user
         profile_model = res.get('profile_model') or self.env.context.get('default_profile_model')
         profile_id = res.get('profile_id') or self.env.context.get('default_profile_id')
+        profile_name = res.get('name') or self.env.context.get('default_name', '')
+
         if profile_model and profile_id:
             profile = self.env[profile_model].browse(profile_id)
             if profile.exists() and profile.partner_id:
@@ -789,7 +625,34 @@ class PortalAccessWizard(models.TransientModel):
                     res['is_existing_user'] = True
                     res['existing_user_id'] = user.id
                     res['login'] = user.login
+                    # Generate new password for display
+                    pwd = self._generate_password()
+                    res['password'] = pwd
+                    res['confirm_password'] = pwd
+                    return res
+
+        # Auto-generate login from name
+        if not res.get('login') or res.get('login') == res.get('email'):
+            res['login'] = self._generate_login_from_name(profile_name)
+
+        # Auto-generate password
+        pwd = self._generate_password()
+        res['password'] = pwd
+        res['confirm_password'] = pwd
         return res
+
+    def action_generate_password(self):
+        """Regenerate a new random password."""
+        self.ensure_one()
+        pwd = self._generate_password()
+        self.write({'password': pwd, 'confirm_password': pwd})
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'portal.access.wizard',
+            'view_mode': 'form',
+            'res_id': self.id,
+            'target': 'new',
+        }
 
     def _assign_portal_group(self, user):
         """Force user to be portal-only: remove ALL groups, add only portal group using ORM."""
@@ -1538,4 +1401,232 @@ class TuitionAdjustmentWizard(models.TransientModel):
                 'next': {'type': 'ir.actions.act_window_close'},
             },
         }
-# END BILLING SYSTEM
+
+class ParentProfile(models.Model):
+    _name = 'parent.profile'
+    _description = 'Parent Profile'
+
+    name = fields.Char(string='Full Name', required=True)
+    email = fields.Char(string='Email')
+    country_code = fields.Char(string='Country Code', default='+1')
+    phone = fields.Char(string='Phone')
+    student_ids = fields.One2many('student.profile', 'parent_id', string='Students')
+    address_line_1 = fields.Char(string='Address Line 1')
+    address_line_2 = fields.Char(string='Address Line 2')
+    address_line_3 = fields.Char(string='Address Line 3')
+    address_line_4 = fields.Char(string='Address Line 4')
+    zip_code = fields.Char(string='Zip Code')
+    partner_id = fields.Many2one('res.partner', string='Contact')
+    notes = fields.Html(string='Notes')
+
+    # Portal access info (computed)
+    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
+    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
+    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+
+    @api.depends('partner_id')
+    def _compute_portal_access(self):
+        for rec in self:
+            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
+            rec.portal_user_id = user.id if user else False
+            rec.portal_login = user.login if user else ''
+            rec.has_portal_access = bool(user)
+
+    def action_invite_to_portal(self):
+        """Open wizard to set or update portal credentials for this parent."""
+        self.ensure_one()
+        if not self.email:
+            raise UserError("Email is required to create a portal login.")
+        ctx = {
+            'default_profile_model': 'parent.profile',
+            'default_profile_id': self.id,
+            'default_name': self.name,
+            'default_email': self.email,
+            'default_login': self.email,
+        }
+        # Check for existing portal user
+        if self.partner_id:
+            user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
+            if user:
+                ctx['default_is_existing_user'] = True
+                ctx['default_existing_user_id'] = user.id
+                ctx['default_login'] = user.login
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Manage Portal Access',
+            'res_model': 'portal.access.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': ctx,
+        }
+
+
+    def write(self, vals):
+        res = super().write(vals)
+        for rec in self:
+            if rec.partner_id:
+                partner_vals = {}
+                if 'name' in vals:
+                    partner_vals['name'] = rec.name
+                if 'email' in vals:
+                    partner_vals['email'] = rec.email
+                if 'phone' in vals or 'country_code' in vals:
+                    partner_vals['phone'] = '%s%s' % (rec.country_code or '', rec.phone or '')
+                if partner_vals:
+                    rec.partner_id.write(partner_vals)
+        return res
+
+class StudentProfile(models.Model):
+    _name = 'student.profile'
+    _description = 'Student Profile'
+
+    name = fields.Char(string='Full Name', required=True)
+    email = fields.Char(string='Email')
+    country_code = fields.Char(string='Country Code', default='+1')
+    phone = fields.Char(string='Phone')
+    grade_id = fields.Many2one('grade.master', string='Grade')
+    subjects_ids = fields.Many2many('subject.master', string='Subjects')
+    parent_id = fields.Many2one('parent.profile', string='Parent')
+    partner_id = fields.Many2one('res.partner', string='Contact')
+    address_line_1 = fields.Char(string='Address Line 1')
+    address_line_2 = fields.Char(string='Address Line 2')
+    address_line_3 = fields.Char(string='Address Line 3')
+    address_line_4 = fields.Char(string='Address Line 4')
+    zip_code = fields.Char(string='Zip Code')
+    active = fields.Boolean(default=True)
+
+    # Portal access info (computed)
+    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
+    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
+    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+
+    @api.depends('partner_id')
+    def _compute_portal_access(self):
+        for rec in self:
+            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
+            rec.portal_user_id = user.id if user else False
+            rec.portal_login = user.login if user else ''
+            rec.has_portal_access = bool(user)
+
+    def action_invite_to_portal(self):
+        """Open wizard to set or update portal credentials for this student."""
+        self.ensure_one()
+        if not self.email:
+            raise UserError("Email is required to create a portal login.")
+        ctx = {
+            'default_profile_model': 'student.profile',
+            'default_profile_id': self.id,
+            'default_name': self.name,
+            'default_email': self.email,
+            'default_login': self.email,
+        }
+        if self.partner_id:
+            user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
+            if user:
+                ctx['default_is_existing_user'] = True
+                ctx['default_existing_user_id'] = user.id
+                ctx['default_login'] = user.login
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Manage Portal Access',
+            'res_model': 'portal.access.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': ctx,
+        }
+
+    def action_view_parent(self):
+        self.ensure_one()
+        if self.parent_id:
+            return {
+                'type': 'ir.actions.act_window',
+                'name': 'Parent',
+                'res_model': 'parent.profile',
+                'view_mode': 'form',
+                'res_id': self.parent_id.id,
+            }
+
+    def write(self, vals):
+        res = super().write(vals)
+        for rec in self:
+            if rec.partner_id:
+                partner_vals = {}
+                if 'name' in vals:
+                    partner_vals['name'] = rec.name
+                if 'email' in vals:
+                    partner_vals['email'] = rec.email
+                if 'phone' in vals or 'country_code' in vals:
+                    partner_vals['phone'] = '%s%s' % (rec.country_code or '', rec.phone or '')
+                if partner_vals:
+                    rec.partner_id.write(partner_vals)
+        return res
+
+
+class TutorProfile(models.Model):
+    _name = 'tutor.profile'
+    _description = 'Tutor Profile'
+
+    name = fields.Char(string='Full Name', required=True)
+    email = fields.Char(string='Email')
+    country_code = fields.Char(string='Country Code', default='+1')
+    phone = fields.Char(string='Phone')
+    subject_ids = fields.Many2many('subject.master', string='Subjects')
+    availability_ids = fields.One2many('tutor.availability', 'tutor_id', string='Availability')
+    partner_id = fields.Many2one('res.partner', string='Contact')
+    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
+    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
+    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+    active = fields.Boolean(default=True)
+
+    @api.depends('partner_id')
+    def _compute_portal_access(self):
+        for rec in self:
+            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
+            rec.portal_user_id = user.id if user else False
+            rec.portal_login = user.login if user else ''
+            rec.has_portal_access = bool(user)
+
+    def action_invite_to_portal(self):
+        """Open wizard to set or update portal credentials for this tutor."""
+        self.ensure_one()
+        if not self.email:
+            raise UserError("Email is required to create a portal login.")
+        ctx = {
+            'default_profile_model': 'tutor.profile',
+            'default_profile_id': self.id,
+            'default_name': self.name,
+            'default_email': self.email,
+            'default_login': self.email,
+        }
+        if self.partner_id:
+            user = self.env['res.users'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
+            if user:
+                ctx['default_is_existing_user'] = True
+                ctx['default_existing_user_id'] = user.id
+                ctx['default_login'] = user.login
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Manage Portal Access',
+            'res_model': 'portal.access.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': ctx,
+        }
+
+
+class TutorAvailability(models.Model):
+    _name = 'tutor.availability'
+    _description = 'Tutor Availability'
+
+    tutor_id = fields.Many2one('tutor.profile', string='Tutor', required=True, ondelete='cascade')
+    day_of_week = fields.Selection([
+        ('monday', 'Monday'),
+        ('tuesday', 'Tuesday'),
+        ('wednesday', 'Wednesday'),
+        ('thursday', 'Thursday'),
+        ('friday', 'Friday'),
+        ('saturday', 'Saturday'),
+        ('sunday', 'Sunday'),
+    ], string='Day of Week', required=True)
+    start_time = fields.Float(string='Start Time')
+    end_time = fields.Float(string='End Time')

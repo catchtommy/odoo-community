@@ -753,7 +753,7 @@
                                 <td class="fw-bold"><t t-esc="enr.course_id.name"/></td>
                                 <td><t t-esc="enr.course_id.subject_id.name or '—'"/></td>
                                 <td><t t-esc="enr.course_id.tutor_id.name or '—'"/></td>
-                                <td><t t-esc="enr.invoice_start_date or '—'"/></td>
+                                <!-- <td><t t-esc="enr.invoice_start_date or '—'"/></td> -->
                                 <td><a t-attf-href="/my/courses/#{enr.id}" class="tm-btn tm-btn-outline tm-btn-sm">View</a></td>
                             </tr>
                         </t>
@@ -969,7 +969,7 @@
                                             <t t-else="">—</t>
                                         </td>
                                         <td><t t-esc="rpt.score and ('%.0f / %.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
-                                        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                            <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                             <t t-esc="rpt.comments or rpt.strengths or '—'"/>
                                         </td>
                                     </tr>
