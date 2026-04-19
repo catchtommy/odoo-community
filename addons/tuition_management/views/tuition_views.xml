@@ -371,14 +371,16 @@
 </group>
 <notebook>
 <page string="Lessons" name="lessons">
-<field name="occurrence_ids" readonly="1">
-<list string="Lessons" create="false" delete="false">
-<field name="start_datetime" string="Lesson Time"/>
+<field name="occurrence_ids">
+<list string="Lessons" create="false" delete="false" editable="bottom">
+<field name="start_datetime" string="Lesson Time" readonly="1"/>
 <field name="tutor_id" string="Teacher"/>
-<field name="lesson_status" string="Status"/>
+<field name="lesson_status" string="Status" readonly="1"/>
+<field name="is_rescheduled" string="Rescheduled" readonly="1"/>
+<field name="cancellation_reason" string="Cancel Reason" readonly="1" optional="hide"/>
 <field name="attendance_marked" string="Attendance Marked"/>
 <button name="action_mark_attendance" type="object" string="Mark Attendance" class="btn-link" icon="fa-check-square-o"/>
-<button name="action_reset_attendance" type="object" string="Reset Attendance" class="btn-link text-danger" icon="fa-undo" confirm="This will delete all attendance records for this lesson. Are you sure?"/>
+<button name="action_cancel_lesson" type="object" string="Cancel Lesson" class="btn-link text-warning" icon="fa-ban" invisible="lesson_status == 'cancelled'"/>
 </list>
 </field>
 </page>
@@ -501,6 +503,9 @@
 <field name="model">class.schedule</field>
 <field name="arch" type="xml">
 <form string="Class Schedule">
+<header>
+<button name="action_delete_schedule" type="object" string="Delete Schedule" class="btn-danger" icon="fa-trash" invisible="not id"/>
+</header>
 <sheet>
 <group>
 <field name="course_id"/>
@@ -635,11 +640,10 @@ Create your first class schedule
 <form string="Mark Attendance">
 <group>
 <field name="occurrence_id" readonly="1"/>
-<field name="lesson_status"/>
 </group>
 <separator string="Student Attendance"/>
 <field name="line_ids">
-<list string="Students" editable="bottom">
+<list string="Students" editable="bottom" delete="true" create="false">
 <field name="student_id" readonly="1"/>
 <field name="status"/>
 <field name="billable"/>
@@ -1164,7 +1168,70 @@ Create your first attendance record
 </field>
 </record>
 
-<!-- Dashboard Client Action -->
+<!-- Schedule Delete Confirmation Wizard -->
+
+<!-- Cancel Lesson Wizard -->
+<record id="view_cancel_lesson_wizard_form" model="ir.ui.view">
+<field name="name">cancel.lesson.wizard.form</field>
+<field name="model">cancel.lesson.wizard</field>
+<field name="arch" type="xml">
+<form string="Cancel Lesson">
+<field name="occurrence_id" invisible="1"/>
+<group>
+<field name="reason" required="1"/>
+<field name="note"/>
+</group>
+<group string="Reschedule">
+<field name="reschedule"/>
+<field name="new_date" invisible="not reschedule" required="reschedule"/>
+<field name="new_tutor_id" invisible="not reschedule"/>
+</group>
+<footer>
+<button name="action_confirm_cancel" type="object" string="Confirm Cancellation" class="btn-danger"/>
+<button string="Discard" special="cancel" class="btn-secondary"/>
+</footer>
+</form>
+</field>
+</record>
+
+<!-- Schedule Delete Confirmation Wizard -->
+<record id="view_schedule_delete_wizard_form" model="ir.ui.view">
+<field name="name">schedule.delete.wizard.form</field>
+<field name="model">schedule.delete.wizard</field>
+<field name="arch" type="xml">
+<form string="Confirm Schedule Deletion">
+<field name="schedule_id" invisible="1"/>
+<div class="alert alert-warning" role="alert">
+<strong><i class="fa fa-exclamation-triangle"/> Warning</strong>
+<p><field name="message" nolabel="1" readonly="1"/></p>
+</div>
+<group string="Past Lessons Without Attendance">
+<field name="line_ids" nolabel="1" readonly="1">
+<list string="Unmarked Lessons" create="false" delete="false">
+<field name="lesson_date" string="Date"/>
+<field name="lesson_name" string="Lesson"/>
+<field name="tutor_name" string="Tutor"/>
+</list>
+</field>
+</group>
+<div class="alert alert-danger mt-2" role="alert">
+<strong>On deletion:</strong>
+<ul class="mb-0">
+<li>All past lessons without attendance (listed above) will be permanently deleted</li>
+<li>All future lessons without attendance will be permanently deleted</li>
+<li>Lessons with recorded attendance will be kept</li>
+<li>The schedule itself will be deleted</li>
+</ul>
+</div>
+<footer>
+<button name="action_confirm_delete" type="object" string="Delete Schedule" class="btn-danger"/>
+<button name="action_cancel" type="object" string="Go Back" class="btn-secondary"/>
+</footer>
+</form>
+</field>
+</record>
+
+<!-- Dashboard Client Action contd -->
 <record id="action_tuition_dashboard" model="ir.actions.client">
 <field name="name">Dashboard</field>
 <field name="tag">tuition_dashboard</field>

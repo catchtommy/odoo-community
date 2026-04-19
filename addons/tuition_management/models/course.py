@@ -510,12 +510,119 @@ class ClassSchedule(models.Model):
         if any(f in vals for f in trigger_fields):
             for record in self:
                 record._generate_occurrences()
+        # If tutor changed, update all future occurrences without attendance
+        if 'tutor_id' in vals:
+            now = fields.Datetime.now()
+            for record in self:
+                future_unmarked = record.occurrence_ids.filtered(
+                    lambda o: o.start_datetime and o.start_datetime >= now and not o.attendance_marked
+                )
+                if future_unmarked:
+                    future_unmarked.sudo().write({'tutor_id': vals['tutor_id']})
         return res
+
+    def unlink(self):
+        """Always remove unmarked occurrences when deleting a schedule."""
+        if not self.env.context.get('force_delete'):
+            now = fields.Datetime.now()
+            for record in self:
+                all_occ = self.env['class.schedule.occurrence'].sudo().search([
+                    ('schedule_id', '=', record.id)
+                ])
+                unmarked = all_occ.filtered(lambda o: not o.attendance_marked)
+                past_unmarked = unmarked.filtered(lambda o: o.start_datetime and o.start_datetime < now)
+                if past_unmarked:
+                    wizard = self.env['schedule.delete.wizard'].create({
+                        'schedule_id': record.id,
+                        'message': (
+                            'This schedule has %d past lesson(s) without attendance marked. '
+                            'Deleting this schedule will remove all lessons without attendance (past and future). '
+                            'Please record attendance before proceeding if any sessions were conducted.'
+                        ) % len(past_unmarked),
+                    })
+                    wizard_lines = []
+                    for occ in past_unmarked.sorted('start_datetime'):
+                        wizard_lines.append((0, 0, {
+                            'wizard_id': wizard.id,
+                            'occurrence_id': occ.id,
+                            'lesson_name': occ.name or '',
+                            'lesson_date': occ.start_datetime,
+                            'tutor_name': occ.tutor_id.name if occ.tutor_id else '',
+                        }))
+                    wizard.write({'line_ids': wizard_lines})
+                    raise UserError(
+                        'This schedule has %d past lesson(s) without attendance marked.\n\n'
+                        'Please use the "Delete Schedule" button on the schedule form to review '
+                        'unmarked lessons before deleting, or mark attendance first.\n\n'
+                        'Unmarked past lessons:\n%s' % (
+                            len(past_unmarked),
+                            '\n'.join('• %s - %s' % (
+                                occ.start_datetime.strftime('%a, %d %b %Y %H:%M') if occ.start_datetime else '',
+                                occ.name or ''
+                            ) for occ in past_unmarked.sorted('start_datetime'))
+                        )
+                    )
+        for record in self:
+            all_occ = self.env['class.schedule.occurrence'].sudo().search([
+                ('schedule_id', '=', record.id)
+            ])
+            unmarked = all_occ.filtered(lambda o: not o.attendance_marked)
+            marked = all_occ.filtered(lambda o: o.attendance_marked)
+            if unmarked:
+                unmarked.sudo().unlink()
+            if marked:
+                marked.sudo().write({'schedule_id': False})
+        return super().unlink()
+
+    def action_delete_schedule(self):
+        """Button action: check for past unmarked lessons before deleting."""
+        self.ensure_one()
+        now = fields.Datetime.now()
+        # Search explicitly to avoid caching issues
+        all_occurrences = self.env['class.schedule.occurrence'].sudo().search([
+            ('schedule_id', '=', self.id)
+        ])
+        unmarked = all_occurrences.filtered(lambda o: not o.attendance_marked)
+        marked = all_occurrences.filtered(lambda o: o.attendance_marked)
+        past_unmarked = unmarked.filtered(lambda o: o.start_datetime and o.start_datetime < now)
+
+        if past_unmarked:
+            wizard = self.env['schedule.delete.wizard'].create({
+                'schedule_id': self.id,
+                'message': (
+                    'This schedule has %d past lesson(s) without attendance marked. '
+                    'Deleting this schedule will remove all lessons without attendance (past and future). '
+                    'Please record attendance before proceeding if any sessions were conducted.'
+                ) % len(past_unmarked),
+            })
+            wizard_lines = []
+            for occ in past_unmarked.sorted('start_datetime'):
+                wizard_lines.append((0, 0, {
+                    'wizard_id': wizard.id,
+                    'occurrence_id': occ.id,
+                    'lesson_name': occ.name or '',
+                    'lesson_date': occ.start_datetime,
+                    'tutor_name': occ.tutor_id.name if occ.tutor_id else '',
+                }))
+            wizard.write({'line_ids': wizard_lines})
+            return {
+                'type': 'ir.actions.act_window',
+                'name': 'Confirm Schedule Deletion',
+                'res_model': 'schedule.delete.wizard',
+                'view_mode': 'form',
+                'res_id': wizard.id,
+                'target': 'new',
+            }
+        else:
+            # No past unmarked — just delete schedule (unlink handles occurrences)
+            self.sudo().with_context(force_delete=True).unlink()
+            return {'type': 'ir.actions.act_window_close'}
 
 
 class ClassScheduleOccurrence(models.Model):
     _name = 'class.schedule.occurrence'
     _description = 'Class Schedule Occurrence'
+    _order = 'start_datetime asc'
 
     name = fields.Char(string='Name', required=True)
     schedule_id = fields.Many2one('class.schedule', string='Schedule', ondelete='set null')
@@ -530,7 +637,17 @@ class ClassScheduleOccurrence(models.Model):
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
         ('no_show', 'No Show'),
+        ('rescheduled', 'Rescheduled'),
     ], string='Lesson Status', default='scheduled')
+    cancellation_reason = fields.Selection([
+        ('platform_issue', 'Platform Issue'),
+        ('tutor_issue', 'Tutor Issue'),
+        ('admin_issue', 'Admin Issue'),
+        ('student_cancelled', 'Student Cancelled'),
+    ], string='Cancellation Reason')
+    cancellation_note = fields.Text(string='Cancellation Note')
+    is_rescheduled = fields.Boolean(string='Rescheduled', default=False)
+    rescheduled_from_id = fields.Many2one('class.schedule.occurrence', string='Rescheduled From')
 
     @api.depends('attendance_ids')
     def _compute_attendance_marked(self):
@@ -544,6 +661,13 @@ class ClassScheduleOccurrence(models.Model):
                     "Only administrators or managers can cancel a lesson. "
                     "Please contact your administrator."
                 )
+        # Auto-set rescheduled status when tutor or datetime is changed on a scheduled lesson
+        reschedule_fields = {'tutor_id'}
+        if reschedule_fields & set(vals.keys()) and 'lesson_status' not in vals:
+            for rec in self:
+                if rec.lesson_status == 'scheduled':
+                    vals = dict(vals, lesson_status='rescheduled')
+                    break
         return super().write(vals)
 
     def unlink(self):
@@ -565,7 +689,6 @@ class ClassScheduleOccurrence(models.Model):
 
         wizard = self.env['mark.attendance.wizard'].create({
             'occurrence_id': self.id,
-            'lesson_status': self.lesson_status or 'scheduled',
         })
         existing_attendance = {att.student_id.id: att for att in self.attendance_ids}
         lines = []
@@ -590,13 +713,20 @@ class ClassScheduleOccurrence(models.Model):
             'target': 'new',
         }
 
-    def action_reset_attendance(self):
-        """Remove all attendance records for this occurrence, resetting it to unmarked."""
+    def action_cancel_lesson(self):
+        """Open cancel lesson wizard."""
         self.ensure_one()
-        if self.attendance_ids:
-            self.attendance_ids.unlink()
-        self.lesson_status = 'scheduled'
-        return True
+        wizard = self.env['cancel.lesson.wizard'].create({
+            'occurrence_id': self.id,
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Cancel Lesson',
+            'res_model': 'cancel.lesson.wizard',
+            'view_mode': 'form',
+            'res_id': wizard.id,
+            'target': 'new',
+        }
 
 
 class MarkAttendanceWizard(models.TransientModel):
@@ -604,18 +734,34 @@ class MarkAttendanceWizard(models.TransientModel):
     _description = 'Mark Attendance Wizard'
 
     occurrence_id = fields.Many2one('class.schedule.occurrence', string='Lesson', required=True)
-    lesson_status = fields.Selection([
-        ('scheduled', 'Scheduled'),
-        ('completed', 'Completed'),
-        ('cancelled', 'Cancelled'),
-        ('no_show', 'No Show'),
-    ], string='Lesson Status', required=True)
     line_ids = fields.One2many('mark.attendance.wizard.line', 'wizard_id', string='Students')
 
     def action_confirm(self):
         self.ensure_one()
         occurrence = self.occurrence_id
+        # Restrict tutors from marking cancelled
+        is_admin = self.env.user.has_group('base.group_system') or self.env.user.has_group('base.group_erp_manager')
+
+        # Find existing attendance records for this occurrence
+        existing_records = self.env['attendance.record'].search([
+            ('class_schedule_occurrence_id', '=', occurrence.id),
+        ])
+        wizard_student_ids = self.line_ids.mapped('student_id').ids
+
+        # Delete attendance records for students removed from the wizard
+        to_delete = existing_records.filtered(lambda r: r.student_id.id not in wizard_student_ids)
+        if to_delete:
+            to_delete.sudo().unlink()
+
+        # If all lines deleted (no students left), reset lesson status
+        if not self.line_ids:
+            if to_delete:
+                occurrence.write({'lesson_status': 'scheduled'})
+            return {'type': 'ir.actions.act_window_close'}
+
         for line in self.line_ids:
+            if line.status == 'cancelled' and not is_admin:
+                raise UserError("Only administrators can mark attendance as 'Cancelled'. Please contact your admin.")
             existing = self.env['attendance.record'].search([
                 ('class_schedule_occurrence_id', '=', occurrence.id),
                 ('student_id', '=', line.student_id.id),
@@ -632,7 +778,12 @@ class MarkAttendanceWizard(models.TransientModel):
                 existing.write(vals)
             else:
                 self.env['attendance.record'].create(vals)
-        occurrence.write({'lesson_status': self.lesson_status})
+        # Auto-set lesson status based on attendance
+        all_statuses = [line.status for line in self.line_ids]
+        if all_statuses and all(s == 'cancelled' for s in all_statuses):
+            occurrence.write({'lesson_status': 'cancelled'})
+        elif occurrence.lesson_status in ('scheduled', 'rescheduled'):
+            occurrence.write({'lesson_status': 'completed'})
         return {'type': 'ir.actions.act_window_close'}
 
 
@@ -645,8 +796,7 @@ class MarkAttendanceWizardLine(models.TransientModel):
     status = fields.Selection([
         ('present', 'Present'),
         ('absent', 'Absent'),
-        ('late', 'Late'),
-        ('excused', 'Excused'),
+        ('cancelled', 'Cancelled'),
     ], string='Status', default='present', required=True)
     billable = fields.Boolean(string='Billable', default=True)
     remarks = fields.Text(string='Remarks')
@@ -662,8 +812,7 @@ class AttendanceRecord(models.Model):
     status = fields.Selection([
         ('present', 'Present'),
         ('absent', 'Absent'),
-        ('late', 'Late'),
-        ('excused', 'Excused'),
+        ('cancelled', 'Cancelled'),
     ], string='Status', default='absent')
     billable = fields.Boolean(string='Billable', default=True)
     remarks = fields.Text(string='Remarks')
@@ -1617,6 +1766,7 @@ class ParentProfile(models.Model):
     address_line_3 = fields.Char(string='Address Line 3')
     address_line_4 = fields.Char(string='Address Line 4')
     zip_code = fields.Char(string='Zip Code')
+   
     partner_id = fields.Many2one('res.partner', string='Contact')
     notes = fields.Html(string='Notes')
 
@@ -1829,3 +1979,98 @@ class TutorAvailability(models.Model):
     ], string='Day of Week', required=True)
     start_time = fields.Float(string='Start Time')
     end_time = fields.Float(string='End Time')
+
+
+class ScheduleDeleteWizard(models.TransientModel):
+    _name = 'schedule.delete.wizard'
+    _description = 'Schedule Delete Confirmation Wizard'
+
+    schedule_id = fields.Many2one('class.schedule', string='Schedule', required=True)
+    message = fields.Text(string='Warning Message')
+    line_ids = fields.One2many('schedule.delete.wizard.line', 'wizard_id', string='Unmarked Past Lessons')
+
+    def action_confirm_delete(self):
+        """Delete all unmarked occurrences and the schedule."""
+        self.ensure_one()
+        schedule = self.schedule_id
+        if schedule.exists():
+            schedule.sudo().with_context(force_delete=True).unlink()
+        return {'type': 'ir.actions.act_window_close'}
+
+    def action_cancel(self):
+        return {'type': 'ir.actions.act_window_close'}
+
+
+class ScheduleDeleteWizardLine(models.TransientModel):
+    _name = 'schedule.delete.wizard.line'
+    _description = 'Schedule Delete Wizard Line'
+
+    wizard_id = fields.Many2one('schedule.delete.wizard', string='Wizard', ondelete='cascade')
+    occurrence_id = fields.Many2one('class.schedule.occurrence', string='Lesson')
+    lesson_name = fields.Char(string='Lesson')
+    lesson_date = fields.Datetime(string='Date')
+    tutor_name = fields.Char(string='Tutor')
+
+
+class CancelLessonWizard(models.TransientModel):
+    _name = 'cancel.lesson.wizard'
+    _description = 'Cancel Lesson Wizard'
+
+    occurrence_id = fields.Many2one('class.schedule.occurrence', string='Lesson', required=True)
+    reason = fields.Selection([
+        ('platform_issue', 'Platform Issue'),
+        ('tutor_issue', 'Tutor Issue'),
+        ('admin_issue', 'Admin Issue'),
+        ('student_cancelled', 'Student Cancelled'),
+    ], string='Cancellation Reason')
+    note = fields.Text(string='Note')
+    reschedule = fields.Boolean(string='Reschedule this lesson?', default=False)
+    new_date = fields.Datetime(string='New Date & Time')
+    new_tutor_id = fields.Many2one('tutor.profile', string='New Tutor')
+
+    def action_confirm_cancel(self):
+        self.ensure_one()
+        occ = self.occurrence_id
+
+        # Cancel the current lesson
+        occ.sudo().write({
+            'lesson_status': 'cancelled',
+            'cancellation_reason': self.reason,
+            'cancellation_note': self.note,
+        })
+
+        # Mark all attendance as cancelled, create if not existing
+        enrollments = self.env['course.enrollment'].search([
+            ('course_id', '=', occ.course_id.id),
+            ('status', '=', 'active'),
+        ])
+        student_ids = enrollments.mapped('student_id')
+        existing_att = {att.student_id.id: att for att in occ.attendance_ids}
+        for student in student_ids:
+            if student.id in existing_att:
+                existing_att[student.id].sudo().write({'status': 'cancelled'})
+            else:
+                self.env['attendance.record'].sudo().create({
+                    'class_schedule_occurrence_id': occ.id,
+                    'student_id': student.id,
+                    'attendance_date': occ.start_datetime.date() if occ.start_datetime else fields.Date.today(),
+                    'status': 'cancelled',
+                    'billable': False,
+                })
+
+        # Reschedule if requested
+        if self.reschedule and self.new_date:
+            duration = (occ.stop_datetime - occ.start_datetime) if occ.stop_datetime and occ.start_datetime else timedelta(minutes=60)
+            new_occ = self.env['class.schedule.occurrence'].sudo().create({
+                'name': '%s (Rescheduled)' % (occ.name or 'Lesson'),
+                'schedule_id': occ.schedule_id.id if occ.schedule_id else False,
+                'start_datetime': self.new_date,
+                'stop_datetime': self.new_date + duration,
+                'course_id': occ.course_id.id,
+                'tutor_id': self.new_tutor_id.id if self.new_tutor_id else occ.tutor_id.id,
+                'lesson_status': 'scheduled',
+                'is_rescheduled': True,
+                'rescheduled_from_id': occ.id,
+            })
+
+        return {'type': 'ir.actions.act_window_close'}
