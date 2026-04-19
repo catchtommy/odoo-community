@@ -1,0 +1,221 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- COURSE DETAIL (Student + Parent shared)        -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_course_detail">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">my_courses</t>
+
+        <div style="margin-bottom:16px;">
+            <t t-if="is_parent">
+                <a t-attf-href="/my/parent/children/#{enrollment.student_id.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Child</a>
+            </t>
+            <t t-else="">
+                <a href="/my/courses" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Courses</a>
+            </t>
+        </div>
+
+        <div class="tm-card" style="margin-bottom:20px;">
+            <div class="tm-card-body">
+                <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;">
+                    <div style="width:52px;height:52px;border-radius:10px;background:var(--tm-primary-light);color:var(--tm-primary);display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:800;flex-shrink:0;">
+                        <t t-esc="(course.name or 'C')[:1].upper()"/>
+                    </div>
+                    <div style="flex:1;">
+                        <h2 style="font-size:18px;font-weight:700;margin:0 0 6px;"><t t-esc="course.name"/></h2>
+                        <div style="font-size:13px;color:var(--tm-text-light);display:flex;gap:16px;flex-wrap:wrap;">
+                            <t t-if="course.subject_id"><span><i class="fa fa-tag"/> <t t-esc="course.subject_id.name"/></span></t>
+                            <t t-if="course.tutor_id"><span><i class="fa fa-user"/> <t t-esc="course.tutor_id.name"/></span></t>
+                            <t t-if="course.grade_id"><span><i class="fa fa-graduation-cap"/> <t t-esc="course.grade_id.name"/></span></t>
+                            <span class="tm-badge tm-badge-green"><t t-esc="enrollment.status.capitalize()"/></span>
+                        </div>
+                        <t t-if="is_parent">
+                            <div style="margin-top:8px;font-size:12px;color:var(--tm-text-light);">
+                                <i class="fa fa-child"/> Student: <strong><t t-esc="enrollment.student_id.name"/></strong>
+                                <a t-attf-href="/my/parent/children/#{enrollment.student_id.id}" class="tm-btn tm-btn-outline tm-btn-sm" style="margin-left:8px;">View Profile</a>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tm-grid-2" style="margin-bottom:20px;">
+            <div class="tm-card">
+                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-tasks"/> Assignments</div></div>
+                <t t-if="assignments">
+                    <table class="tm-table">
+                        <thead><tr><th>Title</th><th>Due Date</th><th>Status</th></tr></thead>
+                        <tbody>
+                            <t t-foreach="assignments" t-as="a">
+                                <tr>
+                                    <td class="fw-bold"><t t-esc="a.name"/></td>
+                                    <td><t t-esc="a.due_date or '—'"/></td>
+                                    <td><span t-attf-class="tm-badge #{a.status == 'completed' and 'tm-badge-green' or a.status == 'assigned' and 'tm-badge-orange' or 'tm-badge-grey'}"><t t-esc="a.status.capitalize()"/></span></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+                <t t-else=""><div class="tm-empty"><i class="fa fa-tasks"/><p>No assignments.</p></div></t>
+            </div>
+
+            <div class="tm-card">
+                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-calendar"/> Sessions &amp; Attendance</div></div>
+                <div style="padding:10px 16px;border-bottom:1px solid var(--tm-border);display:flex;justify-content:space-between;align-items:center;">
+                    <a t-attf-href="/my/courses/#{enrollment.id}?week_offset=#{(week_offset or 0) - 1}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-chevron-left"/> Prev</a>
+                    <span style="font-size:12px;font-weight:600;color:var(--tm-text);"><t t-esc="week_label or 'This Week'"/></span>
+                    <a t-attf-href="/my/courses/#{enrollment.id}?week_offset=#{(week_offset or 0) + 1}" class="tm-btn tm-btn-outline tm-btn-sm">Next <i class="fa fa-chevron-right"/></a>
+                </div>
+                <t t-if="occurrences">
+                    <table class="tm-table">
+                        <thead><tr><th>Date</th><th>Session</th><th>Attendance</th></tr></thead>
+                        <tbody>
+                            <t t-foreach="occurrences" t-as="occ">
+                                <tr>
+                                    <td style="white-space:nowrap;"><t t-esc="occ.start_datetime and occ.start_datetime.strftime('%a %d %b, %H:%M') or '—'"/></td>
+                                    <td><span t-attf-class="tm-badge #{occ.lesson_status == 'completed' and 'tm-badge-green' or occ.lesson_status == 'cancelled' and 'tm-badge-red' or 'tm-badge-blue'}"><t t-esc="occ.lesson_status.capitalize()"/></span></td>
+                                    <td>
+                                        <t t-set="att" t-value="attendance_map.get(occ.id)"/>
+                                        <span t-attf-class="tm-badge #{att == 'present' and 'tm-badge-green' or att == 'absent' and 'tm-badge-red' or att == 'late' and 'tm-badge-orange' or 'tm-badge-grey'}">
+                                            <t t-esc="att.capitalize() if att else '—'"/>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+                <t t-else=""><div class="tm-empty"><i class="fa fa-calendar"/><p>No sessions this week.</p></div></t>
+            </div>
+        </div>
+
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Progress Reports</div></div>
+            <t t-if="progress_reports">
+                <table class="tm-table">
+                    <thead><tr><th>Date</th><th>Title</th><th>Rating</th><th>Score</th><th>Comments</th><th></th></tr></thead>
+                    <tbody>
+                        <t t-foreach="progress_reports" t-as="rpt">
+                            <tr>
+                                <td style="white-space:nowrap;"><t t-esc="rpt.report_date"/></td>
+                                <td class="fw-bold"><t t-esc="rpt.name"/></td>
+                                <td>
+                                    <t t-if="rpt.overall_rating">
+                                        <span t-attf-class="tm-badge #{rpt.overall_rating == 'excellent' and 'tm-badge-green' or rpt.overall_rating == 'good' and 'tm-badge-blue' or rpt.overall_rating == 'satisfactory' and 'tm-badge-orange' or 'tm-badge-red'}">
+                                            <t t-esc="rpt.overall_rating.replace('_',' ').capitalize()"/>
+                                        </span>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td><t t-esc="rpt.score and ('%.0f / %.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
+                                <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><t t-esc="rpt.comments or rpt.strengths or '—'"/></td>
+                                <td><a t-attf-href="/my/progress-report/#{rpt.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> View</a></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else=""><div class="tm-empty"><i class="fa fa-line-chart"/><p>No progress reports yet.</p></div></t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- PROGRESS REPORT DETAIL (shared)                -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_progress_report_detail">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">parent_progress</t>
+        <t t-set="page_title">Progress Report</t>
+
+        <div style="margin-bottom:16px;">
+            <a href="javascript:history.back()" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back</a>
+        </div>
+
+        <div class="tm-card" style="margin-bottom:20px;">
+            <div class="tm-card-body">
+                <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:16px;">
+                        <div style="width:52px;height:52px;border-radius:10px;background:#E5F5F3;color:var(--tm-teal);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+                            <i class="fa fa-line-chart"/>
+                        </div>
+                        <div>
+                            <h2 style="font-size:18px;font-weight:700;margin:0 0 6px;"><t t-esc="report.name"/></h2>
+                            <div style="font-size:13px;color:var(--tm-text-light);display:flex;gap:16px;flex-wrap:wrap;">
+                                <span><i class="fa fa-user"/> <t t-esc="report.student_id.name"/></span>
+                                <span><i class="fa fa-book"/> <t t-esc="report.course_id.name"/></span>
+                                <span><i class="fa fa-calendar"/> <t t-esc="report.report_date"/></span>
+                                <t t-if="report.overall_rating">
+                                    <span t-attf-class="tm-badge #{report.overall_rating == 'excellent' and 'tm-badge-green' or report.overall_rating == 'good' and 'tm-badge-blue' or report.overall_rating == 'satisfactory' and 'tm-badge-orange' or 'tm-badge-red'}">
+                                        <t t-esc="report.overall_rating.replace('_',' ').capitalize()"/>
+                                    </span>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tm-grid-2">
+            <div class="tm-card">
+                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-info-circle"/> Report Details</div></div>
+                <div class="tm-card-body">
+                    <div class="tm-label">Student</div>
+                    <div class="tm-value fw-bold"><t t-esc="report.student_id.name"/></div>
+                    <div class="tm-label">Course</div>
+                    <div class="tm-value"><t t-esc="report.course_id.name"/></div>
+                    <div class="tm-label">Report Date</div>
+                    <div class="tm-value"><t t-esc="report.report_date"/></div>
+                    <div class="tm-label">Overall Rating</div>
+                    <div class="tm-value">
+                        <t t-if="report.overall_rating">
+                            <span t-attf-class="tm-badge #{report.overall_rating == 'excellent' and 'tm-badge-green' or report.overall_rating == 'good' and 'tm-badge-blue' or report.overall_rating == 'satisfactory' and 'tm-badge-orange' or 'tm-badge-red'}">
+                                <t t-esc="report.overall_rating.replace('_',' ').capitalize()"/>
+                            </span>
+                        </t>
+                        <t t-else="">—</t>
+                    </div>
+                    <t t-if="report.score">
+                        <div class="tm-label">Score</div>
+                        <div class="tm-value" style="font-size:18px;font-weight:700;">
+                            <t t-esc="'%.0f' % report.score"/> / <t t-esc="'%.0f' % report.max_score"/>
+                        </div>
+                    </t>
+                </div>
+            </div>
+
+            <div class="tm-card">
+                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-comment"/> Feedback</div></div>
+                <div class="tm-card-body">
+                    <t t-if="report.strengths">
+                        <div class="tm-label">Strengths</div>
+                        <div class="tm-value" style="background:#EDF7ED;padding:10px 14px;border-radius:8px;border-left:3px solid var(--tm-green);white-space:pre-wrap;">
+                            <t t-esc="report.strengths"/>
+                        </div>
+                    </t>
+                    <t t-if="report.areas_for_improvement">
+                        <div class="tm-label">Areas to Improve</div>
+                        <div class="tm-value" style="background:#FFF0E8;padding:10px 14px;border-radius:8px;border-left:3px solid var(--tm-orange);white-space:pre-wrap;">
+                            <t t-esc="report.areas_for_improvement"/>
+                        </div>
+                    </t>
+                    <t t-if="report.comments">
+                        <div class="tm-label">Comments</div>
+                        <div class="tm-value" style="background:var(--tm-bg);padding:10px 14px;border-radius:8px;border-left:3px solid var(--tm-blue);white-space:pre-wrap;">
+                            <t t-esc="report.comments"/>
+                        </div>
+                    </t>
+                    <t t-if="not report.strengths and not report.areas_for_improvement and not report.comments">
+                        <div class="tm-empty"><i class="fa fa-comment-o"/><p>No feedback provided.</p></div>
+                    </t>
+                </div>
+            </div>
+        </div>
+    </t>
+</template>
+
+</odoo>

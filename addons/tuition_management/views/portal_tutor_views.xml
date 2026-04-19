@@ -1,0 +1,432 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR DASHBOARD                                 -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_home_dashboard">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_title">Dashboard</t>
+        <t t-set="page_name">dashboard</t>
+
+        <p class="tm-page-subtitle">Welcome back, <strong><t t-esc="user.name"/></strong></p>
+
+        <div class="tm-stat-grid">
+            <a href="/my/tutor/courses" class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="tutor_course_count or 0"/></div>
+                        <div class="tm-stat-label">Active Courses</div>
+                    </div>
+                    <div class="tm-stat-icon purple"><i class="fa fa-book"/></div>
+                </div>
+                <div class="tm-stat-action">View Courses →</div>
+            </a>
+            <a href="/my/tutor/schedule" class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="today_sessions or 0"/></div>
+                        <div class="tm-stat-label">Today's Sessions</div>
+                    </div>
+                    <div class="tm-stat-icon blue"><i class="fa fa-calendar"/></div>
+                </div>
+                <div class="tm-stat-action">View Schedule →</div>
+            </a>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="total_students or 0"/></div>
+                        <div class="tm-stat-label">Total Students</div>
+                    </div>
+                    <div class="tm-stat-icon green"><i class="fa fa-users"/></div>
+                </div>
+            </div>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="this_week_lesson_count or 0"/></div>
+                        <div class="tm-stat-label">This Week's Lessons</div>
+                    </div>
+                    <div class="tm-stat-icon orange"><i class="fa fa-clock-o"/></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tm-grid-2">
+            <div>
+                <div class="tm-card">
+                    <div class="tm-card-header">
+                        <div class="tm-card-title"><i class="fa fa-book"/> My Courses</div>
+                        <a href="/my/tutor/courses" class="tm-card-action">View All</a>
+                    </div>
+                    <t t-if="tutor_courses">
+                        <table class="tm-table">
+                            <thead><tr><th>Course</th><th>Subject</th><th>Students</th><th></th></tr></thead>
+                            <tbody>
+                                <t t-foreach="tutor_courses" t-as="c">
+                                    <tr>
+                                        <td class="fw-bold"><t t-esc="c.name"/></td>
+                                        <td><t t-esc="c.subject_id.name or '—'"/></td>
+                                        <td><span class="tm-badge tm-badge-purple"><t t-esc="c.student_count or 0"/> students</span></td>
+                                        <td><a t-attf-href="/my/tutor/courses/#{c.id}" class="tm-btn tm-btn-outline tm-btn-sm">Manage</a></td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                    <t t-else=""><div class="tm-empty"><i class="fa fa-book"/><p>No courses assigned.</p></div></t>
+                </div>
+            </div>
+            <div>
+                <div class="tm-card">
+                    <div class="tm-card-header">
+                        <div class="tm-card-title"><i class="fa fa-calendar"/> Upcoming Sessions</div>
+                        <a href="/my/tutor/schedule" class="tm-card-action">Full Schedule</a>
+                    </div>
+                    <t t-if="upcoming_lessons">
+                        <table class="tm-table">
+                            <thead><tr><th>Date</th><th>Course</th><th>Status</th><th></th></tr></thead>
+                            <tbody>
+                                <t t-foreach="upcoming_lessons" t-as="lesson">
+                                    <tr>
+                                        <td style="white-space:nowrap;" class="fw-bold">
+                                            <t t-esc="lesson.start_datetime and lesson.start_datetime.strftime('%a %d %b, %H:%M') or '—'"/>
+                                        </td>
+                                        <td><t t-esc="lesson.course_id.name or '—'"/></td>
+                                        <td>
+                                            <span t-attf-class="tm-badge #{lesson.lesson_status == 'completed' and 'tm-badge-green' or lesson.lesson_status == 'cancelled' and 'tm-badge-red' or 'tm-badge-blue'}">
+                                                <t t-esc="lesson.lesson_status.capitalize()"/>
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm">
+                                                <i class="fa fa-check-square-o"/>
+                                                <t t-if="lesson.attendance_marked">Edit</t>
+                                                <t t-else="">Mark</t>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </t>
+                    <t t-else=""><div class="tm-empty"><i class="fa fa-calendar"/><p>No upcoming sessions.</p></div></t>
+                </div>
+            </div>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: SCHEDULE                                 -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_schedule">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_schedule</t>
+
+        <div style="margin-bottom:16px;">
+            <h5 style="margin:0 0 12px;font-weight:700;"><i class="fa fa-calendar"/> My Schedule</h5>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+                <a href="/my/tutor/schedule?week=this" t-attf-class="tm-btn tm-btn-sm #{current_week == 'this' and 'tm-btn-primary' or 'tm-btn-outline'}">This Week</a>
+                <a href="/my/tutor/schedule?week=next" t-attf-class="tm-btn tm-btn-sm #{current_week == 'next' and 'tm-btn-primary' or 'tm-btn-outline'}">Next Week</a>
+                <a href="/my/tutor/schedule?week=all" t-attf-class="tm-btn tm-btn-sm #{current_week == 'all' and 'tm-btn-primary' or 'tm-btn-outline'}">All Upcoming</a>
+                <a href="/my/tutor/schedule?week=past" t-attf-class="tm-btn tm-btn-sm #{current_week == 'past' and 'tm-btn-primary' or 'tm-btn-outline'}">Past (30 days)</a>
+            </div>
+        </div>
+
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> Sessions</div></div>
+            <t t-if="not occ_data"><div class="tm-empty"><i class="fa fa-calendar"/><p>No sessions found for this period.</p></div></t>
+            <t t-if="occ_data">
+                <table class="tm-table">
+                    <thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Status</th><th>Attendance</th><th></th></tr></thead>
+                    <tbody>
+                        <t t-foreach="occ_data" t-as="od">
+                            <tr>
+                                <td style="white-space:nowrap;" class="fw-bold"><t t-esc="od['date_str']"/></td>
+                                <td><t t-esc="od['time_str']"/></td>
+                                <td><t t-esc="od['occ'].course_id.name or '—'"/></td>
+                                <td><span t-attf-class="tm-badge #{od['occ'].lesson_status == 'completed' and 'tm-badge-green' or od['occ'].lesson_status == 'cancelled' and 'tm-badge-red' or od['occ'].lesson_status == 'no_show' and 'tm-badge-orange' or 'tm-badge-blue'}"><t t-esc="od['occ'].lesson_status.capitalize()"/></span></td>
+                                <td><span t-attf-class="tm-badge #{od['occ'].attendance_marked and 'tm-badge-green' or 'tm-badge-grey'}"><t t-if="od['occ'].attendance_marked">Marked</t><t t-else="">Pending</t></span></td>
+                                <td><a t-attf-href="/my/tutor/lesson/#{od['occ'].id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-check-square-o"/> <t t-if="od['occ'].attendance_marked">Edit</t><t t-else="">Mark</t></a></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: ALL ASSIGNMENTS                          -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_all_assignments">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_all_assignments</t>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h5 style="margin:0;font-weight:700;"><i class="fa fa-tasks"/> All Assignments</h5>
+            <div style="position:relative;">
+                <button class="tm-btn tm-btn-green" onclick="document.getElementById('tm-new-asgn-picker').classList.toggle('tm-dropdown-open');" type="button">
+                    <i class="fa fa-plus"/> Add New
+                </button>
+                <div id="tm-new-asgn-picker" class="tm-dropdown-menu">
+                    <div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--tm-text-light);border-bottom:1px solid var(--tm-border);">Select Course</div>
+                    <t t-foreach="tutor_courses" t-as="c">
+                        <a t-attf-href="/my/tutor/courses/#{c.id}/assignments" class="tm-dropdown-item"><t t-esc="c.name"/></a>
+                    </t>
+                    <t t-if="not tutor_courses">
+                        <div style="padding:8px 12px;font-size:12px;color:var(--tm-text-light);">No courses found</div>
+                    </t>
+                </div>
+            </div>
+        </div>
+
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> Assignments</div></div>
+            <t t-if="assignments">
+                <table class="tm-table">
+                    <thead><tr><th>Title</th><th>Course</th><th>Type</th><th>Due</th><th>Status</th><th>Submissions</th><th></th></tr></thead>
+                    <tbody>
+                        <t t-foreach="assignments" t-as="asgn">
+                            <tr>
+                                <td class="fw-bold"><t t-esc="asgn.name"/></td>
+                                <td><t t-esc="asgn.course_id.name"/></td>
+                                <td><span class="tm-badge tm-badge-grey"><t t-esc="asgn.assignment_type or '—'"/></span></td>
+                                <td style="white-space:nowrap;"><t t-if="asgn.due_date" t-esc="asgn.due_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
+                                <td><span t-attf-class="tm-badge #{asgn.status == 'completed' and 'tm-badge-green' or asgn.status == 'assigned' and 'tm-badge-blue' or 'tm-badge-grey'}"><t t-esc="asgn.status.capitalize()"/></span></td>
+                                <td><span class="tm-badge tm-badge-purple"><t t-esc="len(asgn.submission_ids)"/></span></td>
+                                <td><a t-attf-href="/my/tutor/assignment/#{asgn.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> Review</a></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else=""><div class="tm-empty"><i class="fa fa-tasks"/><p>No assignments found.</p></div></t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: ALL PROGRESS REPORTS                     -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_all_progress">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_progress</t>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <h5 style="margin:0;font-weight:700;"><i class="fa fa-line-chart"/> Progress Reports</h5>
+            <div style="position:relative;">
+                <button class="tm-btn tm-btn-green" onclick="document.getElementById('tm-new-prog-picker').classList.toggle('tm-dropdown-open');" type="button">
+                    <i class="fa fa-plus"/> Add New
+                </button>
+                <div id="tm-new-prog-picker" class="tm-dropdown-menu">
+                    <div style="padding:8px 12px;font-size:11px;font-weight:600;color:var(--tm-text-light);border-bottom:1px solid var(--tm-border);">Select Course</div>
+                    <t t-foreach="tutor_courses" t-as="c">
+                        <a t-attf-href="/my/tutor/courses/#{c.id}/progress/new" class="tm-dropdown-item"><t t-esc="c.name"/></a>
+                    </t>
+                    <t t-if="not tutor_courses">
+                        <div style="padding:8px 12px;font-size:12px;color:var(--tm-text-light);">No courses found</div>
+                    </t>
+                </div>
+            </div>
+        </div>
+
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> All Reports</div></div>
+            <t t-if="reports">
+                <table class="tm-table">
+                    <thead><tr><th>Date</th><th>Student</th><th>Course</th><th>Title</th><th>Rating</th><th>Score</th></tr></thead>
+                    <tbody>
+                        <t t-foreach="reports" t-as="rpt">
+                            <tr>
+                                <td style="white-space:nowrap;"><t t-esc="rpt.report_date"/></td>
+                                <td class="fw-bold"><t t-esc="rpt.student_id.name"/></td>
+                                <td><t t-esc="rpt.course_id.name"/></td>
+                                <td><t t-esc="rpt.name"/></td>
+                                <td>
+                                    <t t-if="rpt.overall_rating">
+                                        <span t-attf-class="tm-badge #{rpt.overall_rating == 'excellent' and 'tm-badge-green' or rpt.overall_rating == 'good' and 'tm-badge-blue' or rpt.overall_rating == 'satisfactory' and 'tm-badge-orange' or 'tm-badge-red'}">
+                                            <t t-esc="rpt.overall_rating.replace('_',' ').capitalize()"/>
+                                        </span>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td><t t-esc="rpt.score and ('%.0f / %.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else=""><div class="tm-empty"><i class="fa fa-line-chart"/><p>No progress reports yet.</p></div></t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: NEW PROGRESS REPORT                      -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_progress_new">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_course_detail</t>
+
+        <div style="margin-bottom:16px;">
+            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+        </div>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-plus"/> New Progress Report — <t t-esc="course.name"/></h5>
+
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Report Details</div></div>
+            <div class="tm-card-body">
+                <form t-attf-action="/my/tutor/courses/#{course.id}/progress/create" method="POST">
+                    <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
+                        <div>
+                            <label class="form-label">Title *</label>
+                            <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Monthly Progress"/>
+                        </div>
+                        <div>
+                            <label class="form-label">Student *</label>
+                            <select name="student_id" class="form-select" required="required">
+                                <option value="">Select student...</option>
+                                <t t-foreach="enrolled_students" t-as="enr">
+                                    <option t-att-value="enr.student_id.id"><t t-esc="enr.student_id.name"/></option>
+                                </t>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Report Date</label>
+                            <input type="date" name="report_date" class="form-control"/>
+                        </div>
+                        <div>
+                            <label class="form-label">Overall Rating</label>
+                            <select name="overall_rating" class="form-select">
+                                <option value="">Select...</option>
+                                <option value="excellent">Excellent</option>
+                                <option value="good">Good</option>
+                                <option value="satisfactory">Satisfactory</option>
+                                <option value="needs_improvement">Needs Improvement</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Score</label>
+                            <input type="number" name="score" class="form-control" step="0.1" min="0" placeholder="0"/>
+                        </div>
+                        <div>
+                            <label class="form-label">Max Score</label>
+                            <input type="number" name="max_score" class="form-control" step="0.1" min="0" value="100"/>
+                        </div>
+                    </div>
+                    <div style="margin-top:14px;">
+                        <label class="form-label">Strengths</label>
+                        <textarea name="strengths" class="form-control" rows="2" placeholder="What the student excels at..."/>
+                    </div>
+                    <div style="margin-top:14px;">
+                        <label class="form-label">Areas to Improve</label>
+                        <textarea name="areas_to_improve" class="form-control" rows="2" placeholder="Where improvement is needed..."/>
+                    </div>
+                    <div style="margin-top:14px;">
+                        <label class="form-label">Comments</label>
+                        <textarea name="comments" class="form-control" rows="3" placeholder="General comments..."/>
+                    </div>
+                    <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
+                        <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline">Cancel</a>
+                        <button type="submit" class="tm-btn tm-btn-green"><i class="fa fa-save"/> Save Report</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: PAYMENTS                                 -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_payments">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_payments</t>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-money"/> Payments</h5>
+
+        <div class="tm-stat-grid" style="margin-bottom:20px;">
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value" style="color:var(--tm-green);">£<t t-esc="'%.2f' % total_paid"/></div>
+                        <div class="tm-stat-label">Total Paid</div>
+                    </div>
+                    <div class="tm-stat-icon green"><i class="fa fa-check-circle"/></div>
+                </div>
+            </div>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value" style="color:var(--tm-orange);">£<t t-esc="'%.2f' % total_pending"/></div>
+                        <div class="tm-stat-label">Pending</div>
+                    </div>
+                    <div class="tm-stat-icon orange"><i class="fa fa-clock-o"/></div>
+                </div>
+            </div>
+            <div class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="len(paid_bills) + len(pending_bills)"/></div>
+                        <div class="tm-stat-label">Total Records</div>
+                    </div>
+                    <div class="tm-stat-icon blue"><i class="fa fa-file-text-o"/></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tm-grid-2">
+            <div class="tm-card">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-clock-o"/> Pending Payments</div>
+                    <span class="tm-badge tm-badge-orange" style="font-size:11px;"><t t-esc="len(pending_bills)"/> pending</span>
+                </div>
+                <t t-if="pending_bills">
+                    <table class="tm-table">
+                        <thead><tr><th>Invoice #</th><th>Date</th><th>Amount</th><th>Due</th></tr></thead>
+                        <tbody>
+                            <t t-foreach="pending_bills" t-as="bill">
+                                <tr>
+                                    <td class="fw-bold"><t t-esc="bill.name"/></td>
+                                    <td style="white-space:nowrap;"><t t-if="bill.invoice_date" t-esc="bill.invoice_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
+                                    <td>£<t t-esc="'%.2f' % bill.amount_total"/></td>
+                                    <td style="color:var(--tm-orange);font-weight:600;">£<t t-esc="'%.2f' % bill.amount_residual"/></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+                <t t-else=""><div class="tm-empty"><i class="fa fa-check-circle"/><p>No pending payments.</p></div></t>
+            </div>
+            <div class="tm-card">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-check-circle"/> Paid Payments</div>
+                    <span class="tm-badge tm-badge-green" style="font-size:11px;"><t t-esc="len(paid_bills)"/> paid</span>
+                </div>
+                <t t-if="paid_bills">
+                    <table class="tm-table">
+                        <thead><tr><th>Invoice #</th><th>Date</th><th>Amount</th><th>Status</th></tr></thead>
+                        <tbody>
+                            <t t-foreach="paid_bills" t-as="bill">
+                                <tr>
+                                    <td class="fw-bold"><t t-esc="bill.name"/></td>
+                                    <td style="white-space:nowrap;"><t t-if="bill.invoice_date" t-esc="bill.invoice_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
+                                    <td>£<t t-esc="'%.2f' % bill.amount_total"/></td>
+                                    <td><span class="tm-badge tm-badge-green">Paid</span></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </t>
+                <t t-else=""><div class="tm-empty"><i class="fa fa-money"/><p>No payment records.</p></div></t>
+            </div>
+        </div>
+    </t>
+</template>
+
+</odoo>

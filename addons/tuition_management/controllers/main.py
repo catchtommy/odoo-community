@@ -15,23 +15,8 @@ class TuitionPortal(http.Controller):
         }
 
     # ========== STUDENT PORTAL ==========
-    @http.route('/my/courses', auth='user', website=True)
-    def portal_my_courses(self):
-        """Student view: My enrolled courses"""
-        values = self._prepare_portal_layout_values()
-        student = request.env['student.profile'].search([
-            ('partner_id', '=', request.env.user.partner_id.id)
-        ], limit=1)
-        
-        enrollments = request.env['course.enrollment'].search([
-            ('student_id', '=', student.id)
-        ]) if student else []
-        
-        values.update({
-            'enrollments': enrollments,
-            'student': student,
-        })
-        return request.render('tuition_management.portal_my_courses', values)
+    # NOTE: /my/courses route moved to portal_student.py
+    # Old portal_my_courses method removed to avoid duplicate route.
 
     @http.route('/my/class-schedules', auth='user', website=True)
     def portal_my_class_schedules(self):
