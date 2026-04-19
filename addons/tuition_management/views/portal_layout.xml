@@ -633,7 +633,7 @@
                         <tbody>
                             <t t-foreach="assignments" t-as="a">
                                 <tr>
-                                    <td class="fw-bold"><t t-esc="a.title or a.name"/></td>
+                                    <td class="fw-bold"><t t-esc="a.name"/></td>
                                     <td><t t-esc="a.due_date or '—'"/></td>
                                     <td><span t-attf-class="tm-badge #{a.status == 'completed' and 'tm-badge-green' or a.status == 'assigned' and 'tm-badge-orange' or 'tm-badge-grey'}"><t t-esc="a.status.capitalize()"/></span></td>
                                 </tr>
@@ -684,7 +684,7 @@
             <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Progress Reports</div></div>
             <t t-if="progress_reports">
                 <table class="tm-table">
-                    <thead><tr><th>Date</th><th>Title</th><th>Rating</th><th>Score</th><th>Comments</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Title</th><th>Rating</th><th>Score</th><th>Comments</th><th></th></tr></thead>
                     <tbody>
                         <t t-foreach="progress_reports" t-as="rpt">
                             <tr>
@@ -700,6 +700,7 @@
                                 </td>
                                 <td><t t-esc="rpt.score and ('%.0f / %.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
                                 <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"><t t-esc="rpt.comments or rpt.strengths or '—'"/></td>
+                                <td><a t-attf-href="/my/progress-report/#{rpt.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> View</a></td>
                             </tr>
                         </t>
                     </tbody>
@@ -768,7 +769,7 @@
             <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Progress Reports</div></div>
             <t t-if="progress_reports">
                 <table class="tm-table">
-                    <thead><tr><th>Date</th><th>Course</th><th>Title</th><th>Rating</th><th>Score</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Course</th><th>Title</th><th>Rating</th><th>Score</th><th></th></tr></thead>
                     <tbody>
                         <t t-foreach="progress_reports" t-as="rpt">
                             <tr>
@@ -784,6 +785,7 @@
                                     <t t-else="">—</t>
                                 </td>
                                 <td><t t-esc="rpt.score and ('%.0f / %.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
+                                <td><a t-attf-href="/my/progress-report/#{rpt.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> View</a></td>
                             </tr>
                         </t>
                     </tbody>
@@ -953,7 +955,7 @@
                     </div>
                     <t t-if="cd['reports']">
                         <table class="tm-table">
-                            <thead><tr><th>Date</th><th>Course</th><th>Title</th><th>Rating</th><th>Score</th><th>Comments</th></tr></thead>
+                            <thead><tr><th>Date</th><th>Course</th><th>Title</th><th>Rating</th><th>Score</th><th>Comments</th><th></th></tr></thead>
                             <tbody>
                                 <t t-foreach="cd['reports']" t-as="rpt">
                                     <tr>
@@ -972,6 +974,7 @@
                                             <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
                                             <t t-esc="rpt.comments or rpt.strengths or '—'"/>
                                         </td>
+                                        <td><a t-attf-href="/my/progress-report/#{rpt.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> View</a></td>
                                     </tr>
                                 </t>
                             </tbody>
@@ -1273,6 +1276,104 @@
                 <t t-else="">
                     <div class="tm-empty"><i class="fa fa-money"/><p>No payment records.</p></div>
                 </t>
+            </div>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════════ -->
+<!-- PROGRESS REPORT DETAIL                              -->
+<!-- ═══════════════════════════════════════════════════ -->
+<template id="portal_progress_report_detail">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">parent_progress</t>
+        <t t-set="page_title">Progress Report</t>
+
+        <div style="margin-bottom:16px;">
+            <a href="javascript:history.back()" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back</a>
+        </div>
+
+        <!-- Header -->
+        <div class="tm-card" style="margin-bottom:20px;">
+            <div class="tm-card-body">
+                <div style="display:flex;align-items:flex-start;gap:16px;flex-wrap:wrap;justify-content:space-between;">
+                    <div style="display:flex;align-items:center;gap:16px;">
+                        <div style="width:52px;height:52px;border-radius:10px;background:#E5F5F3;color:var(--tm-teal);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;">
+                            <i class="fa fa-line-chart"/>
+                        </div>
+                        <div>
+                            <h2 style="font-size:18px;font-weight:700;margin:0 0 6px;"><t t-esc="report.name"/></h2>
+                            <div style="font-size:13px;color:var(--tm-text-light);display:flex;gap:16px;flex-wrap:wrap;">
+                                <span><i class="fa fa-user"/> <t t-esc="report.student_id.name"/></span>
+                                <span><i class="fa fa-book"/> <t t-esc="report.course_id.name"/></span>
+                                <span><i class="fa fa-calendar"/> <t t-esc="report.report_date"/></span>
+                                <t t-if="report.overall_rating">
+                                    <span t-attf-class="tm-badge #{report.overall_rating == 'excellent' and 'tm-badge-green' or report.overall_rating == 'good' and 'tm-badge-blue' or report.overall_rating == 'satisfactory' and 'tm-badge-orange' or 'tm-badge-red'}">
+                                        <t t-esc="report.overall_rating.replace('_',' ').capitalize()"/>
+                                    </span>
+                                </t>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tm-grid-2">
+            <!-- Report Info -->
+            <div class="tm-card">
+                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-info-circle"/> Report Details</div></div>
+                <div class="tm-card-body">
+                    <div class="tm-label">Student</div>
+                    <div class="tm-value fw-bold"><t t-esc="report.student_id.name"/></div>
+
+                    <div class="tm-label">Course</div>
+                    <div class="tm-value"><t t-esc="report.course_id.name"/></div>
+
+                    <div class="tm-label">Report Date</div>
+                    <div class="tm-value"><t t-esc="report.report_date"/></div>
+
+                    <div class="tm-label">Overall Rating</div>
+                    <div class="tm-value">
+                        <t t-if="report.overall_rating">
+                            <span t-attf-class="tm-badge #{report.overall_rating == 'excellent' and 'tm-badge-green' or report.overall_rating == 'good' and 'tm-badge-blue' or report.overall_rating == 'satisfactory' and 'tm-badge-orange' or 'tm-badge-red'}">
+                                <t t-esc="report.overall_rating.replace('_',' ').capitalize()"/>
+                            </span>
+                        </t>
+                        <t t-else="">—</t>
+                    </div>
+
+                    <t t-if="report.score">
+                        <div class="tm-label">Score</div>
+                        <div class="tm-value" style="font-size:18px;font-weight:700;">
+                            <t t-esc="'%.0f' % report.score"/> / <t t-esc="'%.0f' % report.max_score"/>
+                        </div>
+                    </t>
+                </div>
+            </div>
+
+            <!-- Feedback -->
+            <div class="tm-card">
+                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-comment"/> Feedback</div></div>
+                <div class="tm-card-body">
+                    <t t-if="report.strengths">
+                        <div class="tm-label">Strengths</div>
+                        <div class="tm-value" style="background:#EDF7ED;padding:10px 14px;border-radius:8px;border-left:3px solid var(--tm-green);white-space:pre-wrap;">
+                            <t t-esc="report.strengths"/>
+                        </div>
+                    </t>
+
+                    <t t-if="report.comments">
+                        <div class="tm-label">Comments</div>
+                        <div class="tm-value" style="background:var(--tm-bg);padding:10px 14px;border-radius:8px;border-left:3px solid var(--tm-blue);white-space:pre-wrap;">
+                            <t t-esc="report.comments"/>
+                        </div>
+                    </t>
+
+                    <t t-if="not report.strengths and not report.comments">
+                        <div class="tm-empty"><i class="fa fa-comment-o"/><p>No feedback provided.</p></div>
+                    </t>
+                </div>
             </div>
         </div>
     </t>

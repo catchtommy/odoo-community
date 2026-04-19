@@ -193,6 +193,35 @@ class TuitionPortal(CustomerPortal):
             'page_name': 'tuition_invoices',
         })
 
+    @http.route(['/my/progress-report/<int:report_id>'], type='http', auth='user', website=True)
+    def portal_progress_report_detail(self, report_id, **kw):
+        parent = self._get_parent()
+        student = self._get_student()
+        if not parent and not student:
+            return request.redirect('/my')
+
+        report = request.env['progress.report'].sudo().browse(report_id)
+        if not report.exists():
+            return request.redirect('/my')
+
+        # Security: ensure this report belongs to the parent's child or the student
+        if parent:
+            allowed_student_ids = parent.student_ids.ids if parent.student_ids else []
+        else:
+            allowed_student_ids = [student.id] if student else []
+
+        if report.student_id.id not in allowed_student_ids:
+            return request.redirect('/my')
+
+        return request.render('tuition_management.portal_progress_report_detail', {
+            'user': request.env.user,
+            'is_parent': bool(parent),
+            'is_student': bool(student),
+            'is_tutor': False,
+            'report': report,
+            'page_name': 'parent_progress',
+        })
+
     def _get_student(self):
         return request.env['student.profile'].sudo().search(
             [('partner_id', '=', request.env.user.partner_id.id)], limit=1)
