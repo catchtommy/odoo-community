@@ -50,8 +50,9 @@ class StudentPortal(http.Controller, PortalMixin):
         occ_data = []
         for occ in occurrences:
             try:
-                date_str = occ.start_datetime.strftime('%a, %d %b %Y') if occ.start_datetime else ''
-                time_str = occ.start_datetime.strftime('%I:%M %p') if occ.start_datetime else ''
+                local_dt = self._to_user_tz(occ.start_datetime)
+                date_str = local_dt.strftime('%a, %d %b %Y') if local_dt else ''
+                time_str = local_dt.strftime('%I:%M %p') if local_dt else ''
             except Exception:
                 date_str = str(occ.start_datetime) if occ.start_datetime else ''
                 time_str = ''
@@ -69,6 +70,7 @@ class StudentPortal(http.Controller, PortalMixin):
             'occ_data': occ_data,
             'week_offset': week_offset,
             'week_label': week_label,
+            'user_tz': self._get_user_tz(),
             'page_name': 'student_schedule',
             'page_title': 'My Schedule',
         })
@@ -162,6 +164,7 @@ class StudentPortal(http.Controller, PortalMixin):
             'progress_reports': progress_reports,
             'week_offset': week_offset,
             'week_label': week_label,
+            'user_tz': self._get_user_tz(),
             'page_name': 'my_courses',
             'page_title': course.name,
         })
@@ -203,8 +206,9 @@ class StudentPortal(http.Controller, PortalMixin):
         occ_data = []
         for occ in occurrences:
             try:
-                date_str = occ.start_datetime.strftime('%a, %d %b %Y') if occ.start_datetime else ''
-                time_str = occ.start_datetime.strftime('%I:%M %p') if occ.start_datetime else ''
+                local_dt = self._to_user_tz(occ.start_datetime)
+                date_str = local_dt.strftime('%a, %d %b %Y') if local_dt else ''
+                time_str = local_dt.strftime('%I:%M %p') if local_dt else ''
             except Exception:
                 date_str = str(occ.start_datetime) if occ.start_datetime else ''
                 time_str = ''
@@ -218,6 +222,7 @@ class StudentPortal(http.Controller, PortalMixin):
             'occurrences': occurrences,
             'occ_data': occ_data,
             'current_week': week,
+            'user_tz': self._get_user_tz(),
             'page_name': 'course_lessons',
         })
 

@@ -44,6 +44,7 @@ class TutorPortal(http.Controller, PortalMixin):
             'courses': courses,
             'course_data': course_data,
             'lesson_count': lesson_count,
+            'user_tz': self._get_user_tz(),
             'page_name': 'tutor_courses',
         })
 
@@ -87,6 +88,7 @@ class TutorPortal(http.Controller, PortalMixin):
             'assignments_url': f'/my/tutor/courses/{course.id}/assignments',
             'page_name': 'tutor_course_detail',
             'page_title': course.name,
+            'user_tz': self._get_user_tz(),
         })
 
     # ──────────────────────────────────────────────
@@ -120,10 +122,11 @@ class TutorPortal(http.Controller, PortalMixin):
         ], order='start_datetime asc')
         occ_data = []
         for occ in occurrences:
+            local_dt = self._to_user_tz(occ.start_datetime)
             occ_data.append({
                 'occ': occ,
-                'date_str': occ.start_datetime.strftime('%a, %d %b %Y') if occ.start_datetime else '',
-                'time_str': occ.start_datetime.strftime('%H:%M') if occ.start_datetime else '',
+                'date_str': local_dt.strftime('%a, %d %b %Y') if local_dt else '',
+                'time_str': local_dt.strftime('%I:%M %p') if local_dt else '',
             })
         return request.render('tuition_management.portal_tutor_schedule', {
             'user': request.env.user,
@@ -131,6 +134,7 @@ class TutorPortal(http.Controller, PortalMixin):
             'tutor': tutor,
             'occ_data': occ_data,
             'current_week': week,
+            'user_tz': self._get_user_tz(),
             'page_name': 'tutor_schedule',
             'page_title': 'My Schedule',
         })
@@ -176,8 +180,9 @@ class TutorPortal(http.Controller, PortalMixin):
         occ_data = []
         for occ in occurrences:
             try:
-                date_str = occ.start_datetime.strftime('%a, %d %b %Y') if occ.start_datetime else ''
-                time_str = occ.start_datetime.strftime('%I:%M %p') if occ.start_datetime else ''
+                local_dt = self._to_user_tz(occ.start_datetime)
+                date_str = local_dt.strftime('%a, %d %b %Y') if local_dt else ''
+                time_str = local_dt.strftime('%I:%M %p') if local_dt else ''
             except Exception:
                 date_str = str(occ.start_datetime) if occ.start_datetime else ''
                 time_str = ''
@@ -191,6 +196,7 @@ class TutorPortal(http.Controller, PortalMixin):
             'occurrences': occurrences,
             'occ_data': occ_data,
             'current_week': week,
+            'user_tz': self._get_user_tz(),
             'back_url': f'/my/tutor/courses/{course.id}',
             'page_name': 'tutor_lessons',
         })

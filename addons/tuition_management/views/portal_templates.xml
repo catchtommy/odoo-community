@@ -68,6 +68,17 @@
                                            style="border-radius:8px; font-size:13px;"
                                            t-att-value="(profile.phone if profile else '') or (partner.phone or '')"/>
                                 </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Timezone</label>
+                                    <select name="timezone" class="form-select" style="border-radius:8px; font-size:13px;">
+                                        <option value="">Select timezone...</option>
+                                        <t t-foreach="timezones" t-as="tz">
+                                            <option t-att-value="tz" t-att-selected="'selected' if tz == current_timezone else None">
+                                                <t t-esc="tz"/>
+                                            </option>
+                                        </t>
+                                    </select>
+                                </div>
                                 <div class="mb-0">
                                     <div class="tm-label">Login (Username)</div>
                                     <div class="tm-value" style="font-size:13px; color:var(--tm-grey);">

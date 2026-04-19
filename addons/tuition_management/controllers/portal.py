@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pytz
 from odoo import http, fields
 from odoo.http import request
 from odoo.addons.portal.controllers.portal import CustomerPortal
@@ -192,6 +193,8 @@ class TuitionPortal(CustomerPortal, PortalMixin):
             'page_name': 'profile',
             'back_url': back_url,
             'csrf_token': request.csrf_token(),
+            'timezones': sorted(pytz.all_timezones),
+            'current_timezone': profile.timezone if profile and hasattr(profile, 'timezone') and profile.timezone else 'UTC',
         })
 
     @http.route(['/my/profile/save'], type='http', auth='user', website=True,
@@ -219,6 +222,9 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 write_vals['email'] = email
             if hasattr(profile, 'phone') and phone:
                 write_vals['phone'] = phone
+            tz = (kw.get('timezone') or '').strip()
+            if tz and hasattr(profile, 'timezone'):
+                write_vals['timezone'] = tz
             profile.sudo().write(write_vals)
 
         partner_vals = {'name': name}

@@ -25,6 +25,7 @@
         "views/portal_tutor_views.xml",
         "views/portal_parent_views.xml",
         "views/portal_templates.xml",
+        "views/portal_public_enquiry.xml",
     ],
     "installable": True,
     "application": True,

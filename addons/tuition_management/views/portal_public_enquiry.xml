@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<template id="public_enquiry_form" name="Public Enquiry Form">
+    <t t-call="website.layout">
+        <div class="container py-5" style="max-width:680px;">
+
+            <div class="text-center mb-4">
+                <h2 style="font-weight:800;color:#1a1a2e;">Submit an Enquiry</h2>
+                <p style="color:#666;font-size:14px;">Fill in the details below and we'll get back to you shortly.</p>
+            </div>
+
+            <t t-if="success">
+                <div class="alert alert-success d-flex align-items-center gap-2" style="border-radius:12px;border:none;background:#EDF7ED;color:#2e7d32;font-size:14px;">
+                    <i class="fa fa-check-circle" style="font-size:20px;"/>
+                    <div>
+                        <strong>Thank you!</strong> Your enquiry has been submitted successfully. We will contact you soon.
+                    </div>
+                </div>
+                <div class="text-center mt-3">
+                    <a href="/enquiry" class="btn btn-outline-primary" style="border-radius:8px;">Submit Another Enquiry</a>
+                </div>
+            </t>
+
+            <t t-if="not success">
+                <t t-if="error">
+                    <div class="alert alert-danger d-flex align-items-center gap-2" style="border-radius:12px;border:none;background:#FDEAEA;color:#c05050;font-size:13px;">
+                        <i class="fa fa-exclamation-circle" style="font-size:16px;"/>
+                        <t t-esc="error"/>
+                    </div>
+                </t>
+
+                <div class="card shadow-sm" style="border:none;border-radius:16px;overflow:hidden;">
+                    <div style="background:linear-gradient(135deg,#667eea,#764ba2);padding:16px 24px;">
+                        <h5 class="mb-0 text-white" style="font-weight:700;font-size:15px;"><i class="fa fa-pencil-square-o me-2"/>Enquiry Details</h5>
+                    </div>
+                    <div class="card-body" style="padding:28px;">
+                        <form action="/enquiry/submit" method="POST" id="enquiry_form">
+                            <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+
+                            <!-- Parent Information -->
+                            <h6 style="font-weight:700;color:#333;margin-bottom:14px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">
+                                <i class="fa fa-user me-1" style="color:#667eea;"/> Parent / Guardian
+                            </h6>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold" style="font-size:12px;">Parent / Guardian Name <span class="text-danger">*</span></label>
+                                <input type="text" name="parent_name" class="form-control" required="required"
+                                       style="border-radius:8px;font-size:13px;" placeholder="Full name"
+                                       t-att-value="form_data.get('parent_name', '') if form_data else ''"/>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold" style="font-size:12px;">Email Address</label>
+                                <input type="email" name="email" class="form-control" id="field_email"
+                                       style="border-radius:8px;font-size:13px;" placeholder="parent@example.com"
+                                       t-att-value="form_data.get('email', '') if form_data else ''"/>
+                                <small class="text-muted" style="font-size:11px;">Either email or phone number is required.</small>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-4">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Country Code</label>
+                                    <input type="text" name="country_code" class="form-control"
+                                           style="border-radius:8px;font-size:13px;" placeholder="+44"
+                                           t-att-value="form_data.get('country_code', '') if form_data else ''"/>
+                                </div>
+                                <div class="col-8">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Phone Number</label>
+                                    <input type="text" name="phone" class="form-control" id="field_phone"
+                                           style="border-radius:8px;font-size:13px;" placeholder="Phone number"
+                                           t-att-value="form_data.get('phone', '') if form_data else ''"/>
+                                </div>
+                            </div>
+
+                            <hr style="margin:24px 0;border-color:#eee;"/>
+
+                            <!-- Student Information -->
+                            <h6 style="font-weight:700;color:#333;margin-bottom:14px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">
+                                <i class="fa fa-child me-1" style="color:#764ba2;"/> Student Information
+                            </h6>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold" style="font-size:12px;">Student Name <span class="text-danger">*</span></label>
+                                <input type="text" name="student_name" class="form-control" required="required"
+                                       style="border-radius:8px;font-size:13px;" placeholder="Student full name"
+                                       t-att-value="form_data.get('student_name', '') if form_data else ''"/>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Grade <span class="text-danger">*</span></label>
+                                    <select name="grade_id" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
+                                        <option value="">Select grade...</option>
+                                        <t t-foreach="grades" t-as="grade">
+                                            <option t-att-value="grade.id" t-att-selected="'selected' if form_data and str(grade.id) == str(form_data.get('grade_id', '')) else None">
+                                                <t t-esc="grade.name"/>
+                                            </option>
+                                        </t>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Subject <span class="text-danger">*</span></label>
+                                    <select name="subject_id" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
+                                        <option value="">Select subject...</option>
+                                        <t t-foreach="subjects" t-as="subject">
+                                            <option t-att-value="subject.id" t-att-selected="'selected' if form_data and str(subject.id) == str(form_data.get('subject_id', '')) else None">
+                                                <t t-esc="subject.name"/>
+                                            </option>
+                                        </t>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <hr style="margin:24px 0;border-color:#eee;"/>
+
+                            <!-- Notes -->
+                            <div class="mb-4">
+                                <label class="form-label fw-bold" style="font-size:12px;">Additional Notes</label>
+                                <textarea name="notes" class="form-control" rows="3"
+                                          style="border-radius:8px;font-size:13px;" placeholder="Any additional information..."><t t-if="form_data" t-esc="form_data.get('notes', '')"/></textarea>
+                            </div>
+
+                            <button type="submit" class="btn w-100" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;border:none;border-radius:10px;padding:12px;font-weight:700;font-size:14px;">
+                                <i class="fa fa-paper-plane me-1"/> Submit Enquiry
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <script>
+                    document.getElementById('enquiry_form').addEventListener('submit', function(e) {
+                        var email = document.getElementById('field_email').value.trim();
+                        var phone = document.getElementById('field_phone').value.trim();
+                        if (!email &amp;&amp; !phone) {
+                            e.preventDefault();
+                            alert('Please provide either an email address or a phone number.');
+                        }
+                    });
+                </script>
+            </t>
+        </div>
+    </t>
+</template>
+
+</odoo>

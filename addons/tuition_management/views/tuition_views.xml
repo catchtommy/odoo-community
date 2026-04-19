@@ -118,6 +118,7 @@
 <field name="country_code" placeholder="Country Code"/>
 <field name="phone" class="o_field_char" placeholder="Phone Number"/>
 </div>
+<field name="timezone"/>
 </group>
 <group string="Academic Information">
 <field name="grade_id"/>
@@ -194,6 +195,7 @@
 <field name="country_code" placeholder="Country Code"/>
 <field name="phone" class="o_field_char" placeholder="Phone Number"/>
 </div>
+<field name="timezone"/>
 </group>
 <group string="Subjects">
 <field name="subject_ids" widget="many2many_tags"/>
@@ -250,6 +252,7 @@
 <field name="country_code" placeholder="Country Code"/>
 <field name="phone" class="o_field_char" placeholder="Phone Number"/>
 </div>
+<field name="timezone"/>
 </group>
 <group string="Address">
 <field name="address_line_1" placeholder="Address Line 1"/>

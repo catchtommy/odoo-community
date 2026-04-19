@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pytz
 from odoo.http import request
 
 
@@ -24,3 +25,22 @@ class PortalMixin:
             'is_tutor': bool(tutor if tutor is not None else self._get_tutor()),
             'is_parent': bool(parent if parent is not None else self._get_parent()),
         }
+
+    def _get_user_tz(self):
+        """Return the timezone string from the current user's profile, default UTC."""
+        profile = self._get_student() or self._get_tutor() or self._get_parent()
+        if profile and hasattr(profile, 'timezone') and profile.timezone:
+            return profile.timezone
+        return 'UTC'
+
+    def _to_user_tz(self, dt):
+        """Convert a naive UTC datetime to the user's profile timezone."""
+        if not dt:
+            return dt
+        tz_name = self._get_user_tz()
+        try:
+            user_tz = pytz.timezone(tz_name)
+        except Exception:
+            user_tz = pytz.UTC
+        utc_dt = pytz.UTC.localize(dt) if dt.tzinfo is None else dt
+        return utc_dt.astimezone(user_tz)

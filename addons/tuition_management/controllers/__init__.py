@@ -6,3 +6,4 @@ from . import portal_student
 from . import portal_tutor
 from . import portal_parent
 from . import dashboard
+from . import public_enquiry

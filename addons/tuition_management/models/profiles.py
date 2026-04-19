@@ -1,5 +1,8 @@
 # -*- coding: utf-8 -*-
+import pytz
 from odoo import api, fields, models
+
+_TIMEZONE_LIST = [(tz, tz) for tz in sorted(pytz.all_timezones)]
 
 
 class StudentProfile(models.Model):
@@ -13,6 +16,8 @@ class StudentProfile(models.Model):
     email = fields.Char(string='Email Address')
     phone = fields.Char(string='Phone Number')
     country_code = fields.Char(string='Country Code', default='+1')
+    timezone = fields.Selection(_TIMEZONE_LIST, string='Timezone', default='UTC')
+    timezone = fields.Selection(_TIMEZONE_LIST, string='Timezone', default='UTC')
     
     # Academic Information
     grade_id = fields.Many2one('grade.master', string='Grade')
@@ -37,6 +42,7 @@ class TutorProfile(models.Model):
     email = fields.Char(string='Email Address')
     phone = fields.Char(string='Phone Number')
     country_code = fields.Char(string='Country Code', default='+1')
+    timezone = fields.Selection(_TIMEZONE_LIST, string='Timezone', default='UTC')
     
     # Professional Information
     subjects_ids = fields.Many2many('subject.master', string='Subjects')
@@ -60,6 +66,7 @@ class ParentProfile(models.Model):
     email = fields.Char(string='Email Address')
     phone = fields.Char(string='Phone Number')
     country_code = fields.Char(string='Country Code', default='+1')
+    timezone = fields.Selection(_TIMEZONE_LIST, string='Timezone', default='UTC')
     
     # Relationships
     student_ids = fields.Many2many('student.profile', string='Students', help='Students under this parent')
