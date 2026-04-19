@@ -6,21 +6,10 @@ import pytz
 from dateutil.relativedelta import relativedelta
 
 
-class SubjectCategory(models.Model):
-    _name = 'subject.category'
-    _description = 'Subject Category'
+class SubjectMasterExt(models.Model):
+    _inherit = 'subject.master'
 
-    name = fields.Char(string='Category Name', required=True)
-    description = fields.Text(string='Description')
-
-
-class SubjectMaster(models.Model):
-    _name = 'subject.master'
-    _description = 'Subject Master'
-
-    name = fields.Char(string='Subject Name', required=True)
     category_id = fields.Many2one('subject.category', string='Category')
-    description = fields.Text(string='Description')
 
 
 class GradeMaster(models.Model):
@@ -373,6 +362,76 @@ class ClassSchedule(models.Model):
     start_date = fields.Date(string='Start Date')
     end_date = fields.Date(string='End Date')
     occurrence_ids = fields.One2many('class.schedule.occurrence', 'schedule_id', string='Occurrences')
+
+    available_tutor_ids = fields.Many2many('tutor.profile', string='Available Tutors', compute='_compute_available_tutors', store=False)
+    fallback_tutor_ids = fields.Many2many('tutor.profile', string='Subject/Grade Tutors', compute='_compute_available_tutors', store=False)
+    no_tutor_available = fields.Boolean(string='No Tutor Available', compute='_compute_available_tutors', store=False)
+
+    @api.onchange('available_tutor_ids', 'fallback_tutor_ids', 'no_tutor_available')
+    def _onchange_tutor_list(self):
+        if self.no_tutor_available:
+            tutor_ids = self.fallback_tutor_ids.ids
+        else:
+            tutor_ids = self.available_tutor_ids.ids
+        if tutor_ids:
+            return {'domain': {'tutor_id': [('id', 'in', tutor_ids)]}}
+        return {'domain': {'tutor_id': []}}
+
+    @api.depends('schedule_hour', 'schedule_minute', 'monday', 'tuesday', 'wednesday',
+                 'thursday', 'friday', 'saturday', 'sunday', 'course_id')
+    def _compute_available_tutors(self):
+        day_fields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        for rec in self:
+            available = self.env['tutor.profile']
+            fallback = self.env['tutor.profile']
+
+            if not rec.course_id:
+                rec.available_tutor_ids = available
+                rec.fallback_tutor_ids = fallback
+                rec.no_tutor_available = False
+                continue
+
+            subject = rec.course_id.subject_id
+            grade = rec.course_id.grade_id
+
+            # Get selected days
+            selected_days = [d for d in day_fields if getattr(rec, d, False)]
+
+            # Build schedule time as float (e.g. 9:30 = 9.5)
+            schedule_time = rec.schedule_hour + rec.schedule_minute / 60.0
+
+            # Find tutors matching subject
+            tutor_domain = []
+            if subject:
+                tutor_domain.append(('subject_ids', 'in', [subject.id]))
+            if grade:
+                tutor_domain.append(('grade_ids', 'in', [grade.id]))
+            all_subject_tutors = self.env['tutor.profile'].search(tutor_domain) if (subject or grade) else self.env['tutor.profile'].search([])
+
+            if selected_days and schedule_time:
+                # Find tutors with availability matching the selected days and time
+                for tutor in all_subject_tutors:
+                    is_available = False
+                    for day in selected_days:
+                        avail = tutor.availability_ids.filtered(
+                            lambda a, d=day: a.day_of_week == d and a.start_time <= schedule_time and a.end_time > schedule_time
+                        )
+                        if avail:
+                            is_available = True
+                        else:
+                            is_available = False
+                            break
+                    if is_available:
+                        available |= tutor
+
+            if available:
+                rec.available_tutor_ids = available
+                rec.fallback_tutor_ids = self.env['tutor.profile']
+                rec.no_tutor_available = False
+            else:
+                rec.available_tutor_ids = self.env['tutor.profile']
+                rec.fallback_tutor_ids = all_subject_tutors
+                rec.no_tutor_available = bool(selected_days and schedule_time)
 
     @api.depends('course_id', 'tutor_id', 'schedule_type')
     def _compute_name(self):
@@ -1709,7 +1768,9 @@ class TutorProfile(models.Model):
     country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
     timezone = fields.Selection(string='Timezone', selection=lambda self: [(tz, tz) for tz in sorted(__import__('pytz').all_timezones)], default='UTC')
+   
     subject_ids = fields.Many2many('subject.master', string='Subjects')
+    grade_ids = fields.Many2many('grade.master', string='Grades', help='Grades this tutor can teach')
     availability_ids = fields.One2many('tutor.availability', 'tutor_id', string='Availability')
     partner_id = fields.Many2one('res.partner', string='Contact')
     portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
