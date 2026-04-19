@@ -531,6 +531,14 @@ class ClassScheduleOccurrence(models.Model):
             'target': 'new',
         }
 
+    def action_reset_attendance(self):
+        """Remove all attendance records for this occurrence, resetting it to unmarked."""
+        self.ensure_one()
+        if self.attendance_ids:
+            self.attendance_ids.unlink()
+        self.lesson_status = 'scheduled'
+        return True
+
 
 class MarkAttendanceWizard(models.TransientModel):
     _name = 'mark.attendance.wizard'

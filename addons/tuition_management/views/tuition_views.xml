@@ -377,6 +377,7 @@
 <field name="lesson_status" string="Status"/>
 <field name="attendance_marked" string="Attendance Marked"/>
 <button name="action_mark_attendance" type="object" string="Mark Attendance" class="btn-link" icon="fa-check-square-o"/>
+<button name="action_reset_attendance" type="object" string="Reset Attendance" class="btn-link text-danger" icon="fa-undo" confirm="This will delete all attendance records for this lesson. Are you sure?"/>
 </list>
 </field>
 </page>
