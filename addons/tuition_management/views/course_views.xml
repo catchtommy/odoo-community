@@ -1,124 +1,191 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <odoo>
-<!-- Looking for portal access inherited views and wizard form -->
-
-<!-- Portal Access Wizard Form -->
-<record id="view_portal_access_wizard_form" model="ir.ui.view">
-    <field name="name">portal.access.wizard.form</field>
-    <field name="model">portal.access.wizard</field>
+<!-- Course Master Views -->
+<record id="view_course_master_list" model="ir.ui.view">
+    <field name="name">course.master.list</field>
+    <field name="model">course.master</field>
     <field name="arch" type="xml">
-        <form string="Manage Portal Access">
+        <list string="Courses">
+            <field name="name"/><field name="subject_id"/><field name="grade_id"/><field name="status"/>
+        </list>
+    </field>
+</record>
+<record id="view_course_master_form" model="ir.ui.view">
+    <field name="name">course.master.form</field>
+    <field name="model">course.master</field>
+    <field name="arch" type="xml">
+        <form string="Course">
+            <header>
+                <button name="action_enroll_student" string="Enroll Student" type="object" class="btn-primary" icon="fa-user-plus"/>
+                <button name="action_cancel_course" string="Cancel Course" type="object" class="btn-danger" icon="fa-times-circle" invisible="status == 'cancelled'" confirm="Are you sure you want to cancel this course?"/>
+                <field name="status" widget="statusbar"/>
+            </header>
             <sheet>
-                <field name="is_existing_user" invisible="1"/>
-                <field name="existing_user_id" invisible="1"/>
-                <field name="profile_model" invisible="1"/>
-                <field name="profile_id" invisible="1"/>
-                <div class="oe_title mb-3">
-                    <h2 invisible="is_existing_user">
-                        <i class="fa fa-user-plus text-success"/> Create Portal Access
-                    </h2>
-                    <h2 invisible="not is_existing_user">
-                        <i class="fa fa-key text-primary"/> Update Portal Credentials
-                    </h2>
-                </div>
-                <div invisible="not is_existing_user" class="alert alert-info" role="alert">
-                    <i class="fa fa-info-circle"/> This user already has portal access. You can change their login (username) and/or set a new password.
+                <div class="oe_button_box" name="button_box">
+                    <button name="action_view_enrolled_students" type="object" class="oe_stat_button" icon="fa-users">
+                        <field name="student_count" string="Students" widget="statinfo"/>
+                    </button>
+                    <button name="action_view_schedule_calendar" type="object" class="oe_stat_button" icon="fa-calendar">
+                        <span>Course Calendar</span>
+                    </button>
+                    <button name="action_view_assignments" type="object" class="oe_stat_button" icon="fa-file-text">
+                        <span>Assignments</span>
+                    </button>
+                    <button name="action_view_progress_reports" type="object" class="oe_stat_button" icon="fa-bar-chart">
+                        <span>Progress Reports</span>
+                    </button>
                 </div>
                 <group>
-                    <group string="User Information">
-                        <field name="name"/>
-                        <field name="email"/>
+                    <group string="Course Information">
+                        <field name="name"/><field name="subject_id"/><field name="grade_id"/>
+                        <field name="tutor_id"/><field name="coordinator_id"/>
                     </group>
-                    <group string="Portal Credentials">
-                        <field name="login" string="Login (Username)"/>
-                        <field name="password" password="True" string="New Password"/>
-                        <field name="confirm_password" password="True" string="Confirm Password"/>
+                    <group string="Course Dates">
+                        <field name="start_date"/><field name="end_date"/><field name="status"/>
+                    </group>
+                </group>
+                <group>
+                    <group string="Virtual Classroom">
+                        <field name="virtual_class_platform"/>
+                        <field name="virtual_class_url" widget="url" placeholder="https://..."/>
+                        <field name="virtual_class_meeting_id" invisible="not virtual_class_platform"/>
+                        <field name="virtual_class_passcode" invisible="not virtual_class_platform"/>
+                        <field name="virtual_class_notes" invisible="not virtual_class_platform"/>
+                    </group>
+                </group>
+                <notebook>
+                    <page string="Lessons" name="lessons">
+                        <field name="occurrence_ids">
+                            <list string="Lessons" create="false" delete="false" editable="bottom">
+                                <field name="start_datetime" string="Lesson Time" readonly="1"/>
+                                <field name="tutor_id" string="Teacher"/>
+                                <field name="lesson_status" string="Status" readonly="1"/>
+                                <field name="is_rescheduled" string="Rescheduled" readonly="1"/>
+                                <field name="cancellation_reason" string="Cancel Reason" readonly="1" optional="hide"/>
+                                <field name="attendance_marked" string="Attendance Marked"/>
+                                <button name="action_mark_attendance" type="object" string="Mark Attendance" class="btn-link" icon="fa-check-square-o"/>
+                                <button name="action_cancel_lesson" type="object" string="Cancel Lesson" class="btn-link text-warning" icon="fa-ban" invisible="lesson_status == 'cancelled'"/>
+                            </list>
+                        </field>
+                    </page>
+                    <page string="Students" name="students">
+                        <field name="enrollment_ids">
+                            <list string="Enrolled Students">
+                                <field name="student_id" string="Student Name"/>
+                                <field name="subscription_id"/><field name="status"/>
+                            </list>
+                        </field>
+                    </page>
+                    <page string="Schedules" name="schedules">
+                        <field name="schedule_ids"/>
+                    </page>
+                    <page string="Progress Reports" name="progress_reports">
+                        <div class="mb-2">
+                            <button name="action_add_progress_report" type="object" string="Add Progress Report" class="btn-primary" icon="fa-plus"/>
+                    </div>
+                    <field name="progress_report_ids">
+                        <list string="Progress Reports" create="false">
+                            <field name="report_date"/><field name="student_id"/><field name="overall_rating"/>
+                            <field name="score"/><field name="max_score"/><field name="tutor_id"/>
+                        </list>
+                    </field>
+                    </page>
+                    <page string="Assignments" name="assignments">
+                        <field name="assignment_ids">
+                            <list string="Assignments">
+                                <field name="name"/><field name="assignment_type"/>
+                                <field name="assigned_date"/><field name="due_date"/><field name="status"/>
+                            </list>
+                        </field>
+                    </page>
+                </notebook>
+            </sheet>
+        </form>
+    </field>
+</record>
+
+<!-- Enrollment Views -->
+<record id="view_course_enrollment_form" model="ir.ui.view">
+    <field name="name">course.enrollment.form</field>
+    <field name="model">course.enrollment</field>
+    <field name="arch" type="xml">
+        <form string="Enrollment">
+            <sheet>
+                <group>
+                    <group string="Enrollment">
+                        <field name="name"/><field name="course_id"/>
+                        <field name="student_id" string="Student Name"/><field name="status"/>
+                    </group>
+                    <group string="Subscription">
+                        <field name="subscription_id" domain="[('student_id', '=', student_id)]" options="{'no_quick_create': True}" context="{'default_student_id': student_id, 'default_enrollment_id': id}"/>
+                        <button name="action_create_subscription" type="object" string="+ Create Subscription" class="btn-link ps-0" icon="fa-plus" invisible="subscription_id or not student_id"/>
+                        <field name="sub_plan_name" string="Current Plan" readonly="1" invisible="not subscription_id"/>
+                        <field name="sub_price" string="Monthly Price" readonly="1" widget="monetary" invisible="not subscription_id"/>
+                        <field name="sub_state" string="Status" readonly="1" invisible="not subscription_id"/>
+                        <field name="sub_next_billing" string="Next Billing" readonly="1" invisible="not subscription_id"/>
                     </group>
                 </group>
             </sheet>
+        </form>
+    </field>
+</record>
+<record id="view_course_enrollment_list" model="ir.ui.view">
+    <field name="name">course.enrollment.list</field>
+    <field name="model">course.enrollment</field>
+    <field name="arch" type="xml">
+        <list string="Enrollments">
+            <field name="name"/><field name="course_id"/>
+            <field name="student_id" string="Student Name"/><field name="subscription_id"/><field name="status"/>
+        </list>
+    </field>
+</record>
+
+<!-- Course Cancel Wizard -->
+<record id="view_course_cancel_wizard_form" model="ir.ui.view">
+    <field name="name">course.cancel.wizard.form</field>
+    <field name="model">course.cancel.wizard</field>
+    <field name="arch" type="xml">
+        <form string="Confirm Course Cancellation">
+            <field name="course_id" invisible="1"/>
+            <div class="alert alert-warning" role="alert">
+                <strong><i class="fa fa-exclamation-triangle"/> Warning</strong>
+                <p><field name="message" nolabel="1" readonly="1"/></p>
+            </div>
+            <group string="Schedules Without Attendance">
+                <field name="line_ids" nolabel="1" readonly="1">
+                    <list string="Unmarked Schedules" create="false" delete="false">
+                        <field name="schedule_date" string="Date"/>
+                        <field name="lesson_name" string="Session"/>
+                        <field name="tutor_name" string="Tutor"/>
+                    </list>
+                </field>
+            </group>
+            <div class="alert alert-danger mt-2" role="alert">
+                <strong>On cancellation:</strong>
+                <ul class="mb-0">
+                    <li>All future schedules will be cancelled</li>
+                    <li>Unmarked past schedules (listed above) will be cancelled</li>
+                    <li>All enrolments will be cancelled</li>
+                    <li>All linked subscriptions will be cancelled</li>
+                </ul>
+            </div>
             <footer>
-                <button name="action_create_portal_user" type="object" class="btn-primary"
-                        invisible="is_existing_user" string="Create Portal Access"/>
-                <button name="action_create_portal_user" type="object" class="btn-primary"
-                        invisible="not is_existing_user" string="Update Credentials"/>
-                <button name="action_deactivate_portal_user" type="object" class="btn-danger"
-                        invisible="not is_existing_user" string="Deactivate Portal Access"
-                        confirm="Are you sure you want to deactivate this user's portal access?"/>
-                <button name="action_fix_portal_users" type="object" class="btn-secondary"
-                        string="Fix All Portal Users"
-                        confirm="This will reset all student/tutor/parent users to portal-only access. Continue?"
-                        invisible="not is_existing_user"/>
-                <button string="Cancel" class="btn-secondary" special="cancel"/>
+                <button name="action_confirm_cancel" type="object" string="Confirm Cancellation" class="btn-danger"/>
+                <button name="action_discard" type="object" string="Go Back" class="btn-secondary"/>
             </footer>
         </form>
     </field>
 </record>
 
-<!-- Update Parent Profile form to show portal info -->
-<record id="view_parent_profile_form" model="ir.ui.view">
-    <field name="name">parent.profile.form</field>
-    <field name="model">parent.profile</field>
-    <field name="arch" type="xml">
-        <form string="Parent Profile">
-            <header>
-                <field name="has_portal_access" invisible="1"/>
-                <button name="action_invite_to_portal" type="object" class="oe_highlight" icon="fa-user-plus" string="Create Portal Access" invisible="has_portal_access"/>
-                <button name="action_invite_to_portal" type="object" class="btn-warning" icon="fa-key" string="Manage Portal Access" invisible="not has_portal_access"/>
-            </header>
-            <sheet>
-                <!-- ...existing fields... -->
-                <field name="partner_id"/>
-                <field name="portal_login" string="Portal Login" readonly="1" invisible="not has_portal_access"/>
-                <field name="portal_user_id" string="Portal User" readonly="1" invisible="not has_portal_access"/>
-                <!-- ...existing fields... -->
-            </sheet>
-        </form>
-    </field>
+<!-- Actions -->
+<record id="action_course_masters" model="ir.actions.act_window">
+    <field name="name">Courses</field>
+    <field name="res_model">course.master</field>
+    <field name="view_mode">list,form</field>
 </record>
-
-<!-- Student Profile: Add portal access section -->
-<record id="view_student_profile_form" model="ir.ui.view">
-    <field name="name">student.profile.form</field>
-    <field name="model">student.profile</field>
-    <field name="arch" type="xml">
-        <form string="Student Profile">
-            <header>
-                <field name="has_portal_access" invisible="1"/>
-                <button name="action_invite_to_portal" type="object" class="oe_highlight" icon="fa-user-plus" string="Create Portal Access" invisible="has_portal_access"/>
-                <button name="action_invite_to_portal" type="object" class="btn-warning" icon="fa-key" string="Manage Portal Access" invisible="not has_portal_access"/>
-            </header>
-            <sheet>
-                <!-- ...existing fields... -->
-                <field name="partner_id"/>
-                <field name="portal_login" string="Portal Login" readonly="1" invisible="not has_portal_access"/>
-                <field name="portal_user_id" string="Portal User" readonly="1" invisible="not has_portal_access"/>
-                <!-- ...existing fields... -->
-            </sheet>
-        </form>
-    </field>
+<record id="action_course_enrollments" model="ir.actions.act_window">
+    <field name="name">Enrollments</field>
+    <field name="res_model">course.enrollment</field>
+    <field name="view_mode">list,form</field>
 </record>
-
-<!-- Tutor Profile: Add portal access section -->
-<record id="view_tutor_profile_form" model="ir.ui.view">
-    <field name="name">tutor.profile.form</field>
-    <field name="model">tutor.profile</field>
-    <field name="arch" type="xml">
-        <form string="Tutor Profile">
-            <header>
-                <field name="has_portal_access" invisible="1"/>
-                <button name="action_invite_to_portal" type="object" class="oe_highlight" icon="fa-user-plus" string="Create Portal Access" invisible="has_portal_access"/>
-                <button name="action_invite_to_portal" type="object" class="btn-warning" icon="fa-key" string="Manage Portal Access" invisible="not has_portal_access"/>
-            </header>
-            <sheet>
-                <!-- ...existing fields... -->
-                <field name="partner_id"/>
-                <field name="portal_login" string="Portal Login" readonly="1" invisible="not has_portal_access"/>
-                <field name="portal_user_id" string="Portal User" readonly="1" invisible="not has_portal_access"/>
-                <!-- ...existing fields... -->
-            </sheet>
-        </form>
-    </field>
-</record>
-
-<!-- ...existing code... -->
 </odoo>

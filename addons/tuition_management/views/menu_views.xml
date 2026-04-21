@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Dashboard -->
+    <record id="action_tuition_dashboard" model="ir.actions.client">
+        <field name="name">Dashboard</field>
+        <field name="tag">tuition_dashboard</field>
+    </record>
+
+    <!-- Top Level -->
+    <menuitem id="menu_tuition_root" name="Tuition" sequence="50"/>
+    <menuitem id="menu_tuition_dashboard" name="Dashboard" parent="menu_tuition_root" action="action_tuition_dashboard" sequence="1"/>
+
+    <!-- Scheduling -->
+    <menuitem id="menu_tuition_scheduling" name="Scheduling" parent="menu_tuition_root" sequence="10"/>
+    <menuitem id="menu_tuition_courses" name="Courses" parent="menu_tuition_scheduling" action="action_course_masters"/>
+    <menuitem id="menu_tuition_enrollments" name="Enrollments" parent="menu_tuition_scheduling" action="action_course_enrollments"/>
+    <menuitem id="menu_tuition_class_schedules" name="Class Schedules" parent="menu_tuition_scheduling" action="action_class_schedules"/>
+    <menuitem id="menu_tuition_schedule_calendar" name="Schedule Calendar" parent="menu_tuition_scheduling" action="action_class_schedule_calendar"/>
+    <menuitem id="menu_tuition_demo_sessions" name="Demo Sessions" parent="menu_tuition_scheduling" action="action_demo_sessions"/>
+    <menuitem id="menu_tuition_attendance" name="Attendance" parent="menu_tuition_scheduling" action="action_attendance_records"/>
+    <menuitem id="menu_tuition_progress_reports" name="Progress Reports" parent="menu_tuition_scheduling" action="action_progress_reports"/>
+    <menuitem id="menu_tuition_assignments" name="Assignments" parent="menu_tuition_scheduling" action="action_course_assignments"/>
+    <menuitem id="menu_tuition_tutor_availability" name="Tutor Availability" parent="menu_tuition_scheduling" action="action_tutor_availability"/>
+
+    <!-- Enquiries -->
+    <menuitem id="menu_tuition_enquiries" name="Enquiries" parent="menu_tuition_root" sequence="20" action="action_enquiry"/>
+
+    <!-- Users -->
+    <menuitem id="menu_tuition_users" name="Users" parent="menu_tuition_root" sequence="30"/>
+    <menuitem id="menu_tuition_students" name="Students" parent="menu_tuition_users" action="action_student_profiles"/>
+    <menuitem id="menu_tuition_tutors" name="Tutors" parent="menu_tuition_users" action="action_tutor_profiles"/>
+    <menuitem id="menu_tuition_parents" name="Parents" parent="menu_tuition_users" action="action_parent_profiles"/>
+
+    <!-- Settings -->
+    <menuitem id="menu_tuition_settings" name="Settings" parent="menu_tuition_root" sequence="40"/>
+    <menuitem id="menu_tuition_subjects" name="Subjects" parent="menu_tuition_settings" action="action_subject_masters"/>
+    <menuitem id="menu_tuition_subject_categories" name="Subject Categories" parent="menu_tuition_settings" action="action_subject_categories"/>
+    <menuitem id="menu_tuition_grades" name="Grades" parent="menu_tuition_settings" action="action_grade_masters"/>
+</odoo>

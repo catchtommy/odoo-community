@@ -1,4 +1,2 @@
 # -*- coding: utf-8 -*-
-from . import subjects
-from . import course
-from . import enquiry
+from . import subjects, master, profile, attendance, progress, subscription, course, enquiry, schedule

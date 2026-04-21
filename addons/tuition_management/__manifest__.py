@@ -1,6 +1,6 @@
 {
     "name": "Tuition Management",
-    "version": "19.0.1.7",
+    "version": "19.0.1.8",
     "summary": "Manage tuition courses, students, tutors and registrations",
     "category": "Education",
     "author": "Auto Generated",
@@ -16,7 +16,14 @@
     "data": [
         "security/ir.model.access.csv",
         "data/ir_sequence_data.xml",
+        "views/master_views.xml",
+        "views/profile_views.xml",
+        "views/course_views.xml",
+        "views/schedule_views.xml",
+        "views/attendance_views.xml",
+        "views/progress_views.xml",
         "views/tuition_views.xml",
+        "views/menu_views.xml",
         "views/tuition_billing_views.xml",
         "views/portal_css.xml",
         "views/portal_layout.xml",

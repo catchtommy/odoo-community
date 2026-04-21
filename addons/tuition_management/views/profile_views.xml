@@ -1,0 +1,291 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ==================== STUDENT PROFILE ==================== -->
+    <record id="view_student_profile_list" model="ir.ui.view">
+        <field name="name">student.profile.list</field>
+        <field name="model">student.profile</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" string="Full Name"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="grade_id"/>
+                <field name="parent_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_student_profile_form" model="ir.ui.view">
+        <field name="name">student.profile.form</field>
+        <field name="model">student.profile</field>
+        <field name="arch" type="xml">
+            <form string="Student Profile">
+                <header>
+                    <button name="action_invite_to_portal" type="object"
+                            string="Invite to Portal" class="btn-primary"
+                            invisible="has_portal_access or not id"/>
+                </header>
+                <sheet>
+                    <field name="has_portal_access" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-globe"
+                                invisible="not has_portal_access" disabled="1">
+                            <span class="o_stat_text text-success">Portal Active</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Full Name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Contact Information">
+                            <field name="email"/>
+                            <field name="country_code" string="Country Code"/>
+                            <field name="phone"/>
+                            <field name="timezone"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group string="Academic Information">
+                            <field name="grade_id"/>
+                            <field name="subjects_ids" widget="many2many_tags"/>
+                            <field name="parent_id"/>
+                        </group>
+                    </group>
+                    <group string="Address">
+                        <field name="address_line_1"/>
+                        <field name="address_line_2"/>
+                        <field name="address_line_3"/>
+                        <field name="address_line_4"/>
+                        <field name="zip_code"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_student_profiles" model="ir.actions.act_window">
+        <field name="name">Students</field>
+        <field name="res_model">student.profile</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_student_profile_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_student_profile_form')}),
+        ]"/>
+    </record>
+
+    <!-- ==================== TUTOR PROFILE ==================== -->
+    <record id="view_tutor_profile_list" model="ir.ui.view">
+        <field name="name">tutor.profile.list</field>
+        <field name="model">tutor.profile</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" string="Full Name"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="subject_ids" widget="many2many_tags"/>
+                <field name="grade_ids" widget="many2many_tags"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_tutor_profile_form" model="ir.ui.view">
+        <field name="name">tutor.profile.form</field>
+        <field name="model">tutor.profile</field>
+        <field name="arch" type="xml">
+            <form string="Tutor Profile">
+                <header>
+                    <button name="action_invite_to_portal" type="object"
+                            string="Invite to Portal" class="btn-primary"
+                            invisible="has_portal_access or not id"/>
+                </header>
+                <sheet>
+                    <field name="has_portal_access" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-globe"
+                                invisible="not has_portal_access" disabled="1">
+                            <span class="o_stat_text text-success">Portal Active</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Full Name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Contact Information">
+                            <field name="email"/>
+                            <field name="country_code" string="Country Code"/>
+                            <field name="phone"/>
+                            <field name="timezone"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group string="Teaching Information">
+                            <field name="subject_ids" widget="many2many_tags"/>
+                            <field name="grade_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Availability">
+                            <field name="availability_ids">
+                                <list editable="bottom">
+                                    <field name="day_of_week"/>
+                                    <field name="start_time" widget="float_time"/>
+                                    <field name="end_time" widget="float_time"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_tutor_availability_list" model="ir.ui.view">
+        <field name="name">tutor.availability.list</field>
+        <field name="model">tutor.availability</field>
+        <field name="arch" type="xml">
+            <list string="Tutor Availability">
+                <field name="tutor_id"/>
+                <field name="day_of_week"/>
+                <field name="start_time" widget="float_time"/>
+                <field name="end_time" widget="float_time"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_tutor_profiles" model="ir.actions.act_window">
+        <field name="name">Tutors</field>
+        <field name="res_model">tutor.profile</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_tutor_profile_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_tutor_profile_form')}),
+        ]"/>
+    </record>
+
+    <record id="action_tutor_availability" model="ir.actions.act_window">
+        <field name="name">Tutor Availability</field>
+        <field name="res_model">tutor.availability</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- ==================== PARENT PROFILE ==================== -->
+    <record id="view_parent_profile_list" model="ir.ui.view">
+        <field name="name">parent.profile.list</field>
+        <field name="model">parent.profile</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name" string="Full Name"/>
+                <field name="email"/>
+                <field name="phone"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_parent_profile_form" model="ir.ui.view">
+        <field name="name">parent.profile.form</field>
+        <field name="model">parent.profile</field>
+        <field name="arch" type="xml">
+            <form string="Parent Profile">
+                <header>
+                    <button name="action_invite_to_portal" type="object"
+                            string="Invite to Portal" class="btn-primary"
+                            invisible="has_portal_access or not id"/>
+                </header>
+                <sheet>
+                    <field name="has_portal_access" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" icon="fa-globe"
+                                invisible="not has_portal_access" disabled="1">
+                            <span class="o_stat_text text-success">Portal Active</span>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name" placeholder="Full Name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Contact Information">
+                            <field name="email"/>
+                            <field name="country_code" string="Country Code"/>
+                            <field name="phone"/>
+                            <field name="timezone"/>
+                            <field name="partner_id"/>
+                        </group>
+                        <group string="Address">
+                            <field name="address_line_1"/>
+                            <field name="address_line_2"/>
+                            <field name="address_line_3"/>
+                            <field name="address_line_4"/>
+                            <field name="zip_code"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Students">
+                            <field name="student_ids">
+                                <list>
+                                    <field name="name" string="Student Name"/>
+                                    <field name="grade_id"/>
+                                    <field name="email"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Notes">
+                            <field name="notes" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_parent_profiles" model="ir.actions.act_window">
+        <field name="name">Parents</field>
+        <field name="res_model">parent.profile</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[(5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_parent_profile_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_parent_profile_form')}),
+        ]"/>
+    </record>
+
+    <!-- ==================== PORTAL ACCESS WIZARD ==================== -->
+    <record id="view_portal_access_wizard_form" model="ir.ui.view">
+        <field name="name">portal.access.wizard.form</field>
+        <field name="model">portal.access.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Manage Portal Access">
+                <field name="profile_model" invisible="1"/>
+                <field name="profile_id" invisible="1"/>
+                <field name="is_existing_user" invisible="1"/>
+                <field name="existing_user_id" invisible="1"/>
+                <group string="User Details">
+                    <field name="name" readonly="1"/>
+                    <field name="email" readonly="1"/>
+                    <field name="login"/>
+                </group>
+                <group string="Password">
+                    <field name="password"/>
+                    <field name="confirm_password"/>
+                </group>
+                <div>
+                    <button name="action_generate_password" type="object"
+                            string="Generate New Password" class="btn-secondary"/>
+                </div>
+                <footer>
+                    <button name="action_create_portal_user" type="object"
+                            string="Activate Portal Access" class="btn-primary"
+                            invisible="is_existing_user"/>
+                    <button name="action_create_portal_user" type="object"
+                            string="Update Credentials" class="btn-primary"
+                            invisible="not is_existing_user"/>
+                    <button name="action_deactivate_portal_user" type="object"
+                            string="Deactivate" class="btn-danger"
+                            invisible="not is_existing_user"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Progress Report Views -->
+    <record id="view_progress_report_list" model="ir.ui.view">
+        <field name="name">progress.report.list</field>
+        <field name="model">progress.report</field>
+        <field name="arch" type="xml">
+            <list string="Progress Reports">
+                <field name="report_date"/><field name="course_id"/><field name="student_id"/>
+                <field name="overall_rating"/><field name="score"/><field name="max_score"/><field name="tutor_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_progress_report_form" model="ir.ui.view">
+        <field name="name">progress.report.form</field>
+        <field name="model">progress.report</field>
+        <field name="arch" type="xml">
+            <form string="Progress Report">
+                <sheet>
+                    <group>
+                        <group string="Session Details">
+                            <field name="name"/><field name="course_id"/>
+                            <field name="class_schedule_occurrence_id" domain="[('course_id', '=', course_id)]"/>
+                            <field name="student_id"/><field name="tutor_id"/><field name="report_date"/>
+                        </group>
+                        <group string="Evaluation">
+                            <field name="overall_rating"/><field name="score"/><field name="max_score"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Feedback">
+                            <group>
+                                <field name="strengths" placeholder="What the student did well..."/>
+                                <field name="areas_for_improvement" placeholder="Areas that need work..."/>
+                                <field name="comments" placeholder="Additional comments..."/>
+                                <field name="homework_notes" placeholder="Homework or next steps..."/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Assignment Views -->
+    <record id="view_course_assignment_list" model="ir.ui.view">
+        <field name="name">course.assignment.list</field>
+        <field name="model">course.assignment</field>
+        <field name="arch" type="xml">
+            <list string="Assignments">
+                <field name="name"/><field name="course_id"/><field name="assignment_type"/>
+                <field name="assigned_date"/><field name="due_date"/><field name="status"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_course_assignment_form" model="ir.ui.view">
+        <field name="name">course.assignment.form</field>
+        <field name="model">course.assignment</field>
+        <field name="arch" type="xml">
+            <form string="Assignment">
+                <header><field name="status" widget="statusbar"/></header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/><field name="course_id"/><field name="assignment_type"/>
+                        </group>
+                        <group>
+                            <field name="assigned_date"/><field name="due_date"/><field name="status"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Description"><field name="description"/></page>
+                        <page string="Attachments"><field name="attachment_ids" widget="many2many_binary"/></page>
+                        <page string="Submissions">
+                            <field name="submission_ids">
+                                <list string="Submissions">
+                                    <field name="student_id"/><field name="submission_date"/>
+                                    <field name="status"/><field name="score"/><field name="max_score"/><field name="feedback"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Actions -->
+    <record id="action_progress_reports" model="ir.actions.act_window">
+        <field name="name">Progress Reports</field>
+        <field name="res_model">progress.report</field>
+        <field name="view_mode">list,form</field>
+    </record>
+    <record id="action_course_assignments" model="ir.actions.act_window">
+        <field name="name">Assignments</field>
+        <field name="res_model">course.assignment</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

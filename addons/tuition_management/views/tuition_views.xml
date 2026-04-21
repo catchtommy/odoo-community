@@ -1,1270 +1,243 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-<!-- Subject Category Views -->
-<record id="view_subject_category_list" model="ir.ui.view">
-<field name="name">subject.category.list</field>
-<field name="model">subject.category</field>
-<field name="arch" type="xml">
-<list>
-<field name="name"/>
-<field name="description"/>
-</list>
-</field>
-</record>
-
-<record id="view_subject_category_form" model="ir.ui.view">
-<field name="name">subject.category.form</field>
-<field name="model">subject.category</field>
-<field name="arch" type="xml">
-<form>
-<sheet>
-<group>
-<field name="name"/>
-<field name="description"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Subject Master Views -->
-<record id="view_subject_master_list" model="ir.ui.view">
-<field name="name">subject.master.list</field>
-<field name="model">subject.master</field>
-<field name="arch" type="xml">
-<list string="Subjects">
-<field name="category_id"/>
-<field name="name"/>
-<field name="description"/>
-</list>
-</field>
-</record>
-
-<record id="view_subject_master_form" model="ir.ui.view">
-<field name="name">subject.master.form</field>
-<field name="model">subject.master</field>
-<field name="arch" type="xml">
-<form>
-<sheet>
-<group>
-<field name="name"/>
-<field name="category_id"/>
-<field name="description"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Grade Master Views -->
-<record id="view_grade_master_list" model="ir.ui.view">
-<field name="name">grade.master.list</field>
-<field name="model">grade.master</field>
-<field name="arch" type="xml">
-<list>
-<field name="name"/>
-</list>
-</field>
-</record>
-
-<record id="view_grade_master_form" model="ir.ui.view">
-<field name="name">grade.master.form</field>
-<field name="model">grade.master</field>
-<field name="arch" type="xml">
-<form>
-<sheet>
-<group>
-<field name="name"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Student Profile Views -->
-<record id="view_student_profile_list" model="ir.ui.view">
-<field name="name">student.profile.list</field>
-<field name="model">student.profile</field>
-<field name="arch" type="xml">
-<list>
-<field name="name" string="Full Name"/>
-<field name="email"/>
-<field name="phone"/>
-<field name="grade_id"/>
-</list>
-</field>
-</record>
-
-<record id="view_student_profile_form" model="ir.ui.view">
-<field name="name">student.profile.form</field>
-<field name="model">student.profile</field>
-<field name="arch" type="xml">
-<form>
-<header>
-<button name="action_invite_to_portal" type="object" string="Invite to Portal" class="btn-primary" icon="fa-globe" invisible="has_portal_access or not id"/>
-</header>
-<sheet>
-<div class="oe_button_box" name="button_box">
-<button class="oe_stat_button" icon="fa-globe" invisible="not has_portal_access" disabled="1">
-<span class="o_stat_text text-success">Portal Active</span>
-</button>
-</div>
-<field name="has_portal_access" invisible="1"/>
-<group string="Personal Information">
-<field name="name" string="Full Name"/>
-<field name="email"/>
-<label for="phone" string="Phone Number"/>
-<div style="display: grid; grid-template-columns: 25% 75%; gap: 8px;">
-<field name="country_code" placeholder="Country Code"/>
-<field name="phone" class="o_field_char" placeholder="Phone Number"/>
-</div>
-<field name="timezone"/>
-</group>
-<group string="Academic Information">
-<field name="grade_id"/>
-<field name="subjects_ids" widget="many2many_tags"/>
-</group>
-<group string="Parent">
-<field name="parent_id"/>
-<button name="action_view_parent" type="object" string="View Parent" class="btn-link" icon="fa-external-link" invisible="not parent_id"/>
-</group>
-<group string="Address">
-<field name="address_line_1" placeholder="Address Line 1"/>
-<field name="address_line_2" placeholder="Address Line 2"/>
-<field name="address_line_3" placeholder="Address Line 3"/>
-<field name="address_line_4" placeholder="Address Line 4"/>
-<field name="zip_code"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Tutor Availability Views -->
-<record id="view_tutor_availability_list" model="ir.ui.view">
-<field name="name">tutor.availability.list</field>
-<field name="model">tutor.availability</field>
-<field name="arch" type="xml">
-<list string="Tutor Availability">
-<field name="tutor_id"/>
-<field name="day_of_week"/>
-<field name="start_time"/>
-<field name="end_time"/>
-</list>
-</field>
-</record>
-
-<record id="view_tutor_availability_form" model="ir.ui.view">
-<field name="name">tutor.availability.form</field>
-<field name="model">tutor.availability</field>
-<field name="arch" type="xml">
-<form string="Tutor Availability">
-<sheet>
-<group>
-<field name="tutor_id"/>
-<field name="day_of_week"/>
-<field name="start_time"/>
-<field name="end_time"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Tutor Profile Form View -->
-<record id="view_tutor_profile_form" model="ir.ui.view">
-<field name="name">tutor.profile.form</field>
-<field name="model">tutor.profile</field>
-<field name="arch" type="xml">
-<form>
-<header>
-<button name="action_invite_to_portal" type="object" string="Invite to Portal" class="btn-primary" icon="fa-globe" invisible="has_portal_access or not id"/>
-</header>
-<sheet>
-<div class="oe_button_box" name="button_box">
-<button class="oe_stat_button" icon="fa-globe" invisible="not has_portal_access" disabled="1">
-<span class="o_stat_text text-success">Portal Active</span>
-</button>
-</div>
-<field name="has_portal_access" invisible="1"/>
-<group string="Personal Information">
-<field name="name" string="Full Name"/>
-<field name="email"/>
-<label for="phone" string="Phone Number"/>
-<div style="display: grid; grid-template-columns: 25% 75%; gap: 8px;">
-<field name="country_code" placeholder="Country Code"/>
-<field name="phone" class="o_field_char" placeholder="Phone Number"/>
-</div>
-<field name="timezone"/>
-</group>
-<group string="Subjects">
-<field name="subject_ids" widget="many2many_tags"/>
-<field name="grade_ids" widget="many2many_tags"/>
-</group>
-<notebook>
-<page string="Availability">
-<field name="availability_ids">
-<list string="Availability" editable="bottom">
-<field name="day_of_week"/>
-<field name="start_time" widget="float_time"/>
-<field name="end_time" widget="float_time"/>
-</list>
-</field>
-</page>
-</notebook>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Parent Profile Views -->
-<record id="view_parent_profile_list" model="ir.ui.view">
-<field name="name">parent.profile.list</field>
-<field name="model">parent.profile</field>
-<field name="arch" type="xml">
-<list>
-<field name="name" string="Full Name"/>
-<field name="email"/>
-<field name="phone"/>
-</list>
-</field>
-</record>
-
-<record id="view_parent_profile_form" model="ir.ui.view">
-<field name="name">parent.profile.form</field>
-<field name="model">parent.profile</field>
-<field name="arch" type="xml">
-<form>
-<header>
-<button name="action_invite_to_portal" type="object" string="Invite to Portal" class="btn-primary" icon="fa-globe" invisible="has_portal_access or not id"/>
-</header>
-<sheet>
-<div class="oe_button_box" name="button_box">
-<button class="oe_stat_button" icon="fa-globe" invisible="not has_portal_access" disabled="1">
-<span class="o_stat_text text-success">Portal Active</span>
-</button>
-</div>
-<field name="has_portal_access" invisible="1"/>
-<group string="Personal Information">
-<field name="name" string="Full Name"/>
-<field name="email"/>
-<label for="phone" string="Phone Number"/>
-<div style="display: grid; grid-template-columns: 25% 75%; gap: 8px;">
-<field name="country_code" placeholder="Country Code"/>
-<field name="phone" class="o_field_char" placeholder="Phone Number"/>
-</div>
-<field name="timezone"/>
-</group>
-<group string="Address">
-<field name="address_line_1" placeholder="Address Line 1"/>
-<field name="address_line_2" placeholder="Address Line 2"/>
-<field name="address_line_3" placeholder="Address Line 3"/>
-<field name="address_line_4" placeholder="Address Line 4"/>
-<field name="zip_code"/>
-</group>
-<notebook>
-<page string="Students">
-<field name="student_ids"/>
-</page>
-</notebook>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Time Slot Views -->
-<record id="view_tuition_time_slot_tree" model="ir.ui.view">
-<field name="name">tuition.time.slot.tree</field>
-<field name="model">tuition.time.slot</field>
-<field name="arch" type="xml">
-<list>
-<field name="hour"/>
-<field name="minute"/>
-<field name="name"/>
-</list>
-</field>
-</record>
-
-<record id="view_tuition_time_slot_form" model="ir.ui.view">
-<field name="name">tuition.time.slot.form</field>
-<field name="model">tuition.time.slot</field>
-<field name="arch" type="xml">
-<form>
-<sheet>
-<group>
-<field name="hour"/>
-<field name="minute"/>
-<field name="name" readonly="1"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<record id="action_tuition_time_slots" model="ir.actions.act_window">
-<field name="name">Time Slots</field>
-<field name="res_model">tuition.time.slot</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Course Master Views -->
-<record id="view_course_master_list" model="ir.ui.view">
-<field name="name">course.master.list</field>
-<field name="model">course.master</field>
-<field name="arch" type="xml">
-<list string="Courses">
-<field name="name"/>
-<field name="subject_id"/>
-<field name="grade_id"/>
-<field name="status"/>
-</list>
-</field>
-</record>
-
-<record id="view_course_master_form" model="ir.ui.view">
-<field name="name">course.master.form</field>
-<field name="model">course.master</field>
-<field name="arch" type="xml">
-<form string="Course">
-<header>
-<button name="action_enroll_student" string="Enroll Student" type="object" class="btn-primary" icon="fa-user-plus"/>
-<button name="action_cancel_course" string="Cancel Course" type="object" class="btn-danger" icon="fa-times-circle" invisible="status == 'cancelled'" confirm="Are you sure you want to cancel this course?"/>
-<field name="status" widget="statusbar"/>
-</header>
-<sheet>
-<div class="oe_button_box" name="button_box">
-<button name="action_view_enrolled_students" type="object" class="oe_stat_button" icon="fa-users">
-<field name="student_count" string="Students" widget="statinfo"/>
-</button>
-<button name="action_view_schedule_calendar" type="object" class="oe_stat_button" icon="fa-calendar">
-<span>Course Calendar</span>
-</button>
-<button name="action_view_assignments" type="object" class="oe_stat_button" icon="fa-file-text">
-<span>Assignments</span>
-</button>
-<button name="action_view_progress_reports" type="object" class="oe_stat_button" icon="fa-bar-chart">
-<span>Progress Reports</span>
-</button>
-</div>
-<group>
-<group string="Course Information">
-<field name="name"/>
-<field name="subject_id"/>
-<field name="grade_id"/>
-<field name="tutor_id"/>
-<field name="coordinator_id"/>
-</group>
-<group string="Course Dates">
-<field name="start_date"/>
-<field name="end_date"/>
-<field name="status"/>
-</group>
-</group>
-<group>
-<group string="Virtual Classroom">
-<field name="virtual_class_platform"/>
-<field name="virtual_class_url" widget="url" placeholder="https://..."/>
-<field name="virtual_class_meeting_id" invisible="not virtual_class_platform"/>
-<field name="virtual_class_passcode" invisible="not virtual_class_platform"/>
-<field name="virtual_class_notes" invisible="not virtual_class_platform"/>
-</group>
-</group>
-<notebook>
-<page string="Lessons" name="lessons">
-<field name="occurrence_ids">
-<list string="Lessons" create="false" delete="false" editable="bottom">
-<field name="start_datetime" string="Lesson Time" readonly="1"/>
-<field name="tutor_id" string="Teacher"/>
-<field name="lesson_status" string="Status" readonly="1"/>
-<field name="is_rescheduled" string="Rescheduled" readonly="1"/>
-<field name="cancellation_reason" string="Cancel Reason" readonly="1" optional="hide"/>
-<field name="attendance_marked" string="Attendance Marked"/>
-<button name="action_mark_attendance" type="object" string="Mark Attendance" class="btn-link" icon="fa-check-square-o"/>
-<button name="action_cancel_lesson" type="object" string="Cancel Lesson" class="btn-link text-warning" icon="fa-ban" invisible="lesson_status == 'cancelled'"/>
-</list>
-</field>
-</page>
-<page string="Students" name="students">
-<field name="enrollment_ids">
-<list string="Enrolled Students">
-<field name="student_id" string="Student Name"/>
-<field name="subscription_id"/>
-<field name="status"/>
-</list>
-</field>
-</page>
-<page string="Schedules" name="schedules">
-<field name="schedule_ids"/>
-</page>
-<page string="Progress Reports" name="progress_reports">
-<div class="mb-2">
-<button name="action_add_progress_report" type="object" string="Add Progress Report" class="btn-primary" icon="fa-plus"/>
-</div>
-<field name="progress_report_ids">
-<list string="Progress Reports" create="false">
-<field name="report_date"/>
-<field name="student_id"/>
-<field name="overall_rating"/>
-<field name="score"/>
-<field name="max_score"/>
-<field name="tutor_id"/>
-</list>
-</field>
-</page>
-<page string="Assignments" name="assignments">
-<field name="assignment_ids">
-<list string="Assignments">
-<field name="name"/>
-<field name="assignment_type"/>
-<field name="assigned_date"/>
-<field name="due_date"/>
-<field name="status"/>
-</list>
-</field>
-</page>
-</notebook>
-</sheet>
-</form>
-</field>
-</record>
-
-<record id="action_course_masters" model="ir.actions.act_window">
-<field name="name">Courses</field>
-<field name="res_model">course.master</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Course Enrollment Views -->
-<record id="view_course_enrollment_form" model="ir.ui.view">
-<field name="name">course.enrollment.form</field>
-<field name="model">course.enrollment</field>
-<field name="arch" type="xml">
-<form string="Enrollment">
-<sheet>
-<group>
-<group string="Enrollment">
-<field name="name"/>
-<field name="course_id"/>
-<field name="student_id" string="Student Name"/>
-<field name="status"/>
-</group>
-<group string="Subscription">
-<field name="subscription_id" domain="[('student_id', '=', student_id)]" options="{'no_quick_create': True}" context="{'default_student_id': student_id, 'default_enrollment_id': id}"/>
-<button name="action_create_subscription" type="object" string="+ Create Subscription" class="btn-link ps-0" icon="fa-plus" invisible="subscription_id or not student_id"/>
-<field name="sub_plan_name" string="Current Plan" readonly="1" invisible="not subscription_id"/>
-<field name="sub_price" string="Monthly Price" readonly="1" widget="monetary" invisible="not subscription_id"/>
-<field name="sub_state" string="Status" readonly="1" invisible="not subscription_id"/>
-<field name="sub_next_billing" string="Next Billing" readonly="1" invisible="not subscription_id"/>
-</group>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<record id="view_course_enrollment_list" model="ir.ui.view">
-<field name="name">course.enrollment.list</field>
-<field name="model">course.enrollment</field>
-<field name="arch" type="xml">
-<list string="Enrollments">
-<field name="name"/>
-<field name="course_id"/>
-<field name="student_id" string="Student Name"/>
-<field name="subscription_id"/>
-<field name="status"/>
-</list>
-</field>
-</record>
-
-<record id="action_course_enrollments" model="ir.actions.act_window">
-<field name="name">Enrollments</field>
-<field name="res_model">course.enrollment</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Class Schedule Views - Read Only -->
-<record id="view_class_schedule_list" model="ir.ui.view">
-<field name="name">class.schedule.list</field>
-<field name="model">class.schedule</field>
-<field name="arch" type="xml">
-<list string="Class Schedules">
-<field name="course_id"/>
-<field name="schedule_type"/>
-<field name="schedule_hour"/>
-<field name="schedule_minute"/>
-<field name="timezone"/>
-<field name="status"/>
-</list>
-</field>
-</record>
-
-<record id="view_class_schedule_form" model="ir.ui.view">
-<field name="name">class.schedule.form</field>
-<field name="model">class.schedule</field>
-<field name="arch" type="xml">
-<form string="Class Schedule">
-<header>
-<button name="action_delete_schedule" type="object" string="Delete Schedule" class="btn-danger" icon="fa-trash" invisible="not id"/>
-</header>
-<sheet>
-<group>
-<field name="course_id"/>
-<field name="schedule_type"/>
-<field name="schedule_hour" string="Hour (00-23)"/>
-<field name="schedule_minute" string="Minute (00-59)"/>
-<field name="schedule_duration" string="Duration (Minutes)"/>
-<field name="timezone"/>
-<field name="status"/>
-</group>
-<group string="Days of Week">
-<field name="monday"/>
-<field name="tuesday"/>
-<field name="wednesday"/>
-<field name="thursday"/>
-<field name="friday"/>
-<field name="saturday"/>
-<field name="sunday"/>
-</group>
-<group string="Recurrence Period">
-<field name="start_date"/>
-<field name="end_date"/>
-</group>
-<group string="Tutor Selection" invisible="not course_id">
-<field name="no_tutor_available" invisible="1"/>
-<field name="available_tutor_ids" invisible="1"/>
-<field name="fallback_tutor_ids" invisible="1"/>
-<div colspan="2" invisible="no_tutor_available">
-<p class="text-muted mb-1"><i class="fa fa-check-circle text-success"/> Tutors available for the selected day(s) and time:</p>
-<field name="available_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
-</div>
-<div colspan="2" invisible="not no_tutor_available">
-<div class="alert alert-warning mb-2" role="alert">
-<i class="fa fa-exclamation-triangle"/> <strong>No tutors available</strong> for the selected schedule. Below are all tutors matching the course subject/grade — you may select one manually.
-</div>
-<field name="fallback_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
-</div>
-<field name="tutor_id" string="Assign Tutor"/>
-</group>
-<group string="Tutor Selection" invisible="course_id">
-<field name="tutor_id" string="Assign Tutor"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Class Schedule Occurrence Calendar View -->
-<record id="view_class_schedule_occurrence_calendar" model="ir.ui.view">
-<field name="name">class.schedule.occurrence.calendar</field>
-<field name="model">class.schedule.occurrence</field>
-<field name="arch" type="xml">
-<calendar string="Class Schedules" date_start="start_datetime" date_stop="stop_datetime" color="course_id" mode="month" event_open_popup="true" quick_create="false">
-<field name="name"/>
-<field name="course_id"/>
-<field name="tutor_id"/>
-</calendar>
-</field>
-</record>
-
-<!-- Class Schedule Occurrence List View -->
-<record id="view_class_schedule_occurrence_list" model="ir.ui.view">
-<field name="name">class.schedule.occurrence.list</field>
-<field name="model">class.schedule.occurrence</field>
-<field name="arch" type="xml">
-<list string="Schedule Occurrences" create="false" edit="false">
-<field name="name"/>
-<field name="course_id"/>
-<field name="tutor_id"/>
-<field name="start_datetime"/>
-<field name="stop_datetime"/>
-<field name="lesson_status"/>
-<field name="attendance_marked"/>
-</list>
-</field>
-</record>
-
-<!-- Action to create a new class schedule (must be defined before the form that references it) -->
-<record id="action_new_class_schedule" model="ir.actions.act_window">
-<field name="name">New Schedule</field>
-<field name="res_model">class.schedule</field>
-<field name="view_mode">form</field>
-<field name="target">new</field>
-</record>
-
-<!-- Class Schedule Occurrence Form View -->
-<record id="view_class_schedule_occurrence_form" model="ir.ui.view">
-<field name="name">class.schedule.occurrence.form</field>
-<field name="model">class.schedule.occurrence</field>
-<field name="arch" type="xml">
-<form string="Schedule Occurrence" create="false" edit="false">
-<header>
-<button name="%(action_new_class_schedule)d" type="action" string="New Schedule" class="btn-primary" icon="fa-plus"/>
-</header>
-<sheet>
-<group>
-<field name="name"/>
-<field name="schedule_id"/>
-<field name="course_id"/>
-<field name="tutor_id"/>
-<field name="start_datetime"/>
-<field name="stop_datetime"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<record id="action_class_schedules" model="ir.actions.act_window">
-<field name="name">Class Schedules</field>
-<field name="res_model">class.schedule</field>
-<field name="view_mode">list,form</field>
-<field name="help" type="html">
-<p class="o_view_nocontent_smiling_face">
-Create your first class schedule
-</p>
-</field>
-</record>
-
-<!-- Class Schedule Occurrences Calendar Action -->
-<record id="action_class_schedule_calendar" model="ir.actions.act_window">
-<field name="name">Schedule Calendar</field>
-<field name="res_model">class.schedule.occurrence</field>
-<field name="view_mode">calendar,list,form</field>
-</record>
-
-<!-- Mark Attendance Wizard -->
-<record id="view_mark_attendance_wizard_form" model="ir.ui.view">
-<field name="name">mark.attendance.wizard.form</field>
-<field name="model">mark.attendance.wizard</field>
-<field name="arch" type="xml">
-<form string="Mark Attendance">
-<group>
-<field name="occurrence_id" readonly="1"/>
-</group>
-<separator string="Student Attendance"/>
-<field name="line_ids">
-<list string="Students" editable="bottom" delete="true" create="false">
-<field name="student_id" readonly="1"/>
-<field name="status"/>
-<field name="billable"/>
-<field name="remarks"/>
-</list>
-</field>
-<footer>
-<button name="action_confirm" type="object" string="Confirm Attendance" class="btn-primary"/>
-<button string="Cancel" class="btn-secondary" special="cancel"/>
-</footer>
-</form>
-</field>
-</record>
-
-<!-- Attendance Record Views -->
-<record id="view_attendance_record_list" model="ir.ui.view">
-<field name="name">attendance.record.list</field>
-<field name="model">attendance.record</field>
-<field name="arch" type="xml">
-<list string="Attendance Records" create="true">
-<field name="class_schedule_occurrence_id"/>
-<field name="student_id"/>
-<field name="attendance_date"/>
-<field name="status"/>
-<field name="billable"/>
-</list>
-</field>
-</record>
-
-<record id="view_attendance_record_form" model="ir.ui.view">
-<field name="name">attendance.record.form</field>
-<field name="model">attendance.record</field>
-<field name="arch" type="xml">
-<form string="Attendance Record">
-<sheet>
-<group>
-<field name="class_schedule_occurrence_id"/>
-<field name="course_id" readonly="1"/>
-<field name="tutor_id" readonly="1"/>
-<field name="student_id"/>
-<field name="attendance_date"/>
-<field name="status"/>
-<field name="billable"/>
-<field name="remarks"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Action for Attendance -->
-<record id="action_attendance_records" model="ir.actions.act_window">
-<field name="name">Attendance</field>
-<field name="res_model">attendance.record</field>
-<field name="view_mode">list,form</field>
-<field name="context">{'create': True}</field>
-<field name="help" type="html">
-<p class="o_view_nocontent_smiling_face">
-Create your first attendance record
-</p>
-</field>
-</record>
-
-<!-- Subject Master Action -->
-
-<!-- Progress Report Views -->
-<record id="view_progress_report_list" model="ir.ui.view">
-<field name="name">progress.report.list</field>
-<field name="model">progress.report</field>
-<field name="arch" type="xml">
-<list string="Progress Reports">
-<field name="report_date"/>
-<field name="course_id"/>
-<field name="student_id"/>
-<field name="overall_rating"/>
-<field name="score"/>
-<field name="max_score"/>
-<field name="tutor_id"/>
-</list>
-</field>
-</record>
-
-<record id="view_progress_report_form" model="ir.ui.view">
-<field name="name">progress.report.form</field>
-<field name="model">progress.report</field>
-<field name="arch" type="xml">
-<form string="Progress Report">
-<sheet>
-<group>
-<group string="Session Details">
-<field name="name"/>
-<field name="course_id"/>
-<field name="class_schedule_occurrence_id" domain="[('course_id', '=', course_id)]"/>
-<field name="student_id"/>
-<field name="tutor_id"/>
-<field name="report_date"/>
-</group>
-<group string="Evaluation">
-<field name="overall_rating"/>
-<field name="score"/>
-<field name="max_score"/>
-</group>
-</group>
-<notebook>
-<page string="Feedback">
-<group>
-<field name="strengths" placeholder="What the student did well..."/>
-<field name="areas_for_improvement" placeholder="Areas that need work..."/>
-<field name="comments" placeholder="Additional comments..."/>
-<field name="homework_notes" placeholder="Homework or next steps..."/>
-</group>
-</page>
-</notebook>
-</sheet>
-</form>
-</field>
-</record>
-
-<record id="action_progress_reports" model="ir.actions.act_window">
-<field name="name">Progress Reports</field>
-<field name="res_model">progress.report</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Course Assignment Views -->
-<record id="view_course_assignment_list" model="ir.ui.view">
-<field name="name">course.assignment.list</field>
-<field name="model">course.assignment</field>
-<field name="arch" type="xml">
-<list string="Assignments">
-<field name="name"/>
-<field name="course_id"/>
-<field name="assignment_type"/>
-<field name="assigned_date"/>
-<field name="due_date"/>
-<field name="status"/>
-</list>
-</field>
-</record>
-
-<record id="view_course_assignment_form" model="ir.ui.view">
-<field name="name">course.assignment.form</field>
-<field name="model">course.assignment</field>
-<field name="arch" type="xml">
-<form string="Assignment">
-<header>
-<field name="status" widget="statusbar"/>
-</header>
-<sheet>
-<group>
-<group>
-<field name="name"/>
-<field name="course_id"/>
-<field name="assignment_type"/>
-</group>
-<group>
-<field name="assigned_date"/>
-<field name="due_date"/>
-<field name="status"/>
-</group>
-</group>
-<notebook>
-<page string="Description">
-<field name="description"/>
-</page>
-<page string="Attachments">
-<field name="attachment_ids" widget="many2many_binary"/>
-</page>
-<page string="Submissions">
-<field name="submission_ids">
-<list string="Submissions">
-<field name="student_id"/>
-<field name="submission_date"/>
-<field name="status"/>
-<field name="score"/>
-<field name="max_score"/>
-<field name="feedback"/>
-</list>
-</field>
-</page>
-</notebook>
-</sheet>
-</form>
-</field>
-</record>
-
-<record id="action_course_assignments" model="ir.actions.act_window">
-<field name="name">Assignments</field>
-<field name="res_model">course.assignment</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Subject Master Action -->
-<record id="action_subject_masters" model="ir.actions.act_window">
-<field name="name">Subjects</field>
-<field name="res_model">subject.master</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Subject Category Action -->
-<record id="action_subject_categories" model="ir.actions.act_window">
-<field name="name">Subject Categories</field>
-<field name="res_model">subject.category</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Grade Master Action -->
-<record id="action_grade_masters" model="ir.actions.act_window">
-<field name="name">Grades</field>
-<field name="res_model">grade.master</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Student Profile Action -->
-<record id="action_student_profiles" model="ir.actions.act_window">
-<field name="name">Students</field>
-<field name="res_model">student.profile</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Tutor Profile Action -->
-<record id="action_tutor_profiles" model="ir.actions.act_window">
-<field name="name">Tutors</field>
-<field name="res_model">tutor.profile</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Parent Profile Action -->
-<record id="action_parent_profiles" model="ir.actions.act_window">
-<field name="name">Parents</field>
-<field name="res_model">parent.profile</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Tutor Availability Action -->
-<record id="action_tutor_availability" model="ir.actions.act_window">
-<field name="name">Tutor Availability</field>
-<field name="res_model">tutor.availability</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Enquiry Views -->
-<record id="view_enquiry_form" model="ir.ui.view">
-<field name="name">enquiry.form</field>
-<field name="model">enquiry</field>
-<field name="arch" type="xml">
-<form string="Enquiry">
-<header>
-<field name="is_enrolled_stage" invisible="1"/>
-<field name="is_enrolled" invisible="1"/>
-<button name="action_enroll_to_course" type="object" string="Convert to Course" class="btn-primary" icon="fa-graduation-cap" invisible="not is_enrolled_stage or is_enrolled"/>
-</header>
-<div class="alert alert-success" role="status" invisible="not is_enrolled">
-<strong><i class="fa fa-check-circle"/> Enrolled!</strong> This enquiry has been converted to a course enrollment.
-</div>
-<div class="alert alert-info" role="status">
-<field name="stage_id" nolabel="1" widget="statusbar" options="{'clickable': True}" readonly="is_enrolled"/>
-</div>
-<sheet>
-<div class="oe_button_box" name="button_box">
-<button name="action_delete_enquiry" type="object" class="oe_stat_button" icon="fa-trash" invisible="not id or is_enrolled" confirm="Are you sure you want to permanently delete this enquiry?">
-<span>Discard</span>
-</button>
-</div>
-<group string="Course Information" invisible="not is_enrolled">
-<field name="course_id"/>
-<field name="enrollment_id"/>
-<field name="parent_profile_id"/>
-<field name="student_profile_id"/>
-</group>
-<group string="Enquiry Information">
-<field name="enquiry_name" readonly="1"/>
-<field name="enquiry_date" readonly="is_enrolled"/>
-</group>
-<group string="Parent Information">
-<field name="name" string="Parent Name" readonly="is_enrolled"/>
-<field name="email" readonly="is_enrolled"/>
-<field name="partner_id" readonly="is_enrolled"/>
-<label for="phone" string="Phone Number"/>
-<div style="display: grid; grid-template-columns: 25% 75%; gap: 8px;">
-<field name="country_code" placeholder="Country Code" readonly="is_enrolled"/>
-<field name="phone" class="o_field_char" placeholder="Phone Number" readonly="is_enrolled"/>
-</div>
-</group>
-<group string="Student Information">
-<field name="student_name" readonly="is_enrolled"/>
-</group>
-<group string="Academic Information">
-<field name="subject_id" readonly="is_enrolled"/>
-<field name="grade_id" readonly="is_enrolled"/>
-</group>
-<group string="Demo Sessions">
-<field name="demo_session_ids" readonly="is_enrolled"/>
-</group>
-<group string="Notes">
-<field name="notes" nolabel="1" readonly="is_enrolled"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<!-- Enquiry List View -->
-<record id="view_enquiry_list" model="ir.ui.view">
-<field name="name">enquiry.list</field>
-<field name="model">enquiry</field>
-<field name="arch" type="xml">
-<list string="Enquiries">
-<field name="enquiry_name"/>
-<field name="name" string="Parent Name"/>
-<field name="student_name"/>
-<field name="email"/>
-<field name="phone"/>
-<field name="subject_id"/>
-<field name="grade_id"/>
-<field name="stage_id"/>
-</list>
-</field>
-</record>
-
-<!-- Demo Session Views -->
-<record id="view_demo_session_list" model="ir.ui.view">
-<field name="name">demo.session.list</field>
-<field name="model">demo.session</field>
-<field name="arch" type="xml">
-<list string="Demo Sessions">
-<field name="enquiry_id"/>
-<field name="subject_id"/>
-<field name="tutor_id"/>
-<field name="scheduled_datetime"/>
-<field name="duration_minutes"/>
-<field name="status"/>
-<field name="rating"/>
-</list>
-</field>
-</record>
-
-<record id="view_demo_session_form" model="ir.ui.view">
-<field name="name">demo.session.form</field>
-<field name="model">demo.session</field>
-<field name="arch" type="xml">
-<form string="Demo Session">
-<sheet>
-<group>
-<field name="enquiry_id"/>
-<field name="subject_id"/>
-<field name="tutor_id"/>
-</group>
-<group>
-<field name="scheduled_datetime"/>
-<field name="timezone"/>
-<field name="duration_minutes" string="Duration (Minutes)"/>
-</group>
-<group>
-<field name="status"/>
-<field name="rating"/>
-</group>
-<group string="Feedback">
-<field name="feedback" nolabel="1" widget="text" colspan="2" style="width: 100%; min-height: 200px;"/>
-</group>
-</sheet>
-</form>
-</field>
-</record>
-
-<record id="action_demo_sessions" model="ir.actions.act_window">
-<field name="name">Demo Sessions</field>
-<field name="res_model">demo.session</field>
-<field name="view_mode">list,form</field>
-</record>
-
-<!-- Enquiry Kanban View -->
-<record id="view_enquiry_kanban" model="ir.ui.view">
-<field name="name">enquiry.kanban</field>
-<field name="model">enquiry</field>
-<field name="arch" type="xml">
-<kanban default_group_by="stage_id" class="o_kanban_small_column" quick_create="false">
-<field name="enquiry_name"/>
-<field name="name"/>
-<field name="student_name"/>
-<field name="email"/>
-<field name="phone"/>
-<field name="subject_id"/>
-<field name="grade_id"/>
-<field name="stage_id"/>
-<field name="enquiry_date"/>
-<templates>
-<t t-name="card">
-<div class="oe_kanban_content">
-<div class="o_kanban_record_top mb-0">
-<div class="o_kanban_record_headings">
-<strong class="o_kanban_record_title">
-<field name="enquiry_name"/>
-</strong>
-</div>
-</div>
-<div class="o_kanban_record_body">
-<div class="mb-1">
-<strong>Parent:</strong> <field name="name"/>
-</div>
-<div class="mb-1">
-<strong>Student:</strong> <field name="student_name"/>
-</div>
-<div class="mb-1" t-if="record.subject_id.value">
-<strong>Subject:</strong> <field name="subject_id"/>
-</div>
-<div class="mb-1" t-if="record.grade_id.value">
-<strong>Grade:</strong> <field name="grade_id"/>
-</div>
-<div class="text-muted" t-if="record.email.value">
-<i class="fa fa-envelope me-1" title="Email"/><field name="email"/>
-</div>
-<div class="text-muted" t-if="record.phone.value">
-<i class="fa fa-phone me-1" title="Phone"/><field name="phone"/>
-</div>
-</div>
-<div class="o_kanban_record_bottom">
-<div class="oe_kanban_bottom_left">
-<field name="enquiry_date" widget="date"/>
-</div>
-</div>
-</div>
-</t>
-</templates>
-</kanban>
-</field>
-</record>
-
-<!-- Enquiry Quick Create Form -->
-<record id="view_enquiry_form_quick_create" model="ir.ui.view">
-<field name="name">enquiry.form.quick_create</field>
-<field name="model">enquiry</field>
-<field name="arch" type="xml">
-<form>
-<group>
-<field name="enquiry_name" placeholder="e.g., SAT Enquiry for John"/>
-<field name="name" string="Parent Name" placeholder="Parent Full Name"/>
-<field name="student_name" placeholder="Student Full Name"/>
-<field name="partner_id"/>
-<field name="email" placeholder="Email"/>
-<field name="phone" placeholder="Phone"/>
-<field name="subject_id"/>
-<field name="grade_id"/>
-</group>
-</form>
-</field>
-</record>
-
-<!-- Enquiry Action -->
-<record id="action_enquiry" model="ir.actions.act_window">
-<field name="name">Enquiries</field>
-<field name="res_model">enquiry</field>
-<field name="view_mode">kanban,list,form</field>
-</record>
-
-<!-- Course Cancel Confirmation Wizard -->
-<record id="view_course_cancel_wizard_form" model="ir.ui.view">
-<field name="name">course.cancel.wizard.form</field>
-<field name="model">course.cancel.wizard</field>
-<field name="arch" type="xml">
-<form string="Confirm Course Cancellation">
-<field name="course_id" invisible="1"/>
-<div class="alert alert-warning" role="alert">
-<strong><i class="fa fa-exclamation-triangle"/> Warning</strong>
-<p><field name="message" nolabel="1" readonly="1"/></p>
-</div>
-<group string="Schedules Without Attendance">
-<field name="line_ids" nolabel="1" readonly="1">
-<list string="Unmarked Schedules" create="false" delete="false">
-<field name="schedule_date" string="Date"/>
-<field name="lesson_name" string="Session"/>
-<field name="tutor_name" string="Tutor"/>
-</list>
-</field>
-</group>
-<div class="alert alert-danger mt-2" role="alert">
-<strong>On cancellation:</strong>
-<ul class="mb-0">
-<li>All future schedules will be cancelled</li>
-<li>Unmarked past schedules (listed above) will be cancelled</li>
-<li>All enrolments will be cancelled</li>
-<li>All linked subscriptions will be cancelled</li>
-</ul>
-</div>
-<footer>
-<button name="action_confirm_cancel" type="object" string="Confirm Cancellation" class="btn-danger"/>
-<button name="action_discard" type="object" string="Go Back" class="btn-secondary"/>
-</footer>
-</form>
-</field>
-</record>
-
-<!-- Portal Access Wizard Form -->
-<record id="view_portal_access_wizard_form" model="ir.ui.view">
-<field name="name">portal.access.wizard.form</field>
-<field name="model">portal.access.wizard</field>
-<field name="arch" type="xml">
-<form string="Manage Portal Access">
-<field name="profile_model" invisible="1"/>
-<field name="profile_id" invisible="1"/>
-<field name="is_existing_user" invisible="1"/>
-<field name="existing_user_id" invisible="1"/>
-<group>
-<field name="name" readonly="1"/>
-<field name="email" readonly="1"/>
-<field name="login"/>
-</group>
-<group string="Password">
-<field name="password"/>
-<field name="confirm_password"/>
-<div colspan="2">
-<button name="action_generate_password" type="object" string="🔄 Generate New Password" class="btn-link ps-0"/>
-</div>
-</group>
-<footer>
-<button name="action_create_portal_user" type="object" string="Activate Portal Access" class="btn-primary" invisible="is_existing_user"/>
-<button name="action_create_portal_user" type="object" string="Update Credentials" class="btn-primary" invisible="not is_existing_user"/>
-<button name="action_deactivate_portal_user" type="object" string="Deactivate" class="btn-danger" invisible="not is_existing_user"/>
-<button string="Cancel" class="btn-secondary" special="cancel"/>
-</footer>
-</form>
-</field>
-</record>
-
-<!-- Schedule Delete Confirmation Wizard -->
-
-<!-- Cancel Lesson Wizard -->
-<record id="view_cancel_lesson_wizard_form" model="ir.ui.view">
-<field name="name">cancel.lesson.wizard.form</field>
-<field name="model">cancel.lesson.wizard</field>
-<field name="arch" type="xml">
-<form string="Cancel Lesson">
-<field name="occurrence_id" invisible="1"/>
-<group>
-<field name="reason" required="1"/>
-<field name="note"/>
-</group>
-<group string="Reschedule">
-<field name="reschedule"/>
-<field name="new_date" invisible="not reschedule" required="reschedule"/>
-<field name="new_tutor_id" invisible="not reschedule"/>
-</group>
-<footer>
-<button name="action_confirm_cancel" type="object" string="Confirm Cancellation" class="btn-danger"/>
-<button string="Discard" special="cancel" class="btn-secondary"/>
-</footer>
-</form>
-</field>
-</record>
-
-<!-- Schedule Delete Confirmation Wizard -->
-<record id="view_schedule_delete_wizard_form" model="ir.ui.view">
-<field name="name">schedule.delete.wizard.form</field>
-<field name="model">schedule.delete.wizard</field>
-<field name="arch" type="xml">
-<form string="Confirm Schedule Deletion">
-<field name="schedule_id" invisible="1"/>
-<div class="alert alert-warning" role="alert">
-<strong><i class="fa fa-exclamation-triangle"/> Warning</strong>
-<p><field name="message" nolabel="1" readonly="1"/></p>
-</div>
-<group string="Past Lessons Without Attendance">
-<field name="line_ids" nolabel="1" readonly="1">
-<list string="Unmarked Lessons" create="false" delete="false">
-<field name="lesson_date" string="Date"/>
-<field name="lesson_name" string="Lesson"/>
-<field name="tutor_name" string="Tutor"/>
-</list>
-</field>
-</group>
-<div class="alert alert-danger mt-2" role="alert">
-<strong>On deletion:</strong>
-<ul class="mb-0">
-<li>All past lessons without attendance (listed above) will be permanently deleted</li>
-<li>All future lessons without attendance will be permanently deleted</li>
-<li>Lessons with recorded attendance will be kept</li>
-<li>The schedule itself will be deleted</li>
-</ul>
-</div>
-<footer>
-<button name="action_confirm_delete" type="object" string="Delete Schedule" class="btn-danger"/>
-<button name="action_cancel" type="object" string="Go Back" class="btn-secondary"/>
-</footer>
-</form>
-</field>
-</record>
-
-<!-- Dashboard Client Action contd -->
-<record id="action_tuition_dashboard" model="ir.actions.client">
-<field name="name">Dashboard</field>
-<field name="tag">tuition_dashboard</field>
-</record>
-
-<!-- Top Level Admin Menus -->
-<menuitem id="menu_tuition_root" name="Tuition" sequence="50"/>
-<menuitem id="menu_tuition_dashboard" name="Dashboard" parent="menu_tuition_root" action="action_tuition_dashboard" sequence="1"/>
-
-<!-- Scheduling Menu -->
-<menuitem id="menu_tuition_scheduling" name="Scheduling" parent="menu_tuition_root" sequence="10"/>
-<menuitem id="menu_tuition_courses" name="Courses" parent="menu_tuition_scheduling" action="action_course_masters"/>
-<menuitem id="menu_tuition_enrollments" name="Enrollments" parent="menu_tuition_scheduling" action="action_course_enrollments"/>
-<menuitem id="menu_tuition_class_schedules" name="Class Schedules" parent="menu_tuition_scheduling" action="action_class_schedules"/>
-<menuitem id="menu_tuition_schedule_calendar" name="Schedule Calendar" parent="menu_tuition_scheduling" action="action_class_schedule_calendar"/>
-<menuitem id="menu_tuition_demo_sessions" name="Demo Sessions" parent="menu_tuition_scheduling" action="action_demo_sessions"/>
-<menuitem id="menu_tuition_attendance" name="Attendance" parent="menu_tuition_scheduling" action="action_attendance_records"/>
-<menuitem id="menu_tuition_progress_reports" name="Progress Reports" parent="menu_tuition_scheduling" action="action_progress_reports"/>
-<menuitem id="menu_tuition_assignments" name="Assignments" parent="menu_tuition_scheduling" action="action_course_assignments"/>
-<menuitem id="menu_tuition_tutor_availability" name="Tutor Availability" parent="menu_tuition_scheduling" action="action_tutor_availability"/>
-
-<!-- Enquiries Menu -->
-<menuitem id="menu_tuition_enquiries" name="Enquiries" parent="menu_tuition_root" sequence="20" action="action_enquiry"/>
-
-<!-- User Management Menu -->
-<menuitem id="menu_tuition_users" name="Users" parent="menu_tuition_root" sequence="30"/>
-<menuitem id="menu_tuition_students" name="Students" parent="menu_tuition_users" action="action_student_profiles"/>
-<menuitem id="menu_tuition_tutors" name="Tutors" parent="menu_tuition_users" action="action_tutor_profiles"/>
-<menuitem id="menu_tuition_parents" name="Parents" parent="menu_tuition_users" action="action_parent_profiles"/>
-
-<!-- Settings Menu -->
-<menuitem id="menu_tuition_settings" name="Settings" parent="menu_tuition_root" sequence="40"/>
-<menuitem id="menu_tuition_subjects" name="Subjects" parent="menu_tuition_settings" action="action_subject_masters"/>
-<menuitem id="menu_tuition_subject_categories" name="Subject Categories" parent="menu_tuition_settings" action="action_subject_categories"/>
-<menuitem id="menu_tuition_grades" name="Grades" parent="menu_tuition_settings" action="action_grade_masters"/>
+    <!-- Enquiry Views -->
+    <record id="view_enquiry_form" model="ir.ui.view">
+        <field name="name">enquiry.form</field>
+        <field name="model">enquiry</field>
+        <field name="arch" type="xml">
+            <form string="Enquiry">
+                <header>
+                    <field name="is_enrolled_stage" invisible="1"/>
+                    <field name="is_enrolled" invisible="1"/>
+                    <button name="action_enroll_to_course" type="object" string="Convert to Course" class="btn-primary" icon="fa-graduation-cap" invisible="not is_enrolled_stage or is_enrolled"/>
+                </header>
+                <div class="alert alert-success" role="status" invisible="not is_enrolled">
+                    <strong><i class="fa fa-check-circle"/> Enrolled!</strong> This enquiry has been converted to a course enrollment.
+                </div>
+                <div class="alert alert-info" role="status">
+                    <field name="stage_id" nolabel="1" widget="statusbar" options="{'clickable': True}" readonly="is_enrolled"/>
+                </div>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_delete_enquiry" type="object" class="oe_stat_button" icon="fa-trash" invisible="not id or is_enrolled" confirm="Are you sure you want to permanently delete this enquiry?">
+                            <span>Discard</span>
+                        </button>
+                    </div>
+                    <group string="Course Information" invisible="not is_enrolled">
+                        <field name="course_id"/><field name="enrollment_id"/>
+                        <field name="parent_profile_id"/><field name="student_profile_id"/>
+                    </group>
+                    <group string="Enquiry Information">
+                        <field name="enquiry_name" readonly="1"/>
+                        <field name="enquiry_date" readonly="is_enrolled"/>
+                    </group>
+                    <group string="Parent Information">
+                        <field name="name" string="Parent Name" readonly="is_enrolled"/>
+                        <field name="email" readonly="is_enrolled"/>
+                        <field name="partner_id" readonly="is_enrolled"/>
+                        <label for="phone" string="Phone Number"/>
+                        <div style="display: grid; grid-template-columns: 25% 75%; gap: 8px;">
+                            <field name="country_code" placeholder="Country Code" readonly="is_enrolled"/>
+                            <field name="phone" class="o_field_char" placeholder="Phone Number" readonly="is_enrolled"/>
+                        </div>
+                    </group>
+                    <group string="Student Information">
+                        <field name="student_name" readonly="is_enrolled"/>
+                    </group>
+                    <group string="Academic Information">
+                        <field name="subject_id" readonly="is_enrolled"/>
+                        <field name="grade_id" readonly="is_enrolled"/>
+                    </group>
+                    <group string="Demo Sessions">
+                        <field name="demo_session_ids" readonly="is_enrolled"/>
+                    </group>
+                    <group string="Notes">
+                        <field name="notes" nolabel="1" readonly="is_enrolled"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="view_enquiry_list" model="ir.ui.view">
+        <field name="name">enquiry.list</field>
+        <field name="model">enquiry</field>
+        <field name="arch" type="xml">
+            <list string="Enquiries">
+                <field name="enquiry_name"/><field name="name" string="Parent Name"/>
+                <field name="student_name"/><field name="email"/><field name="phone"/>
+                <field name="subject_id"/><field name="grade_id"/><field name="stage_id"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_enquiry_kanban" model="ir.ui.view">
+        <field name="name">enquiry.kanban</field>
+        <field name="model">enquiry</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="stage_id" class="o_kanban_small_column" quick_create="false">
+                <field name="enquiry_name"/><field name="name"/><field name="student_name"/>
+                <field name="email"/><field name="phone"/><field name="subject_id"/>
+                <field name="grade_id"/><field name="stage_id"/><field name="enquiry_date"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_content">
+                            <div class="o_kanban_record_top mb-0">
+                                <div class="o_kanban_record_headings">
+                                    <strong class="o_kanban_record_title"><field name="enquiry_name"/></strong>
+                                </div>
+                            </div>
+                            <div class="o_kanban_record_body">
+                                <div class="mb-1"><strong>Parent:</strong> <field name="name"/></div>
+                                <div class="mb-1"><strong>Student:</strong> <field name="student_name"/></div>
+                                <div class="mb-1" t-if="record.subject_id.value"><strong>Subject:</strong> <field name="subject_id"/></div>
+                                <div class="mb-1" t-if="record.grade_id.value"><strong>Grade:</strong> <field name="grade_id"/></div>
+                                <div class="text-muted" t-if="record.email.value"><i class="fa fa-envelope me-1"/><field name="email"/></div>
+                                <div class="text-muted" t-if="record.phone.value"><i class="fa fa-phone me-1"/><field name="phone"/></div>
+                            </div>
+                            <div class="o_kanban_record_bottom">
+                                <div class="oe_kanban_bottom_left"><field name="enquiry_date" widget="date"/></div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    <record id="view_enquiry_form_quick_create" model="ir.ui.view">
+        <field name="name">enquiry.form.quick_create</field>
+        <field name="model">enquiry</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="enquiry_name" placeholder="e.g., SAT Enquiry for John"/>
+                    <field name="name" string="Parent Name" placeholder="Parent Full Name"/>
+                    <field name="student_name" placeholder="Student Full Name"/>
+                    <field name="partner_id"/><field name="email" placeholder="Email"/>
+                    <field name="phone" placeholder="Phone"/>
+                    <field name="subject_id"/><field name="grade_id"/>
+                </group>
+            </form>
+        </field>
+    </record>
+    <record id="action_enquiry" model="ir.actions.act_window">
+        <field name="name">Enquiries</field>
+        <field name="res_model">enquiry</field>
+        <field name="view_mode">kanban,list,form</field>
+    </record>
+
+    <!-- Demo Session Views -->
+    <record id="view_demo_session_list" model="ir.ui.view">
+        <field name="name">demo.session.list</field>
+        <field name="model">demo.session</field>
+        <field name="arch" type="xml">
+            <list string="Demo Sessions">
+                <field name="enquiry_id"/><field name="subject_id"/><field name="tutor_id"/>
+                <field name="scheduled_datetime"/><field name="duration_minutes"/>
+                <field name="status"/><field name="rating"/>
+            </list>
+        </field>
+    </record>
+    <record id="view_demo_session_form" model="ir.ui.view">
+        <field name="name">demo.session.form</field>
+        <field name="model">demo.session</field>
+        <field name="arch" type="xml">
+            <form string="Demo Session">
+                <sheet>
+                    <group>
+                        <field name="enquiry_id"/><field name="subject_id"/><field name="tutor_id"/>
+                    </group>
+                    <group>
+                        <field name="scheduled_datetime"/><field name="timezone"/>
+                        <field name="duration_minutes" string="Duration (Minutes)"/>
+                    </group>
+                    <group>
+                        <field name="status"/><field name="rating"/>
+                    </group>
+                    <group string="Feedback">
+                        <field name="feedback" nolabel="1" widget="text" colspan="2" style="width: 100%; min-height: 200px;"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    <record id="action_demo_sessions" model="ir.actions.act_window">
+        <field name="name">Demo Sessions</field>
+        <field name="res_model">demo.session</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- Subscription Invoice Wizards -->
+    <record id="view_tuition_invoice_preview_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.invoice.preview.wizard.form</field>
+        <field name="model">tuition.invoice.preview.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Invoice Preview">
+                <group>
+                    <field name="partner_id" readonly="1"/><field name="month_label" readonly="1"/>
+                    <field name="base_price" readonly="1"/><field name="total_discounts" readonly="1"/>
+                    <field name="total_adjustments" readonly="1"/><field name="total_amount" readonly="1"/>
+                </group>
+                <field name="line_ids" readonly="1">
+                    <list><field name="description"/><field name="quantity"/><field name="unit_price"/><field name="subtotal"/></list>
+                </field>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirm &amp; Generate Invoice" class="btn-primary"/>
+                    <button name="action_discard" type="object" string="Discard" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="view_tuition_invoice_confirm_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.invoice.confirm.wizard.form</field>
+        <field name="model">tuition.invoice.confirm.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Duplicate Invoice Warning">
+                <div class="alert alert-warning" role="alert">
+                    <strong><i class="fa fa-exclamation-triangle"/> Duplicate Invoice Warning</strong>
+                    <p>An invoice already exists for this billing period.</p>
+                </div>
+                <group>
+                    <field name="existing_invoice_name" readonly="1"/>
+                    <field name="existing_invoice_date" readonly="1"/>
+                    <field name="existing_invoice_amount" readonly="1"/>
+                    <field name="existing_invoice_state" readonly="1"/>
+                </group>
+                <footer>
+                    <button name="action_proceed" type="object" string="Generate Anyway" class="btn-warning"/>
+                    <button name="action_cancel" type="object" string="Cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="view_tuition_adjustment_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.adjustment.wizard.form</field>
+        <field name="model">tuition.adjustment.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Add Adjustment">
+                <group>
+                    <field name="adjustment_type"/><field name="description"/>
+                    <field name="amount"/><field name="date"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Add Adjustment" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="view_tuition_plan_change_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.plan.change.wizard.form</field>
+        <field name="model">tuition.plan.change.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Schedule Plan Change">
+                <group>
+                    <field name="product_id"/><field name="price"/>
+                    <field name="start_date"/><field name="notes"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirm Plan Change" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
 </odoo>
