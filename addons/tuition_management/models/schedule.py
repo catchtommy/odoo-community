@@ -129,44 +129,25 @@ class ClassSchedule(models.Model):
         return res
 
     def unlink(self):
-        if not self.env.context.get('force_delete'):
-            now = fields.Datetime.now()
-            for record in self:
-                all_occ = self.env['class.schedule.occurrence'].sudo().search([('schedule_id', '=', record.id)])
-                past_unmarked = all_occ.filtered(lambda o: not o.attendance_marked and o.start_datetime and o.start_datetime < now)
-                if past_unmarked:
-                    raise UserError(
-                        'This schedule has %d past lesson(s) without attendance marked.\n\n'
-                        'Please use the "Delete Schedule" button on the schedule form to review unmarked lessons.\n\n'
-                        'Unmarked past lessons:\n%s' % (
-                            len(past_unmarked),
-                            '\n'.join('• %s - %s' % (occ.start_datetime.strftime('%a, %d %b %Y %H:%M') if occ.start_datetime else '', occ.name or '')
-                                      for occ in past_unmarked.sorted('start_datetime'))))
+        now = fields.Datetime.now()
         for record in self:
-            all_occ = self.env['class.schedule.occurrence'].sudo().search([('schedule_id', '=', record.id)])
-            unmarked = all_occ.filtered(lambda o: not o.attendance_marked)
-            marked = all_occ - unmarked
-            if unmarked: unmarked.sudo().unlink()
-            if marked: marked.sudo().write({'schedule_id': False})
-        return super().unlink()
+            all_occurrences = self.env['class.schedule.occurrence'].search([('schedule_id', '=', record.id)])
+            
+            future_occurrences = all_occurrences.filtered(
+                lambda o: o.start_datetime and o.start_datetime >= now
+            )
+            if future_occurrences:
+                future_occurrences.sudo().unlink()
+
+            past_occurrences = all_occurrences - future_occurrences
+            if past_occurrences:
+                past_occurrences.sudo().write({'schedule_id': False})
+                
+        return super(ClassSchedule, self).unlink()
 
     def action_delete_schedule(self):
         self.ensure_one()
-        now = fields.Datetime.now()
-        all_occ = self.env['class.schedule.occurrence'].sudo().search([('schedule_id', '=', self.id)])
-        past_unmarked = all_occ.filtered(lambda o: not o.attendance_marked and o.start_datetime and o.start_datetime < now)
-        if past_unmarked:
-            wizard = self.env['schedule.delete.wizard'].create({
-                'schedule_id': self.id,
-                'message': 'This schedule has %d past lesson(s) without attendance marked. Deleting will remove all unmarked lessons.' % len(past_unmarked),
-                'line_ids': [(0, 0, {'occurrence_id': occ.id, 'lesson_name': occ.name or '',
-                                     'lesson_date': occ.start_datetime, 'tutor_name': occ.tutor_id.name if occ.tutor_id else ''})
-                             for occ in past_unmarked.sorted('start_datetime')],
-            })
-            return {'type': 'ir.actions.act_window', 'name': 'Confirm Schedule Deletion',
-                    'res_model': 'schedule.delete.wizard', 'view_mode': 'form', 'res_id': wizard.id, 'target': 'new'}
-        self.sudo().with_context(force_delete=True).unlink()
-        return {'type': 'ir.actions.act_window_close'}
+        return self.unlink()
 
 
 class ClassScheduleOccurrence(models.Model):
