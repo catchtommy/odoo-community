@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_product_template_form_inherit_tuition" model="ir.ui.view">
+        <field name="name">product.template.form.inherit.tuition</field>
+        <field name="model">product.template</field>
+        <field name="inherit_id" ref="product.product_template_form_view"/>
+        <field name="arch" type="xml">
+            <xpath expr="//sheet" position="inside">
+                <group string="Tuition" name="tuition_group">
+                    <field name="tuition_classes_per_week"/>
+                </group>
+            </xpath>
+        </field>
+    </record>
+</odoo>

@@ -52,6 +52,7 @@
                                   decoration-muted="state=='expired'">
                                 <field name="product_id"/>
                                 <field name="price"/>
+                                <field name="classes_per_week"/>
                                 <field name="start_date"/>
                                 <field name="end_date"/>
                                 <field name="state" readonly="1"/>
@@ -212,6 +213,7 @@
                 <field name="subscription_id" readonly="1"/>
                 <field name="product_id"/>
                 <field name="price"/>
+                <field name="classes_per_week"/>
                 <field name="start_date"/>
                 <field name="notes"/>
             </group>

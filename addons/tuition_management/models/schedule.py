@@ -11,7 +11,7 @@ class ClassSchedule(models.Model):
 
     name = fields.Char(string='Schedule Name', compute='_compute_name', store=True)
     course_id = fields.Many2one('course.master', string='Course', required=True, ondelete='cascade')
-    tutor_id = fields.Many2one('tutor.profile', string='Tutor')
+    tutor_id = fields.Many2one('tutor.profile', string='Tutor', required=True)
     schedule_type = fields.Selection([('one_time', 'One Time'), ('recurring', 'Recurring')],
                                      string='Schedule Type', default='recurring')
     schedule_hour = fields.Integer(string='Hour', default=9)
@@ -32,8 +32,8 @@ class ClassSchedule(models.Model):
     friday = fields.Boolean(string='Friday')
     saturday = fields.Boolean(string='Saturday')
     sunday = fields.Boolean(string='Sunday')
-    start_date = fields.Date(string='Start Date')
-    end_date = fields.Date(string='End Date')
+    start_date = fields.Date(string='Start Date', required=True)
+    end_date = fields.Date(string='End Date', required=True)
     occurrence_ids = fields.One2many('class.schedule.occurrence', 'schedule_id', string='Occurrences')
 
     available_tutor_ids = fields.Many2many('tutor.profile', string='Available Tutors', compute='_compute_available_tutors', store=False)
@@ -108,6 +108,42 @@ class ClassSchedule(models.Model):
             if occurrences:
                 self.env['class.schedule.occurrence'].sudo().create(occurrences)
 
+    def _get_selected_weekday_count(self):
+        self.ensure_one()
+        day_fields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        return sum(1 for d in day_fields if getattr(self, d, False))
+
+    def _get_course_active_enrollments(self):
+        self.ensure_one()
+        if not self.course_id:
+            return self.env['course.enrollment']
+        return self.env['course.enrollment'].sudo().search([
+            ('course_id', '=', self.course_id.id),
+            ('status', '=', 'active'),
+        ])
+
+    def _get_min_classes_per_week_allowed(self):
+        """Return the strictest (minimum) classes_per_week among active subscriptions for enrolled students."""
+        self.ensure_one()
+        enrollments = self._get_course_active_enrollments()
+        if not enrollments:
+            return False
+
+        subs = self.env['tuition.subscription'].sudo().search([
+            ('enrollment_id', 'in', enrollments.ids),
+            ('state', '=', 'active'),
+        ])
+        if not subs:
+            return False
+
+        # pick each subscription's current plan line and take the minimum allowance
+        allowances = []
+        for sub in subs:
+            plan = sub.current_plan_id
+            if plan and plan.classes_per_week:
+                allowances.append(plan.classes_per_week)
+        return min(allowances) if allowances else False
+
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
@@ -120,34 +156,62 @@ class ClassSchedule(models.Model):
         trigger_fields = ['start_date', 'end_date', 'schedule_hour', 'schedule_minute', 'schedule_duration',
                           'timezone', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'schedule_type', 'course_id']
         if any(f in vals for f in trigger_fields):
-            for record in self: record._generate_occurrences()
+            for record in self:
+                record._generate_occurrences()
         if 'tutor_id' in vals:
             now = fields.Datetime.now()
             for record in self:
                 future_unmarked = record.occurrence_ids.filtered(lambda o: o.start_datetime and o.start_datetime >= now and not o.attendance_marked)
-                if future_unmarked: future_unmarked.sudo().write({'tutor_id': vals['tutor_id']})
+                if future_unmarked:
+                    future_unmarked.sudo().write({'tutor_id': vals['tutor_id']})
         return res
 
     def unlink(self):
         now = fields.Datetime.now()
         for record in self:
-            all_occurrences = self.env['class.schedule.occurrence'].search([('schedule_id', '=', record.id)])
-            
+            all_occurrences = self.env['class.schedule.occurrence'].with_context(force_delete_lesson=True).sudo().search([
+                ('schedule_id', '=', record.id)
+            ])
+
             future_occurrences = all_occurrences.filtered(
                 lambda o: o.start_datetime and o.start_datetime >= now
             )
             if future_occurrences:
-                future_occurrences.sudo().unlink()
+                future_occurrences.unlink()
 
             past_occurrences = all_occurrences - future_occurrences
             if past_occurrences:
-                past_occurrences.sudo().write({'schedule_id': False})
-                
+                past_occurrences.with_context(force_delete_lesson=True).sudo().write({'schedule_id': False})
+
         return super(ClassSchedule, self).unlink()
 
     def action_delete_schedule(self):
         self.ensure_one()
         return self.unlink()
+
+    @api.constrains('schedule_type', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')
+    def _check_weekday_selected(self):
+        day_fields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        for rec in self:
+            if rec.schedule_type == 'recurring':
+                if not any(getattr(rec, d, False) for d in day_fields):
+                    raise UserError('Please select at least one day of the week for a recurring schedule.')
+
+    @api.constrains('start_date', 'end_date')
+    def _check_date_range(self):
+        for rec in self:
+            if rec.start_date and rec.end_date and rec.end_date < rec.start_date:
+                raise UserError('End Date must be on or after Start Date.')
+
+    @api.onchange('start_date')
+    def _onchange_start_date_default_end(self):
+        for rec in self:
+            if not rec.start_date:
+                continue
+            # default end date to 1 year from start date if end_date is empty or invalid
+            suggested = rec.start_date.replace(year=rec.start_date.year + 1)
+            if not rec.end_date or rec.end_date < rec.start_date:
+                rec.end_date = suggested
 
 
 class ClassScheduleOccurrence(models.Model):
@@ -193,9 +257,11 @@ class ClassScheduleOccurrence(models.Model):
         return super().write(vals)
 
     def unlink(self):
+        if self.env.context.get('force_delete_lesson'):
+            return super(ClassScheduleOccurrence, self).unlink()
         if self.filtered(lambda r: r.lesson_status and r.lesson_status != 'scheduled'):
             raise UserError("Cannot delete lessons that have been completed, cancelled, or marked as no-show.")
-        return super().unlink()
+        return super(ClassScheduleOccurrence, self).unlink()
 
     def action_mark_attendance(self):
         self.ensure_one()

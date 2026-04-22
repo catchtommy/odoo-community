@@ -33,6 +33,7 @@
         "views/portal_parent_views.xml",
         "views/portal_templates.xml",
         "views/portal_public_enquiry.xml",
+        "views/product_views.xml",
     ],
     "installable": True,
     "application": True,

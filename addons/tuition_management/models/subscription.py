@@ -2,6 +2,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from dateutil.relativedelta import relativedelta
+from datetime import date
 
 
 class TuitionSubscription(models.Model):
@@ -223,6 +224,7 @@ class TuitionPlanLine(models.Model):
     subscription_id = fields.Many2one('tuition.subscription', required=True, ondelete='cascade')
     product_id = fields.Many2one('product.product', string='Plan Product', required=True)
     price = fields.Float(string='Monthly Price', required=True)
+    classes_per_week = fields.Integer(string='Classes per Week', required=True, default=1)
     start_date = fields.Date(string='Start Date', required=True)
     end_date = fields.Date(string='End Date')
     state = fields.Selection([('active', 'Active'), ('scheduled', 'Scheduled'), ('expired', 'Expired')],
@@ -232,7 +234,11 @@ class TuitionPlanLine(models.Model):
 
     @api.onchange('product_id')
     def _onchange_product_id(self):
-        if self.product_id: self.price = self.product_id.lst_price or 0.0
+        if self.product_id:
+            self.price = self.product_id.lst_price or 0.0
+            tmpl = self.product_id.product_tmpl_id
+            if tmpl and tmpl.tuition_classes_per_week:
+                self.classes_per_week = tmpl.tuition_classes_per_week
 
     @api.depends('start_date', 'end_date')
     def _compute_state(self):
@@ -261,6 +267,28 @@ class TuitionPlanLine(models.Model):
         for rec in self:
             if rec.start_date and rec.start_date.day != 1:
                 raise ValidationError("Plan start date must be the 1st of a month. Got: %s" % rec.start_date)
+
+    @api.constrains('subscription_id', 'start_date', 'end_date')
+    def _check_no_overlapping_plans(self):
+        far_future = date(9999, 12, 31)
+        for rec in self:
+            if not rec.subscription_id or not rec.start_date:
+                continue
+            start = rec.start_date
+            end = rec.end_date or far_future
+            others = self.search([
+                ('id', '!=', rec.id),
+                ('subscription_id', '=', rec.subscription_id.id),
+                ('start_date', '!=', False),
+            ])
+            for o in others:
+                o_start = o.start_date
+                o_end = o.end_date or far_future
+                # overlap if ranges intersect
+                if o_start <= end and start <= o_end:
+                    raise ValidationError(
+                        "Plan dates overlap with another plan (%s). Only one plan may be active at the same time for a subscription." % (o.product_id.name or 'plan')
+                    )
 
     def write(self, vals):
         if 'start_date' in vals:
@@ -313,6 +341,7 @@ class TuitionPlanChangeWizard(models.TransientModel):
     subscription_id = fields.Many2one('tuition.subscription', required=True)
     product_id = fields.Many2one('product.product', string='New Plan Product', required=True)
     price = fields.Float(string='Monthly Price', required=True)
+    classes_per_week = fields.Integer(string='Classes per Week', required=True, default=1)
     start_date = fields.Date(string='Effective From', compute='_compute_start_date', store=True, readonly=False)
     notes = fields.Char(string='Notes')
 
@@ -323,7 +352,11 @@ class TuitionPlanChangeWizard(models.TransientModel):
 
     @api.onchange('product_id')
     def _onchange_product(self):
-        if self.product_id: self.price = self.product_id.lst_price or 0.0
+        if self.product_id:
+            self.price = self.product_id.lst_price or 0.0
+            tmpl = self.product_id.product_tmpl_id
+            if tmpl and tmpl.tuition_classes_per_week:
+                self.classes_per_week = tmpl.tuition_classes_per_week
 
     def action_confirm(self):
         self.ensure_one()
@@ -337,7 +370,8 @@ class TuitionPlanChangeWizard(models.TransientModel):
         scheduled = sub.plan_line_ids.filtered(lambda p: p.state == 'scheduled')
         if scheduled: scheduled.write({'end_date': end_prev})
         self.env['tuition.plan.line'].create({'subscription_id': sub.id, 'product_id': self.product_id.id,
-                                              'price': self.price, 'start_date': self.start_date, 'notes': self.notes or ''})
+                                              'price': self.price, 'classes_per_week': self.classes_per_week,
+                                              'start_date': self.start_date, 'notes': self.notes or ''})
         return {'type': 'ir.actions.client', 'tag': 'display_notification',
                 'params': {'title': 'Plan Change Scheduled',
                            'message': "Plan '%s' effective from %s." % (self.product_id.name, self.start_date.strftime('%d %b %Y')),
