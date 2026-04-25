@@ -143,6 +143,26 @@ class Enquiry(models.Model):
                         rec.student_profile_id.write(student_vals)
         return res
 
+    @api.onchange('parent_profile_id')
+    def _onchange_parent_profile_id(self):
+        if self.parent_profile_id:
+            self.name = self.parent_profile_id.name
+            self.email = self.parent_profile_id.email
+            self.phone = self.parent_profile_id.phone
+            self.country_code = self.parent_profile_id.country_code
+            self.partner_id = self.parent_profile_id.partner_id.id
+            if self.student_profile_id and self.student_profile_id not in self.parent_profile_id.student_ids:
+                self.student_profile_id = False
+
+    @api.onchange('student_profile_id')
+    def _onchange_student_profile_id(self):
+        if self.student_profile_id:
+            self.student_name = self.student_profile_id.name
+            if self.student_profile_id.grade_id:
+                self.grade_id = self.student_profile_id.grade_id.id
+            if not self.parent_profile_id and self.student_profile_id.parent_id:
+                self.parent_profile_id = self.student_profile_id.parent_id.id
+
     def _auto_create_parent_and_student(self):
         """Auto-create parent profile, student profile, and contacts on enquiry creation."""
         self.ensure_one()
@@ -188,17 +208,18 @@ class Enquiry(models.Model):
         })
 
         # Also link enquiry partner_id if not set
-        if not self.partner_id:
+        if not hasattr(self, 'partner_id') or not self.partner_id:
             self.partner_id = partner.id
 
         # Create parent profile
-        parent = Parent.create({
+        parent_vals = {
             'name': self.name,
             'email': self.email,
             'phone': self.phone,
             'country_code': self.country_code or '+1',
             'partner_id': partner.id,
-        })
+        }
+        parent = Parent.create(parent_vals)
         return parent
 
     def _find_or_create_student(self, parent):
@@ -206,7 +227,7 @@ class Enquiry(models.Model):
         Student = self.env['student.profile']
         Partner = self.env['res.partner']
 
-        # Check if student with same name already exists under this parent
+        existing = False
         if parent:
             existing = Student.search([
                 ('name', '=', self.student_name),
@@ -214,8 +235,16 @@ class Enquiry(models.Model):
             ], limit=1)
             if existing:
                 return existing
+        else:
+            existing = Student.search([
+                ('name', '=', self.student_name),
+            ], limit=1)
+            if existing:
+                if parent:
+                    # student already existed, link parent if we newly found one
+                    existing.write({'parent_id': parent.id})
+                return existing
 
-        # Create student contact as child of parent contact
         student_partner_vals = {
             'name': self.student_name,
             'type': 'contact',
@@ -225,13 +254,14 @@ class Enquiry(models.Model):
             student_partner_vals['parent_id'] = parent.partner_id.id
         student_partner = Partner.create(student_partner_vals)
 
-        # Create student profile
-        student = Student.create({
+        student_vals = {
             'name': self.student_name,
             'grade_id': self.grade_id.id if self.grade_id else False,
-            'parent_id': parent.id if parent else False,
             'partner_id': student_partner.id,
-        })
+            'parent_id': parent.id if parent else False,
+        }
+            
+        student = Student.create(student_vals)
         return student
 
     def action_enroll_to_course(self):
