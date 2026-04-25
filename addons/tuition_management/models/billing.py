@@ -244,7 +244,14 @@ class BulkBillingPreviewLine(models.TransientModel):
 
         # Create and post the invoice
         invoice = order._create_invoices()
-        invoice.sudo().write({'tuition_subscription_ids': [(6, 0, self.subscription_ids.ids)]})
+        
+        # Link the invoice explicitly to the parent so the portal can see it purely by partner_id
+        parent_profile = self.env['parent.profile'].sudo().search([('partner_id', '=', self.partner_id.id)], limit=1)
+        invoice.sudo().write({
+            'tuition_subscription_ids': [(6, 0, self.subscription_ids.ids)],
+            'parent_profile_id': parent_profile.id if parent_profile else False,
+        })
+        
         invoice.sudo().action_post()
 
         # Mark adjustments as applied and update next billing dates

@@ -333,12 +333,13 @@ class TuitionAdjustment(models.Model):
             rec.signed_amount = abs(rec.amount) if rec.adjustment_type == 'extra_charge' else -abs(rec.amount)
 
 
-class AccountMoveTuitionExt(models.Model):
+class AccountMove(models.Model):
     _inherit = 'account.move'
 
     tuition_subscription_id = fields.Many2one('tuition.subscription', string='Tuition Subscription', ondelete='set null', index=True)
     tuition_subscription_ids = fields.Many2many('tuition.subscription', 'account_move_tuition_subscription_rel', 'move_id', 'subscription_id', string='Tuition Subscriptions')
     tuition_plan_line_id = fields.Many2one('tuition.plan.line', string='Tuition Plan', ondelete='set null', index=True)
+    parent_profile_id = fields.Many2one('parent.profile', string='Parent Profile', ondelete='set null', index=True)
 
 
 class SaleOrderTuitionExt(models.Model):

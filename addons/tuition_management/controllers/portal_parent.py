@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import http, fields
+from odoo import http, fields, _
 from odoo.http import request
 from datetime import timedelta, datetime
 
@@ -30,11 +30,16 @@ class ParentPortal(http.Controller, PortalMixin):
         child_partners = parent.student_ids.mapped('partner_id').ids
         all_partners = list(set([parent.partner_id.id] + child_partners)) if parent.partner_id else child_partners
         invoices = request.env['account.move'].sudo().search([
-            ('partner_id', 'in', all_partners),
-            ('move_type', '=', 'out_invoice'),
-            ('payment_state', '!=', 'paid'),
-            ('state', '=', 'posted'),
+            ('move_type', 'in', ('out_invoice', 'in_receipt')),
+            ('state', 'not in', ('cancel', 'draft')),
+            '|', ('partner_id', 'in', all_partners),
+                 '|', ('parent_profile_id', '=', parent.id),
+                      '|', ('tuition_subscription_id.student_id', 'in', children.ids),
+                           ('tuition_subscription_ids.student_id', 'in', children.ids)
         ])
+        
+        unpaid_invoices = invoices.filtered(lambda inv: inv.payment_state != 'paid')
+        
         return request.render('tuition_management.portal_parent_dashboard', {
             'user': request.env.user,
             'is_parent': True, 'is_student': False, 'is_tutor': False,
@@ -42,8 +47,8 @@ class ParentPortal(http.Controller, PortalMixin):
             'child_data': child_data,
             'child_count': len(children),
             'total_enrollments': total_enrollments,
-            'unpaid_invoices': len(invoices),
-            'amount_due': sum(invoices.mapped('amount_residual')),
+            'unpaid_invoices': len(unpaid_invoices),
+            'amount_due': sum(unpaid_invoices.mapped('amount_residual')),
             'page_name': 'parent_children',
             'page_title': 'My Children',
         })
@@ -199,18 +204,28 @@ class ParentPortal(http.Controller, PortalMixin):
             child_partners = parent.student_ids.mapped('partner_id').ids if parent.student_ids else []
             parent_partner = [parent.partner_id.id] if parent.partner_id else []
             partner_ids = list(set(parent_partner + child_partners))
+            
             invoices = request.env['account.move'].sudo().search([
-                ('move_type', '=', 'out_invoice'),
-                ('partner_id', 'in', partner_ids),
-                ('tuition_subscription_id', '!=', False),
+                ('move_type', 'in', ('out_invoice', 'in_receipt', 'out_refund', 'in_refund')),
+                ('state', '!=', 'cancel'),
+                '|', ('partner_id', 'in', partner_ids),
+                     '|', ('parent_profile_id', '=', parent.id),
+                          '|', ('tuition_subscription_id.student_id', 'in', parent.student_ids.ids),
+                               ('tuition_subscription_ids.student_id', 'in', parent.student_ids.ids)
             ], order='invoice_date desc')
         else:
             partner_id = student.partner_id.id if student.partner_id else 0
             invoices = request.env['account.move'].sudo().search([
-                ('move_type', '=', 'out_invoice'),
+                ('move_type', 'in', ('out_invoice', 'in_receipt', 'out_refund', 'in_refund')),
                 ('partner_id', '=', partner_id),
-                ('tuition_subscription_id', '!=', False),
+                ('state', '!=', 'cancel'),
+                '|', ('tuition_subscription_id', '!=', False),
+                     ('tuition_subscription_ids', '!=', False)
             ], order='invoice_date desc')
+
+        for inv in invoices:
+            if not inv.access_token:
+                inv._portal_ensure_token()
 
         return request.render('tuition_management.portal_parent_invoices', {
             'user': request.env.user,
