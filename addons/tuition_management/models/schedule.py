@@ -9,7 +9,6 @@ class ClassSchedule(models.Model):
     _name = 'class.schedule'
     _description = 'Class Schedule'
 
-    name = fields.Char(string='Schedule Name', compute='_compute_name', store=True)
     course_id = fields.Many2one('course.master', string='Course', required=True, ondelete='cascade')
     tutor_id = fields.Many2one('tutor.profile', string='Tutor', required=True)
     schedule_type = fields.Selection([('one_time', 'One Time'), ('recurring', 'Recurring')],
@@ -238,6 +237,7 @@ class ClassScheduleOccurrence(models.Model):
     cancellation_note = fields.Text(string='Cancellation Note')
     is_rescheduled = fields.Boolean(string='Rescheduled', default=False)
     rescheduled_from_id = fields.Many2one('class.schedule.occurrence', string='Rescheduled From')
+    is_demo = fields.Boolean(string='Is Demo Session', default=False)
 
     @api.depends('attendance_ids')
     def _compute_attendance_marked(self):

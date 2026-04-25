@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
-from odoo.exceptions import UserError
+from odoo.exceptions import UserError, ValidationError
 
 
 class TutorAvailability(models.Model):
@@ -59,33 +59,50 @@ class TutorProfile(models.Model):
 class StudentProfile(models.Model):
     _name = 'student.profile'
     _description = 'Student Profile'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
     name = fields.Char(string='Full Name', required=True)
+    partner_id = fields.Many2one('res.partner', string='Contact', required=True, ondelete='cascade')
     email = fields.Char(string='Email')
     country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
-    grade_id = fields.Many2one('grade.master', string='Grade')
+    grade_id = fields.Many2one('grade.master', string='Grade', required=True)
     subjects_ids = fields.Many2many('subject.master', string='Subjects')
     parent_id = fields.Many2one('parent.profile', string='Parent')
-    partner_id = fields.Many2one('res.partner', string='Contact')
-    timezone = fields.Selection(string='Timezone', selection=lambda self: [(tz, tz) for tz in sorted(__import__('pytz').all_timezones)], default='UTC')
+    enrollment_ids = fields.One2many('course.enrollment', 'student_id', string='Enrollments')
+    subscription_ids = fields.One2many('tuition.subscription', 'student_id', string='Subscriptions')
+    progress_report_ids = fields.One2many('progress.report', 'student_id', string='Progress Reports')
+    timezone = fields.Selection([
+        ('US/Eastern', 'US/Eastern'),
+        ('US/Central', 'US/Central'),
+        ('US/Mountain', 'US/Mountain'),
+        ('US/Pacific', 'US/Pacific'),
+        ('Europe/London', 'Europe/London'),
+        ('Europe/Paris', 'Europe/Paris'),
+        ('Asia/Kolkata', 'Asia/Kolkata'),
+        ('Asia/Tokyo', 'Asia/Tokyo'),
+        ('Australia/Sydney', 'Australia/Sydney'),
+        ('UTC', 'UTC'),
+    ], string='Timezone', required=True, default='US/Eastern')
     address_line_1 = fields.Char(string='Address Line 1')
     address_line_2 = fields.Char(string='Address Line 2')
     address_line_3 = fields.Char(string='Address Line 3')
     address_line_4 = fields.Char(string='Address Line 4')
     zip_code = fields.Char(string='Zip Code')
-    active = fields.Boolean(default=True)
-    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
-    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
-    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=True)
 
-    @api.depends('partner_id')
+    @api.constrains('email', 'phone', 'parent_id')
+    def _check_contact_info(self):
+        for rec in self:
+            if not rec.email and not rec.phone and not rec.parent_id:
+                raise ValidationError("Please provide either an email address, a phone number, or a parent for the student.")
+            if rec.phone and not rec.country_code:
+                raise ValidationError("Please provide a country code when providing a phone number.")
+
+    @api.depends('partner_id.user_ids')
     def _compute_portal_access(self):
         for rec in self:
-            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
-            rec.portal_user_id = user.id if user else False
-            rec.portal_login = user.login if user else ''
-            rec.has_portal_access = bool(user)
+            rec.has_portal_access = bool(rec.partner_id.user_ids)
 
     def action_invite_to_portal(self):
         self.ensure_one()
@@ -106,6 +123,29 @@ class StudentProfile(models.Model):
             return {'type': 'ir.actions.act_window', 'name': 'Parent', 'res_model': 'parent.profile',
                     'view_mode': 'form', 'res_id': self.parent_id.id}
 
+    @api.onchange('parent_id')
+    def _onchange_parent_id(self):
+        if self.parent_id:
+            if self.parent_id.email and not self.email:
+                self.email = self.parent_id.email
+            if self.parent_id.timezone:
+                self.timezone = self.parent_id.timezone
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        # 1. We must manually create the res.partner if it doesn't exist, since _inherits was reverted.
+        for vals in vals_list:
+            if not vals.get('partner_id'):
+                partner_vals = {
+                    'name': vals.get('name', 'Unknown Student'),
+                    'email': vals.get('email'),
+                    'phone': '%s%s' % (vals.get('country_code', ''), vals.get('phone', '')) if vals.get('phone') else False,
+                }
+                partner = self.env['res.partner'].create(partner_vals)
+                vals['partner_id'] = partner.id
+
+        return super().create(vals_list)
+
     def write(self, vals):
         res = super().write(vals)
         for rec in self:
@@ -123,31 +163,38 @@ class StudentProfile(models.Model):
 class ParentProfile(models.Model):
     _name = 'parent.profile'
     _description = 'Parent Profile'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
     name = fields.Char(string='Full Name', required=True)
+    partner_id = fields.Many2one('res.partner', string='Contact', required=True, ondelete='cascade')
     email = fields.Char(string='Email')
-    country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
-    timezone = fields.Selection(string='Timezone', selection=lambda self: [(tz, tz) for tz in sorted(__import__('pytz').all_timezones)], default='UTC')
-    student_ids = fields.One2many('student.profile', 'parent_id', string='Students')
+    country_code = fields.Char(string='Country Code', default='+1')
+    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=True)
+    timezone = fields.Selection([
+        ('US/Eastern', 'US/Eastern'),
+        ('US/Central', 'US/Central'),
+        ('US/Mountain', 'US/Mountain'),
+        ('US/Pacific', 'US/Pacific'),
+        ('Europe/London', 'Europe/London'),
+        ('Europe/Paris', 'Europe/Paris'),
+        ('Asia/Kolkata', 'Asia/Kolkata'),
+        ('Asia/Tokyo', 'Asia/Tokyo'),
+        ('Australia/Sydney', 'Australia/Sydney'),
+        ('UTC', 'UTC'),
+    ], string='Timezone', required=True, default='US/Eastern')
     address_line_1 = fields.Char(string='Address Line 1')
     address_line_2 = fields.Char(string='Address Line 2')
     address_line_3 = fields.Char(string='Address Line 3')
     address_line_4 = fields.Char(string='Address Line 4')
     zip_code = fields.Char(string='Zip Code')
-    partner_id = fields.Many2one('res.partner', string='Contact')
-    notes = fields.Html(string='Notes')
-    portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
-    portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
-    has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+    student_ids = fields.One2many('student.profile', 'parent_id', string='Children')
+    notes = fields.Text(string='Notes')
 
-    @api.depends('partner_id')
+    @api.depends('partner_id.user_ids')
     def _compute_portal_access(self):
         for rec in self:
-            user = self.env['res.users'].sudo().search([('partner_id', '=', rec.partner_id.id)], limit=1) if rec.partner_id else self.env['res.users']
-            rec.portal_user_id = user.id if user else False
-            rec.portal_login = user.login if user else ''
-            rec.has_portal_access = bool(user)
+            rec.has_portal_access = bool(rec.partner_id.user_ids)
 
     def action_invite_to_portal(self):
         self.ensure_one()
@@ -161,6 +208,28 @@ class ParentProfile(models.Model):
                 ctx.update({'default_is_existing_user': True, 'default_existing_user_id': user.id, 'default_login': user.login})
         return {'type': 'ir.actions.act_window', 'name': 'Manage Portal Access',
                 'res_model': 'portal.access.wizard', 'view_mode': 'form', 'target': 'new', 'context': ctx}
+
+    @api.constrains('email', 'phone')
+    def _check_contact_info(self):
+        for rec in self:
+            if not rec.email and not rec.phone:
+                raise ValidationError("Please provide either an email address or a phone number for the parent.")
+            if rec.phone and not rec.country_code:
+                raise ValidationError("Please provide a country code when providing a phone number.")
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get('partner_id'):
+                partner_vals = {
+                    'name': vals.get('name', 'Unknown Parent'),
+                    'email': vals.get('email'),
+                    'phone': '%s%s' % (vals.get('country_code', ''), vals.get('phone', '')) if vals.get('phone') else False,
+                }
+                partner = self.env['res.partner'].create(partner_vals)
+                vals['partner_id'] = partner.id
+
+        return super().create(vals_list)
 
     def write(self, vals):
         res = super().write(vals)

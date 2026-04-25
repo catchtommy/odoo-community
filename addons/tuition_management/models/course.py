@@ -8,6 +8,7 @@ import pytz
 class CourseMaster(models.Model):
     _name = 'course.master'
     _description = 'Course Master'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
     name = fields.Char(string='Course Name', required=True)
     subject_id = fields.Many2one('subject.master', string='Subject')
@@ -24,6 +25,7 @@ class CourseMaster(models.Model):
     progress_report_ids = fields.One2many('progress.report', 'course_id', string='Progress Reports')
     assignment_ids = fields.One2many('course.assignment', 'course_id', string='Assignments')
     occurrence_ids = fields.One2many('class.schedule.occurrence', 'course_id', string='Schedule Occurrences')
+    demo_session_ids = fields.One2many('demo.session', 'course_id', string='Demo Sessions')
 
     # Virtual Classroom
     virtual_class_platform = fields.Selection([
@@ -310,3 +312,84 @@ class CourseCancelWizardLine(models.TransientModel):
     schedule_date = fields.Datetime(string='Date', readonly=True)
     lesson_name = fields.Char(string='Session', readonly=True)
     tutor_name = fields.Char(string='Tutor', readonly=True)
+
+
+class ClassScheduleOccurrence(models.Model):
+    _name = 'class.schedule.occurrence'
+    _description = 'Class Schedule Occurrence'
+
+    name = fields.Char(string='Name', required=True)
+    class_schedule_id = fields.Many2one('class.schedule', string='Schedule', required=True, ondelete='cascade')
+    course_id = fields.Many2one('course.master', string='Course', ondelete='cascade')
+    tutor_id = fields.Many2one('tutor.profile', string='Tutor', ondelete='set null')
+    student_ids = fields.Many2many('student.profile', string='Students')
+    start_datetime = fields.Datetime(string='Start Time', required=True)
+    end_datetime = fields.Datetime(string='End Time', required=True)
+    status = fields.Selection([
+        ('scheduled', 'Scheduled'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+    ], string='Status', default='scheduled')
+    attendance_marked = fields.Boolean(string='Attendance Marked', default=False)
+    lesson_status = fields.Selection([
+        ('pending', 'Pending'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
+        ('no_show', 'No Show'),
+    ], string='Lesson Status', default='pending')
+
+    @api.model
+    def create(self, vals):
+        # Automatically set the course_id based on the class_schedule_id
+        if vals.get('class_schedule_id'):
+            schedule = self.env['class.schedule'].browse(vals['class_schedule_id'])
+            vals['course_id'] = schedule.course_id.id if schedule.course_id else False
+        return super(ClassScheduleOccurrence, self).create(vals)
+
+    def write(self, vals):
+        # Prevent changing course_id once set
+        if 'course_id' in vals:
+            raise UserError("You cannot change the course directly. Modify the schedule or enrollment instead.")
+        return super(ClassScheduleOccurrence, self).write(vals)
+
+    def action_mark_attendance(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Mark Attendance',
+            'res_model': 'attendance.sheet',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_occurrence_id': self.id},
+        }
+
+    def action_view_attendance(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Attendance Records',
+            'res_model': 'attendance.sheet',
+            'view_mode': 'tree,form',
+            'domain': [('occurrence_id', '=', self.id)],
+        }
+
+    def action_complete_lesson(self):
+        self.ensure_one()
+        self.write({'lesson_status': 'completed'})
+        # Additional logic for completing a lesson can be added here
+
+    def action_cancel_lesson(self):
+        self.ensure_one()
+        self.write({'lesson_status': 'cancelled'})
+        # Additional logic for cancelling a lesson can be added here
+
+    def action_no_show(self):
+        self.ensure_one()
+        self.write({'lesson_status': 'no_show'})
+        # Additional logic for marking a lesson as no-show can be added here
+
+
+class ClassScheduleOccurrenceDemo(models.Model):
+    _inherit = 'class.schedule.occurrence'
+    
+    is_demo = fields.Boolean(string='Is Demo Session', default=False)

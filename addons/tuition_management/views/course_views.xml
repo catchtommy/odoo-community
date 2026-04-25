@@ -57,6 +57,7 @@
                     <page string="Lessons" name="lessons">
                         <field name="occurrence_ids">
                             <list string="Lessons" create="false" delete="false" editable="bottom">
+                                <field name="is_demo" string="Demo" readonly="1" widget="boolean_toggle"/>
                                 <field name="start_datetime" string="Lesson Time" readonly="1"/>
                                 <field name="tutor_id" string="Teacher"/>
                                 <field name="lesson_status" string="Status" readonly="1"/>
@@ -95,6 +96,18 @@
                             <list string="Assignments">
                                 <field name="name"/><field name="assignment_type"/>
                                 <field name="assigned_date"/><field name="due_date"/><field name="status"/>
+                            </list>
+                        </field>
+                    </page>
+                    <page string="Demo Sessions" name="demo_sessions">
+                        <field name="demo_session_ids">
+                            <list string="Demo Sessions">
+                                <field name="subject_id"/>
+                                <field name="tutor_id"/>
+                                <field name="scheduled_datetime"/>
+                                <field name="duration_minutes"/>
+                                <field name="status"/>
+                                <field name="rating"/>
                             </list>
                         </field>
                     </page>

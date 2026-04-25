@@ -17,15 +17,16 @@ class EnquiryStage(models.Model):
 class Enquiry(models.Model):
     _name = 'enquiry'
     _description = 'Enquiry'
+    _rec_name = 'enquiry_name'
 
     enquiry_name = fields.Char(string='Enquiry Name', readonly=True, copy=False, default='New')
     name = fields.Char(string='Parent Name', required=True)
-    student_name = fields.Char(string='Student Name')
+    student_name = fields.Char(string='Student Name', required=True)
     email = fields.Char(string='Email')
     country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
-    subject_id = fields.Many2one('subject.master', string='Subject')
-    grade_id = fields.Many2one('grade.master', string='Grade')
+    subject_id = fields.Many2one('subject.master', string='Subject', required=True)
+    grade_id = fields.Many2one('grade.master', string='Grade', required=True)
     stage_id = fields.Many2one('enquiry.stage', string='Stage', group_expand='_read_group_stage_ids',
                                 default=lambda self: self.env['enquiry.stage'].search([], limit=1))
     enquiry_date = fields.Date(string='Enquiry Date', default=fields.Date.today)
@@ -40,7 +41,12 @@ class Enquiry(models.Model):
     parent_profile_id = fields.Many2one('parent.profile', string='Parent Profile')
     student_profile_id = fields.Many2one('student.profile', string='Student Profile')
 
-    demo_session_ids = fields.One2many('demo.session', 'enquiry_id', string='Demo Sessions')
+    can_convert_course = fields.Boolean(compute='_compute_can_convert_course')
+
+    @api.depends('stage_id', 'is_enrolled')
+    def _compute_can_convert_course(self):
+        for rec in self:
+            rec.can_convert_course = rec.stage_id and rec.stage_id.name != 'New' and not rec.is_enrolled
 
     _stages_cleaned = False  # reset to re-run cleanup after code change
 
@@ -106,7 +112,26 @@ class Enquiry(models.Model):
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('enquiry_name', 'New') == 'New':
-                vals['enquiry_name'] = self.env['ir.sequence'].next_by_code('enquiry') or 'New'
+                # Use standard ir.sequence and provide a robust fallback if XML sequence is missing
+                seq = self.env['ir.sequence'].next_by_code('enquiry')
+                vals['enquiry_name'] = seq if seq else 'ENQ/' + fields.Datetime.now().strftime('%Y%m%d%H%M%S')
+
+            # Ensure parent data auto-fills on create if they just selected the parent dropdown
+            if vals.get('parent_profile_id') and not vals.get('name'):
+                parent = self.env['parent.profile'].browse(vals['parent_profile_id'])
+                vals['name'] = parent.name
+                vals['email'] = parent.email
+                vals['phone'] = parent.phone
+                vals['country_code'] = parent.country_code
+                vals['partner_id'] = parent.partner_id.id
+            
+            # Ensure student data auto-fills on create
+            if vals.get('student_profile_id') and not vals.get('student_name'):
+                student = self.env['student.profile'].browse(vals['student_profile_id'])
+                vals['student_name'] = student.name
+                if student.grade_id:
+                    vals['grade_id'] = student.grade_id.id
+
         records = super().create(vals_list)
         for rec in records:
             rec._auto_create_parent_and_student()
@@ -283,8 +308,12 @@ class Enquiry(models.Model):
 
         # Create course if not exists
         if not self.course_id:
+            subject_name = self.subject_id.name if self.subject_id else "General"
+            st_name = self.student_name or self.name or "Unknown Student"
+            course_name = f"{subject_name} - {st_name}"
+            
             course = self.env['course.master'].create({
-                'name': f"{self.subject_id.name or 'Course'} - {self.student_name or self.name}",
+                'name': course_name,
                 'subject_id': self.subject_id.id if self.subject_id else False,
                 'grade_id': self.grade_id.id if self.grade_id else False,
                 'status': 'active',
@@ -335,9 +364,15 @@ class DemoSession(models.Model):
     _name = 'demo.session'
     _description = 'Demo Session'
 
-    enquiry_id = fields.Many2one('enquiry', string='Enquiry', required=True, ondelete='cascade')
+    course_id = fields.Many2one('course.master', string='Course', required=True, ondelete='cascade')
     subject_id = fields.Many2one('subject.master', string='Subject')
     tutor_id = fields.Many2one('tutor.profile', string='Tutor')
+
+    @api.onchange('course_id')
+    def _onchange_course_id(self):
+        if self.course_id and self.course_id.subject_id:
+            self.subject_id = self.course_id.subject_id.id
+
     scheduled_datetime = fields.Datetime(string='Scheduled Date & Time')
     timezone = fields.Selection([
         ('US/Eastern', 'US/Eastern'),
@@ -366,3 +401,69 @@ class DemoSession(models.Model):
         ('5', '5 - Excellent'),
     ], string='Rating')
     feedback = fields.Text(string='Feedback')
+    schedule_occurrence_id = fields.Many2one('class.schedule.occurrence', string='Linked Schedule', readonly=True)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super(DemoSession, self).create(vals_list)
+        for rec in records:
+            if rec.status == 'scheduled' and rec.scheduled_datetime and rec.tutor_id:
+                rec._create_or_update_schedule()
+        return records
+
+    def write(self, vals):
+        res = super(DemoSession, self).write(vals)
+        for rec in self:
+            if any(k in vals for k in ['status', 'scheduled_datetime', 'duration_minutes', 'tutor_id']):
+                rec._create_or_update_schedule()
+        return res
+
+    def _create_or_update_schedule(self):
+        """Creates or updates a class schedule occurrence for this demo session so it appears on the calendar."""
+        self.ensure_one()
+
+        if self.status == 'cancelled' or not self.scheduled_datetime or not self.tutor_id:
+            # delete existing schedule if applicable
+            if self.schedule_occurrence_id:
+                occ = self.schedule_occurrence_id
+                self.schedule_occurrence_id = False
+                occ.unlink()
+            return
+
+        from datetime import timedelta
+        end_dt = self.scheduled_datetime + timedelta(minutes=self.duration_minutes)
+
+        # Update or Create Occurrence natively without touching the master Course Schedules (class.schedule)
+        occ_vals = {
+            'name': f"Demo Class: {self.subject_id.name if self.subject_id else 'General'} - Demo",
+            'course_id': self.course_id.id,
+            'tutor_id': self.tutor_id.id,
+            'start_datetime': self.scheduled_datetime,
+            'stop_datetime': end_dt,
+            'is_demo': True,
+            'lesson_status': 'scheduled',
+            'is_rescheduled': False,
+        }
+
+        if self.schedule_occurrence_id:
+            self.schedule_occurrence_id.write(occ_vals)
+        else:
+            new_occ = self.env['class.schedule.occurrence'].create(occ_vals)
+            self.schedule_occurrence_id = new_occ.id
+
+    def unlink(self):
+        """When demo session is destroyed manually natively from tree view, destroy the schedules first mapping."""
+        for rec in self:
+            if rec.schedule_occurrence_id:
+                rec.schedule_occurrence_id.unlink()
+        return super(DemoSession, self).unlink()
+
+    def action_delete_demo(self):
+        """Delete the demo session."""
+        self.unlink()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Demo Sessions',
+            'res_model': 'demo.session',
+            'view_mode': 'kanban,list,form',
+        }

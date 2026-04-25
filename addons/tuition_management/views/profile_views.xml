@@ -43,8 +43,8 @@
                             <field name="email"/>
                             <field name="country_code" string="Country Code"/>
                             <field name="phone"/>
-                            <field name="timezone"/>
-                            <field name="partner_id"/>
+                            <field name="timezone" required="1"/>
+                            <field name="partner_id" invisible="1"/>
                         </group>
                         <group string="Academic Information">
                             <field name="grade_id"/>
@@ -210,7 +210,7 @@
                             <field name="country_code" string="Country Code"/>
                             <field name="phone"/>
                             <field name="timezone"/>
-                            <field name="partner_id"/>
+                            <field name="partner_id" invisible="1"/>
                         </group>
                         <group string="Address">
                             <field name="address_line_1"/>

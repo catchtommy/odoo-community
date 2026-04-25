@@ -9,7 +9,8 @@
                 <header>
                     <field name="is_enrolled_stage" invisible="1"/>
                     <field name="is_enrolled" invisible="1"/>
-                    <button name="action_enroll_to_course" type="object" string="Convert to Course" class="btn-primary" icon="fa-graduation-cap" invisible="not is_enrolled_stage or is_enrolled"/>
+                    <field name="can_convert_course" invisible="1"/>
+                    <button name="action_enroll_to_course" type="object" string="Convert to Course" class="btn-primary" icon="fa-graduation-cap" invisible="not can_convert_course"/>
                 </header>
                 <div class="alert alert-success" role="status" invisible="not is_enrolled">
                     <strong><i class="fa fa-check-circle"/> Enrolled!</strong> This enquiry has been converted to a course enrollment.
@@ -32,26 +33,23 @@
                         <field name="enquiry_date" readonly="is_enrolled"/>
                     </group>
                     <group string="Parent Information">
-                        <field name="parent_profile_id" string="Parent" readonly="is_enrolled" invisible="is_enrolled"/>
-                        <field name="name" string="Parent Name" readonly="true"/>
-                        <field name="email" readonly="true"/>
-                        <field name="partner_id" readonly="true"/>
+                        <field name="parent_profile_id" string="Parent" readonly="is_enrolled" invisible="is_enrolled" required="1"/>
+                        <field name="name" string="Parent Name" readonly="1" force_save="1"/>
+                        <field name="email" readonly="1" force_save="1"/>
+                        <field name="partner_id" readonly="1" force_save="1"/>
                         <label for="phone" string="Phone Number"/>
                         <div style="display: grid; grid-template-columns:25% 75%; gap: 2px;">
-                            <field name="country_code" placeholder="Country Code" readonly="true"/>
-                            <field name="phone" class="o_field_char" placeholder="Phone Number" readonly="true"/>
+                            <field name="country_code" placeholder="Country Code" readonly="1" force_save="1"/>
+                            <field name="phone" class="o_field_char" placeholder="Phone Number" readonly="1" force_save="1"/>
                         </div>
                     </group>
                     <group string="Student Information">
-                        <field name="student_profile_id" string="Student" domain="[('parent_id', '=', parent_profile_id)]" readonly="is_enrolled" invisible="is_enrolled or not parent_profile_id"/>
-                        <field name="student_name" readonly="true"/>
+                        <field name="student_profile_id" string="Student" domain="[('parent_id', '=', parent_profile_id)]" readonly="is_enrolled" invisible="is_enrolled or not parent_profile_id" required="1"/>
+                        <field name="student_name" readonly="1" force_save="1"/>
                     </group>
                     <group string="Academic Information">
                         <field name="subject_id" readonly="is_enrolled"/>
                         <field name="grade_id" readonly="is_enrolled"/>
-                    </group>
-                    <group string="Demo Sessions">
-                        <field name="demo_session_ids" readonly="is_enrolled"/>
                     </group>
                     <group string="Notes">
                         <field name="notes" nolabel="1" readonly="is_enrolled"/>
@@ -76,9 +74,15 @@
         <field name="model">enquiry</field>
         <field name="arch" type="xml">
             <kanban default_group_by="stage_id" class="o_kanban_small_column" quick_create="false">
-                <field name="enquiry_name"/><field name="name"/><field name="student_name"/>
-                <field name="email"/><field name="phone"/><field name="subject_id"/>
-                <field name="grade_id"/><field name="stage_id"/><field name="enquiry_date"/>
+                <field name="enquiry_name"/>
+                <field name="name"/>
+                <field name="student_name"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="subject_id"/>
+                <field name="grade_id"/>
+                <field name="stage_id"/>
+                <field name="enquiry_date"/>
                 <templates>
                     <t t-name="card">
                         <div class="oe_kanban_content">
@@ -90,10 +94,10 @@
                             <div class="o_kanban_record_body">
                                 <div class="mb-1"><strong>Parent:</strong> <field name="name"/></div>
                                 <div class="mb-1"><strong>Student:</strong> <field name="student_name"/></div>
-                                <div class="mb-1" t-if="record.subject_id.value"><strong>Subject:</strong> <field name="subject_id"/></div>
-                                <div class="mb-1" t-if="record.grade_id.value"><strong>Grade:</strong> <field name="grade_id"/></div>
-                                <div class="text-muted" t-if="record.email.value"><i class="fa fa-envelope me-1"/><field name="email"/></div>
-                                <div class="text-muted" t-if="record.phone.value"><i class="fa fa-phone me-1"/><field name="phone"/></div>
+                                <div class="mb-1" t-if="record.subject_id.raw_value"><strong>Subject:</strong> <field name="subject_id"/></div>
+                                <div class="mb-1" t-if="record.grade_id.raw_value"><strong>Grade:</strong> <field name="grade_id"/></div>
+                                <div class="text-muted" t-if="record.email.raw_value"><i class="fa fa-envelope me-1"/><field name="email"/></div>
+                                <div class="text-muted" t-if="record.phone.raw_value"><i class="fa fa-phone me-1"/><field name="phone"/></div>
                             </div>
                             <div class="o_kanban_record_bottom">
                                 <div class="oe_kanban_bottom_left"><field name="enquiry_date" widget="date"/></div>
@@ -132,7 +136,7 @@
         <field name="model">demo.session</field>
         <field name="arch" type="xml">
             <list string="Demo Sessions">
-                <field name="enquiry_id"/><field name="subject_id"/><field name="tutor_id"/>
+                <field name="course_id"/><field name="subject_id"/><field name="tutor_id"/>
                 <field name="scheduled_datetime"/><field name="duration_minutes"/>
                 <field name="status"/><field name="rating"/>
             </list>
@@ -145,7 +149,9 @@
             <form string="Demo Session">
                 <sheet>
                     <group>
-                        <field name="enquiry_id"/><field name="subject_id"/><field name="tutor_id"/>
+                        <field name="course_id" readonly="1" invisible="not course_id"/>
+                        <field name="subject_id" options="{'no_open': True, 'no_create': True}"/>
+                        <field name="tutor_id"/>
                     </group>
                     <group>
                         <field name="scheduled_datetime"/><field name="timezone"/>
