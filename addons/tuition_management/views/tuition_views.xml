@@ -151,11 +151,13 @@
                     <group>
                         <field name="course_id" readonly="1" invisible="not course_id"/>
                         <field name="subject_id" options="{'no_open': True, 'no_create': True}"/>
-                        <field name="tutor_id"/>
                     </group>
                     <group>
-                        <field name="scheduled_datetime"/><field name="timezone"/>
+                        <field name="scheduled_datetime"/>
+                        <field name="timezone"/>
                         <field name="duration_minutes" string="Duration (Minutes)"/>
+                        <field name="available_tutor_ids" invisible="1"/>
+                        <field name="tutor_id" domain="[('id', 'in', available_tutor_ids)]"/>
                     </group>
                     <group>
                         <field name="status"/><field name="rating"/>

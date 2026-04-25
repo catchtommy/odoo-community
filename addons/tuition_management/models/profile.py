@@ -55,6 +55,42 @@ class TutorProfile(models.Model):
         return {'type': 'ir.actions.act_window', 'name': 'Manage Portal Access',
                 'res_model': 'portal.access.wizard', 'view_mode': 'form', 'target': 'new', 'context': ctx}
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for rec in records:
+            if not rec.partner_id:
+                partner = self.env['res.partner'].create({
+                    'name': rec.name,
+                    'email': rec.email,
+                    'phone': '%s%s' % (rec.country_code or '', rec.phone or '') if rec.phone else False,
+                })
+                rec.partner_id = partner.id
+            if rec.email and rec.partner_id:
+                existing_user = self.env['res.users'].sudo().with_context(active_test=False).search([('login', '=', rec.email)], limit=1)
+                if not existing_user:
+                    user = self.env['res.users'].sudo().with_context(no_reset_password=True).create({
+                        'name': rec.name,
+                        'login': rec.email,
+                        'email': rec.email,
+                        'partner_id': rec.partner_id.id,
+                    })
+                    self.env['portal.access.wizard'].new()._assign_portal_group(user)
+        return records
+
+    def write(self, vals):
+        res = super().write(vals)
+        for rec in self:
+            if rec.partner_id:
+                partner_vals = {}
+                if 'name' in vals: partner_vals['name'] = rec.name
+                if 'email' in vals: partner_vals['email'] = rec.email
+                if 'phone' in vals or 'country_code' in vals:
+                    partner_vals['phone'] = '%s%s' % (rec.country_code or '', rec.phone or '')
+                if partner_vals:
+                    rec.partner_id.write(partner_vals)
+        return res
+
 
 class StudentProfile(models.Model):
     _name = 'student.profile'
@@ -133,7 +169,6 @@ class StudentProfile(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
-        # 1. We must manually create the res.partner if it doesn't exist, since _inherits was reverted.
         for vals in vals_list:
             if not vals.get('partner_id'):
                 partner_vals = {
@@ -144,7 +179,19 @@ class StudentProfile(models.Model):
                 partner = self.env['res.partner'].create(partner_vals)
                 vals['partner_id'] = partner.id
 
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        for rec in records:
+            if rec.email and rec.partner_id:
+                existing_user = self.env['res.users'].sudo().with_context(active_test=False).search([('login', '=', rec.email)], limit=1)
+                if not existing_user:
+                    user = self.env['res.users'].sudo().with_context(no_reset_password=True).create({
+                        'name': rec.name,
+                        'login': rec.email,
+                        'email': rec.email,
+                        'partner_id': rec.partner_id.id,
+                    })
+                    self.env['portal.access.wizard'].new()._assign_portal_group(user)
+        return records
 
     def write(self, vals):
         res = super().write(vals)
@@ -229,7 +276,19 @@ class ParentProfile(models.Model):
                 partner = self.env['res.partner'].create(partner_vals)
                 vals['partner_id'] = partner.id
 
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        for rec in records:
+            if rec.email and rec.partner_id:
+                existing_user = self.env['res.users'].sudo().with_context(active_test=False).search([('login', '=', rec.email)], limit=1)
+                if not existing_user:
+                    user = self.env['res.users'].sudo().with_context(no_reset_password=True).create({
+                        'name': rec.name,
+                        'login': rec.email,
+                        'email': rec.email,
+                        'partner_id': rec.partner_id.id,
+                    })
+                    self.env['portal.access.wizard'].new()._assign_portal_group(user)
+        return records
 
     def write(self, vals):
         res = super().write(vals)
@@ -276,7 +335,7 @@ class PortalAccessWizard(models.TransientModel):
                  'ivory', 'jewel', 'knack', 'lemon', 'mango', 'noble', 'ocean', 'pearl',
                  'quest', 'river', 'solar', 'tiger', 'ultra', 'vivid', 'whale', 'xenon',
                  'yacht', 'zebra', 'amber', 'blaze', 'coral', 'drift', 'ember', 'frost']
-        return '%s%s@%d' % (random.choice(words).capitalize(), random.choice(words).capitalize(), random.randint(1000, 9999))
+        return '%s%s@%d' % (random.choice(words).capitalize(), random.choice(words).Capitalize(), random.randint(1000, 9999))
 
     @api.model
     def default_get(self, fields_list):
@@ -338,10 +397,14 @@ class PortalAccessWizard(models.TransientModel):
             return {'type': 'ir.actions.client', 'tag': 'display_notification',
                     'params': {'title': 'Portal Access Updated', 'message': f'Updated for {self.name}. Login: {self.login}',
                                'type': 'success', 'sticky': False, 'next': {'type': 'ir.actions.act_window_close'}}}
+        
         if not profile.partner_id:
+            country = getattr(profile, 'country_code', '') or ''
+            phonen = getattr(profile, 'phone', '') or ''
             partner = self.env['res.partner'].create({
                 'name': profile.name, 'email': profile.email,
-                'phone': f"{getattr(profile, 'country_code', '') or ''}{getattr(profile, 'phone', '') or ''}"})
+                'phone': f"{country}{phonen}"
+            })
             profile.partner_id = partner.id
         else:
             partner = profile.partner_id

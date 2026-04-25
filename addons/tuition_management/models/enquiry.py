@@ -330,12 +330,12 @@ class Enquiry(models.Model):
 
         self.is_enrolled = True
 
-        # Move to "Enrolled" stage automatically
-        enrolled_stage = self.env['enquiry.stage'].search([
-            ('is_enrolled_stage', '=', True)
-        ], limit=1)
-        if enrolled_stage:
-            self.stage_id = enrolled_stage.id
+        # Removed automatic transition to 'Enrolled' stage as requested natively by the user.
+        # enrolled_stage = self.env['enquiry.stage'].search([
+        #    ('is_enrolled_stage', '=', True)
+        # ], limit=1)
+        # if enrolled_stage:
+        #    self.stage_id = enrolled_stage.id
 
         return {
             'type': 'ir.actions.client',
@@ -387,6 +387,30 @@ class DemoSession(models.Model):
         ('UTC', 'UTC'),
     ], string='Timezone', default='UTC')
     duration_minutes = fields.Integer(string='Duration (Minutes)', default=30)
+    available_tutor_ids = fields.Many2many('tutor.profile', compute='_compute_available_tutors', store=False)
+    
+    @api.depends('scheduled_datetime', 'duration_minutes', 'subject_id')
+    def _compute_available_tutors(self):
+        for rec in self:
+            if not rec.scheduled_datetime:
+                rec.available_tutor_ids = self.env['tutor.profile'].search([])
+                continue
+            
+            day_name = rec.scheduled_datetime.strftime('%A').lower()
+            start_float = rec.scheduled_datetime.hour + (rec.scheduled_datetime.minute / 60.0)
+            end_float = start_float + (rec.duration_minutes / 60.0)
+            
+            # Find tutors who are available on this day and time
+            # and (optionally) teach the selected subject
+            domain = [('availability_ids.day_of_week', '=', day_name),
+                      ('availability_ids.start_time', '<=', start_float),
+                      ('availability_ids.end_time', '>=', end_float),
+                      ('active', '=', True)]
+            if rec.subject_id:
+                domain.append(('subject_ids', 'in', rec.subject_id.id))
+                
+            rec.available_tutor_ids = self.env['tutor.profile'].search(domain)
+
     status = fields.Selection([
         ('scheduled', 'Scheduled'),
         ('completed', 'Completed'),
