@@ -217,7 +217,7 @@
                 <field name="start_date"/>
                 <field name="notes"/>
             </group>
-            <div class="alert alert-info" style="margin:12px 0;">
+            <div class="alert alert-info" role="status" style="margin:12px 0;">
                 <i class="fa fa-info-circle"/> Plan changes take effect on the
                 <strong>1st of the selected month</strong>. The current plan will be
                 automatically closed at the end of the previous month.
@@ -244,7 +244,7 @@
                        help="Positive = extra charge, Negative = credit or refund"/>
                 <field name="date"/>
             </group>
-            <div class="alert alert-warning" style="margin:12px 0;">
+            <div class="alert alert-warning" role="alert" style="margin:12px 0;">
                 <i class="fa fa-exclamation-triangle"/>
                 This adjustment will be included automatically in the
                 <strong>next invoice</strong> and marked as applied.
@@ -261,15 +261,19 @@
 <menuitem id="menu_tuition_billing_root"
           name="Billing"
           parent="menu_tuition_root"
-          sequence="30"
-          groups="base.group_user"/>
+          sequence="30"/>
+
+<menuitem id="menu_tuition_generate_bulk_invoices"
+          name="Generate Invoices"
+          parent="menu_tuition_billing_root"
+          action="action_bulk_billing_wizard"
+          sequence="5"/>
 
 <menuitem id="menu_tuition_subscriptions"
           name="Subscriptions"
           parent="menu_tuition_billing_root"
           action="action_tuition_subscriptions"
-          sequence="10"
-          groups="base.group_user"/>
+          sequence="10"/>
 
 <record id="ir_cron_generate_tuition_invoices" model="ir.cron">
     <field name="name">Tuition: Generate Monthly Invoices</field>

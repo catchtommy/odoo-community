@@ -16,7 +16,7 @@ class TuitionSubscription(models.Model):
                                     domain="[('student_id', '=', student_id)]")
     plan_line_ids = fields.One2many('tuition.plan.line', 'subscription_id', string='Plan History')
     adjustment_ids = fields.One2many('tuition.adjustment', 'subscription_id', string='Adjustments')
-    invoice_ids = fields.One2many('account.move', 'tuition_subscription_id', string='Invoices')
+    invoice_ids = fields.Many2many('account.move', 'account_move_tuition_subscription_rel', 'subscription_id', 'move_id', string='Invoices')
     discount_ids = fields.One2many('tuition.discount', 'subscription_id', string='Discounts')
     current_plan_id = fields.Many2one('tuition.plan.line', string='Current Plan', compute='_compute_current_plan', store=False)
     current_plan_product = fields.Char(string='Current Plan', compute='_compute_current_plan', store=False)
@@ -61,13 +61,15 @@ class TuitionSubscription(models.Model):
     def action_view_invoices(self):
         self.ensure_one()
         return {'type': 'ir.actions.act_window', 'name': 'Invoices', 'res_model': 'account.move',
-                'view_mode': 'list,form', 'domain': [('tuition_subscription_id', '=', self.id)]}
+                'view_mode': 'list,form', 'domain': [('id', 'in', self.invoice_ids.ids)]}
 
     def action_generate_invoice(self):
         self.ensure_one()
         today = fields.Date.today()
+        # check both via many2one and many2many
         existing = self.env['account.move'].sudo().search([
-            ('tuition_subscription_id', '=', self.id),
+            '|', ('tuition_subscription_id', '=', self.id),
+                 ('tuition_subscription_ids', 'in', [self.id]),
             ('invoice_date', '>=', today.replace(day=1)), ('state', '!=', 'cancel'),
         ], limit=1)
         if existing:
@@ -154,13 +156,19 @@ class TuitionSubscription(models.Model):
                                        'price_unit': line['unit_price'], 'name': line['description']}))
         order = self.env['sale.order'].sudo().create({
             'partner_id': preview_vals['partner_id'], 'payment_term_id': payment_term.id if payment_term else False,
-            'tuition_subscription_id': self.id, 'order_line': order_lines,
+            'tuition_subscription_id': self.id,
+            'tuition_subscription_ids': [(4, self.id)],
+            'order_line': order_lines,
             'note': 'Tuition: %s | %s' % (self.student_id.name, preview_vals['month_label']),
         })
         order.action_confirm()
         invoice = self.env['account.move'].sudo().search([('invoice_origin', 'like', order.name), ('move_type', '=', 'out_invoice')], limit=1)
         if not invoice: invoice = order._create_invoices()
-        invoice.sudo().write({'tuition_subscription_id': self.id, 'tuition_plan_line_id': preview_vals.get('plan_id')})
+        invoice.sudo().write({
+            'tuition_subscription_id': self.id,
+            'tuition_subscription_ids': [(4, self.id)],
+            'tuition_plan_line_id': preview_vals.get('plan_id')
+        })
         invoice.sudo().action_post()
         if preview_vals.get('unapplied_adj_ids'):
             self.env['tuition.adjustment'].browse(preview_vals['unapplied_adj_ids']).write({'applied_in_invoice': True, 'invoice_id': invoice.id})
@@ -251,14 +259,18 @@ class TuitionPlanLine(models.Model):
     def _compute_has_invoices(self):
         for rec in self:
             rec.has_invoices = bool(self.env['account.move'].sudo().search([
-                ('tuition_subscription_id', '=', rec.subscription_id.id),
+                '|', ('tuition_subscription_id', '=', rec.subscription_id.id),
+                     ('tuition_subscription_ids', 'in', [rec.subscription_id.id]),
                 ('tuition_plan_line_id', '=', rec.id), ('state', '!=', 'cancel'),
             ], limit=1))
 
     def unlink(self):
         for rec in self:
-            if self.env['account.move'].sudo().search([('tuition_subscription_id', '=', rec.subscription_id.id),
-                                                       ('tuition_plan_line_id', '=', rec.id), ('state', '!=', 'cancel')], limit=1):
+            if self.env['account.move'].sudo().search([
+                '|', ('tuition_subscription_id', '=', rec.subscription_id.id),
+                     ('tuition_subscription_ids', 'in', [rec.subscription_id.id]),
+                ('tuition_plan_line_id', '=', rec.id), ('state', '!=', 'cancel')
+            ], limit=1):
                 raise UserError("Cannot delete plan '%s' because it has invoices linked to it." % (rec.product_id.name or 'plan'))
         return super().unlink()
 
@@ -325,6 +337,7 @@ class AccountMoveTuitionExt(models.Model):
     _inherit = 'account.move'
 
     tuition_subscription_id = fields.Many2one('tuition.subscription', string='Tuition Subscription', ondelete='set null', index=True)
+    tuition_subscription_ids = fields.Many2many('tuition.subscription', 'account_move_tuition_subscription_rel', 'move_id', 'subscription_id', string='Tuition Subscriptions')
     tuition_plan_line_id = fields.Many2one('tuition.plan.line', string='Tuition Plan', ondelete='set null', index=True)
 
 
@@ -332,6 +345,7 @@ class SaleOrderTuitionExt(models.Model):
     _inherit = 'sale.order'
 
     tuition_subscription_id = fields.Many2one('tuition.subscription', string='Tuition Subscription', ondelete='set null', index=True)
+    tuition_subscription_ids = fields.Many2many('tuition.subscription', 'sale_order_tuition_subscription_rel', 'order_id', 'subscription_id', string='Tuition Subscriptions')
 
 
 class TuitionPlanChangeWizard(models.TransientModel):

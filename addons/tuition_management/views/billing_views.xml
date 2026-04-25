@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- Bulk Billing Wizard Action -->
+    <record id="action_bulk_billing_wizard" model="ir.actions.act_window">
+        <field name="name">Generate Bulk Invoices</field>
+        <field name="res_model">bulk.billing.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Bulk Billing Wizard Form View -->
+    <record id="view_bulk_billing_wizard_form" model="ir.ui.view">
+        <field name="name">bulk.billing.wizard.form</field>
+        <field name="model">bulk.billing.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Generate Bulk Invoices">
+                <group>
+                    <field name="month"/>
+                    <field name="year"/>
+                </group>
+                <footer>
+                    <button name="action_preview_invoices" type="object" string="Preview Invoices" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Preview Line (per Parent) list view -->
+    <record id="view_bulk_billing_preview_line_tree" model="ir.ui.view">
+        <field name="name">bulk.billing.preview.line.list</field>
+        <field name="model">bulk.billing.preview.line</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="partner_id"/>
+                <field name="total_amount" sum="Total"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Preview Line (per Parent) form view with details -->
+    <record id="view_bulk_billing_preview_line_form" model="ir.ui.view">
+        <field name="name">bulk.billing.preview.line.form</field>
+        <field name="model">bulk.billing.preview.line</field>
+        <field name="arch" type="xml">
+            <form string="Invoice Preview">
+                <div class="alert alert-warning" role="alert" invisible="not has_existing_invoice" style="margin:12px 0;">
+                    <i class="fa fa-exclamation-triangle"/>
+                    <strong>Warning:</strong> An invoice already exists for this parent in this month. Generating another may result in duplicate billing.
+                </div>
+                <group>
+                    <field name="has_existing_invoice" invisible="1"/>
+                    <field name="partner_id" readonly="1"/>
+                    <field name="total_amount" readonly="1"/>
+                </group>
+                <group string="Details">
+                    <field name="detail_ids" nolabel="1">
+                        <list>
+                            <field name="student_id"/>
+                            <field name="course_name"/>
+                            <field name="description"/>
+                            <field name="subtotal" sum="Total"/>
+                        </list>
+                    </field>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <!-- Bulk Billing Preview Form View -->
+    <record id="view_bulk_billing_preview_form" model="ir.ui.view">
+        <field name="name">bulk.billing.preview.form</field>
+        <field name="model">bulk.billing.preview</field>
+        <field name="arch" type="xml">
+            <form string="Invoice Preview">
+                <header>
+                    <button name="action_generate_invoices" type="object" string="Generate All Invoices" class="btn-primary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="month" readonly="1"/>
+                            <field name="year" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="total_invoices" readonly="1"/>
+                            <field name="total_revenue" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <field name="line_ids" nolabel="1" context="{'tree_view_ref': 'tuition_management.view_bulk_billing_preview_line_tree', 'form_view_ref': 'tuition_management.view_bulk_billing_preview_line_form'}">
+                        <list decoration-warning="has_existing_invoice">
+                            <field name="has_existing_invoice" column_invisible="True"/>
+                            <field name="partner_id"/>
+                            <field name="total_amount" sum="Total"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+</odoo>
