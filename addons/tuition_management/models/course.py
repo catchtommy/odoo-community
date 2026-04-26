@@ -11,17 +11,31 @@ class CourseMaster(models.Model):
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
     name = fields.Char(string='Course Name', required=True)
-    subject_id = fields.Many2one('subject.master', string='Subject')
+    subject_id = fields.Many2one('subject.master', string='Subject', tracking=True)
     grade_id = fields.Many2one('grade.master', string='Grade')
     status = fields.Selection([
         ('draft', 'Draft'), ('active', 'Active'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),
-    ], string='Status', default='draft')
+    ], string='Status', default='draft', tracking=True)
     start_date = fields.Date(string='Start Date')
     end_date = fields.Date(string='End Date')
-    tutor_id = fields.Many2one('tutor.profile', string='Tutor')
+    tutor_id = fields.Many2one('tutor.profile', string='Tutor', tracking=True)
     coordinator_id = fields.Many2one('res.users', string='Coordinator')
     schedule_ids = fields.One2many('class.schedule', 'course_id', string='Schedules')
+    schedule_id = fields.Many2one(
+        'class.schedule',
+        string='Primary Schedule',
+        compute='_compute_chatter_tracked_relations',
+        store=True,
+        tracking=True,
+    )
     enrollment_ids = fields.One2many('course.enrollment', 'course_id', string='Enrollments')
+    subscription_plan_id = fields.Many2one(
+        'tuition.plan.line',
+        string='Subscription Plan',
+        compute='_compute_chatter_tracked_relations',
+        store=True,
+        tracking=True,
+    )
     progress_report_ids = fields.One2many('progress.report', 'course_id', string='Progress Reports')
     assignment_ids = fields.One2many('course.assignment', 'course_id', string='Assignments')
     occurrence_ids = fields.One2many('class.schedule.occurrence', 'course_id', string='Schedule Occurrences')
@@ -46,6 +60,119 @@ class CourseMaster(models.Model):
     def _compute_student_count(self):
         for rec in self:
             rec.student_count = len(rec.enrollment_ids.filtered(lambda e: e.status == 'active'))
+
+    @api.depends(
+        'schedule_ids',
+        'schedule_ids.create_date',
+        'enrollment_ids',
+        'enrollment_ids.subscription_id',
+        'enrollment_ids.subscription_id.plan_line_ids',
+        'enrollment_ids.subscription_id.plan_line_ids.state',
+        'enrollment_ids.subscription_id.plan_line_ids.start_date',
+        'enrollment_ids.subscription_id.plan_line_ids.end_date',
+    )
+    def _compute_chatter_tracked_relations(self):
+        today = fields.Date.today()
+        for rec in self:
+            rec.schedule_id = rec.schedule_ids[:1].id if rec.schedule_ids else False
+            plans = rec.enrollment_ids.mapped('subscription_id.plan_line_ids').filtered(
+                lambda plan: plan.state == 'active'
+                and plan.start_date
+                and plan.start_date <= today
+                and (not plan.end_date or plan.end_date >= today)
+            )
+            rec.subscription_plan_id = plans[:1].id if plans else False
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for rec in records:
+            rec._subscribe_related_partners()
+            rec.message_post(
+                body='Course created: %s.' % rec.name,
+                subtype_xmlid='mail.mt_note',
+            )
+            if rec.tutor_id:
+                rec._post_tutor_assigned_message()
+            else:
+                rec._schedule_tutor_assignment_activity()
+        return records
+
+    def write(self, vals):
+        old_tutors = {rec.id: rec.tutor_id for rec in self}
+        res = super().write(vals)
+        if {'enrollment_ids', 'tutor_id'} & set(vals.keys()):
+            for rec in self:
+                rec._subscribe_related_partners()
+        if 'tutor_id' in vals:
+            for rec in self.filtered('tutor_id'):
+                if old_tutors.get(rec.id) != rec.tutor_id:
+                    rec._post_tutor_assigned_message()
+        return res
+
+    def _subscribe_related_partners(self):
+        for rec in self:
+            partner_ids = []
+            if rec.tutor_id.partner_id:
+                partner_ids.append(rec.tutor_id.partner_id.id)
+            for student in rec.enrollment_ids.mapped('student_id'):
+                if student.partner_id:
+                    partner_ids.append(student.partner_id.id)
+                if student.parent_id.partner_id:
+                    partner_ids.append(student.parent_id.partner_id.id)
+            if partner_ids:
+                rec.message_subscribe(partner_ids=list(set(partner_ids)))
+
+    def _post_tutor_assigned_message(self):
+        self.ensure_one()
+        self.message_post(
+            body='Tutor assigned: %s.' % self.tutor_id.name,
+            subtype_xmlid='mail.mt_note',
+        )
+
+    def _schedule_tutor_assignment_activity(self):
+        todo_type = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+        if not todo_type:
+            return
+        for rec in self:
+            user = rec.coordinator_id or self.env.user
+            existing = rec.activity_ids.filtered(lambda a: a.summary == 'Assign tutor')
+            if not existing:
+                rec.activity_schedule(
+                    'mail.mail_activity_data_todo',
+                    date_deadline=fields.Date.today(),
+                    summary='Assign tutor',
+                    note='Assign a tutor before the course begins.',
+                    user_id=user.id,
+                )
+
+    @api.model
+    def _cron_schedule_subscription_renewal_activities(self):
+        """Sample native activity automation for plans ending in the next 14 days."""
+        today = fields.Date.today()
+        deadline = today + timedelta(days=14)
+        plans = self.env['tuition.plan.line'].search([
+            ('state', '=', 'active'),
+            ('end_date', '>=', today),
+            ('end_date', '<=', deadline),
+        ])
+        for plan in plans:
+            course = plan.subscription_id.enrollment_id.course_id
+            if not course:
+                continue
+            existing = course.activity_ids.filtered(
+                lambda a: a.summary == 'Renew subscription'
+                and a.date_deadline == plan.end_date
+            )
+            if existing:
+                continue
+            course.activity_schedule(
+                'mail.mail_activity_data_todo',
+                date_deadline=plan.end_date,
+                summary='Renew subscription',
+                note='Review renewal for %s.' % plan.subscription_id.name,
+                user_id=(course.coordinator_id or self.env.user).id,
+            )
 
     def action_enroll_student(self):
         self.ensure_one()
@@ -262,7 +389,14 @@ class CourseEnrollment(models.Model):
         for vals in vals_list:
             if vals.get('name', 'New') == 'New':
                 vals['name'] = self.env['ir.sequence'].next_by_code('course.enrollment') or 'New'
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        for rec in records.filtered('course_id'):
+            rec.course_id._subscribe_related_partners()
+            rec.course_id.message_post(
+                body='Student enrolled: %s.' % rec.student_id.name,
+                subtype_xmlid='mail.mt_note',
+            )
+        return records
 
     def action_create_subscription(self):
         self.ensure_one()

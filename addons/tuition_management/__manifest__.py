@@ -8,6 +8,7 @@
     "license": "LGPL-3",
     "depends": [
         "base",
+        "mail",
         "portal",
         "website",
         "account",

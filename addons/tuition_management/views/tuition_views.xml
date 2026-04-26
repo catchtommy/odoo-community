@@ -31,6 +31,9 @@
                     <group string="Enquiry Information">
                         <field name="enquiry_name" readonly="1"/>
                         <field name="enquiry_date" readonly="is_enrolled"/>
+                        <field name="assigned_user_id" readonly="is_enrolled"/>
+                        <field name="enquiry_source" readonly="is_enrolled"/>
+                        <field name="status" invisible="1"/>
                     </group>
                     <group string="Parent Information">
                         <field name="parent_profile_id" string="Parent" readonly="is_enrolled" invisible="is_enrolled" required="1"/>
@@ -55,6 +58,7 @@
                         <field name="notes" nolabel="1" readonly="is_enrolled"/>
                     </group>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>

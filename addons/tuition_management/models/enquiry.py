@@ -17,7 +17,16 @@ class EnquiryStage(models.Model):
 class Enquiry(models.Model):
     _name = 'enquiry'
     _description = 'Enquiry'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
     _rec_name = 'enquiry_name'
+
+    _STATUS_STAGE_MAP = {
+        'new': 'New',
+        'demo_scheduled': 'Demo Scheduled',
+        'demo_completed': 'Demo Completed',
+        'enrolled': 'Enrolled',
+        'lost': 'Lost',
+    }
 
     enquiry_name = fields.Char(string='Enquiry Name', readonly=True, copy=False, default='New')
     name = fields.Char(string='Parent Name', required=True)
@@ -27,19 +36,46 @@ class Enquiry(models.Model):
     phone = fields.Char(string='Phone')
     subject_id = fields.Many2one('subject.master', string='Subject', required=True)
     grade_id = fields.Many2one('grade.master', string='Grade', required=True)
-    stage_id = fields.Many2one('enquiry.stage', string='Stage', group_expand='_read_group_stage_ids',
-                                default=lambda self: self.env['enquiry.stage'].search([], limit=1))
+    stage_id = fields.Many2one(
+        'enquiry.stage',
+        string='Stage',
+        group_expand='_read_group_stage_ids',
+        default=lambda self: self.env['enquiry.stage'].search([], limit=1),
+        tracking=True,
+    )
+    status = fields.Selection([
+        ('new', 'New'),
+        ('demo_scheduled', 'Demo Scheduled'),
+        ('demo_completed', 'Demo Completed'),
+        ('enrolled', 'Enrolled'),
+        ('lost', 'Lost'),
+    ], string='Status', compute='_compute_status', inverse='_inverse_status', store=True, tracking=True)
     enquiry_date = fields.Date(string='Enquiry Date', default=fields.Date.today)
     notes = fields.Text(string='Notes')
     partner_id = fields.Many2one('res.partner', string='Contact')
+    assigned_user_id = fields.Many2one(
+        'res.users',
+        string='Assigned To',
+        default=lambda self: self.env.user,
+        tracking=True,
+    )
+    enquiry_source = fields.Selection([
+        ('website', 'Website'),
+        ('referral', 'Referral'),
+        ('phone', 'Phone'),
+        ('email', 'Email'),
+        ('social_media', 'Social Media'),
+        ('walk_in', 'Walk-in'),
+        ('other', 'Other'),
+    ], string='Source', tracking=True)
 
     # Enrollment fields
     is_enrolled_stage = fields.Boolean(related='stage_id.is_enrolled_stage', string='Is Enrolled Stage')
     is_enrolled = fields.Boolean(string='Is Enrolled', default=False)
     course_id = fields.Many2one('course.master', string='Course')
     enrollment_id = fields.Many2one('course.enrollment', string='Enrollment')
-    parent_profile_id = fields.Many2one('parent.profile', string='Parent Profile')
-    student_profile_id = fields.Many2one('student.profile', string='Student Profile')
+    parent_profile_id = fields.Many2one('parent.profile', string='Parent Profile', tracking=True)
+    student_profile_id = fields.Many2one('student.profile', string='Student Profile', tracking=True)
 
     can_convert_course = fields.Boolean(compute='_compute_can_convert_course')
 
@@ -47,6 +83,28 @@ class Enquiry(models.Model):
     def _compute_can_convert_course(self):
         for rec in self:
             rec.can_convert_course = rec.stage_id and rec.stage_id.name != 'New' and not rec.is_enrolled
+
+    @api.depends('stage_id', 'stage_id.name')
+    def _compute_status(self):
+        reverse_map = {stage_name: status for status, stage_name in self._STATUS_STAGE_MAP.items()}
+        for rec in self:
+            rec.status = reverse_map.get(rec.stage_id.name, 'new')
+
+    def _inverse_status(self):
+        for rec in self:
+            stage_name = rec._STATUS_STAGE_MAP.get(rec.status)
+            if stage_name:
+                stage = rec.env['enquiry.stage'].search([('name', '=', stage_name)], limit=1)
+                if stage:
+                    rec.stage_id = stage.id
+
+    @api.model
+    def _stage_id_from_status(self, status):
+        stage_name = self._STATUS_STAGE_MAP.get(status)
+        if not stage_name:
+            return False
+        stage = self.env['enquiry.stage'].search([('name', '=', stage_name)], limit=1)
+        return stage.id if stage else False
 
     _stages_cleaned = False  # reset to re-run cleanup after code change
 
@@ -111,6 +169,11 @@ class Enquiry(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
+            if vals.get('status') and not vals.get('stage_id'):
+                stage_id = self._stage_id_from_status(vals.pop('status'))
+                if stage_id:
+                    vals['stage_id'] = stage_id
+
             if vals.get('enquiry_name', 'New') == 'New':
                 # Use standard ir.sequence and provide a robust fallback if XML sequence is missing
                 seq = self.env['ir.sequence'].next_by_code('enquiry')
@@ -135,9 +198,22 @@ class Enquiry(models.Model):
         records = super().create(vals_list)
         for rec in records:
             rec._auto_create_parent_and_student()
+            rec._subscribe_related_partners()
+            rec.message_post(
+                body='Enquiry created for %s.' % (rec.student_name or rec.name),
+                subtype_xmlid='mail.mt_note',
+            )
+            rec._schedule_enquiry_followup_activity()
         return records
 
     def write(self, vals):
+        if vals.get('status') and not vals.get('stage_id'):
+            vals = dict(vals)
+            stage_id = self._stage_id_from_status(vals.pop('status'))
+            if stage_id:
+                vals['stage_id'] = stage_id
+        old_stage_names = {rec.id: rec.stage_id.name for rec in self}
+        old_tutor_by_course = {rec.id: rec.course_id.tutor_id for rec in self if rec.course_id}
         res = super().write(vals)
         # Sync parent fields if changed
         parent_fields = {'name', 'email', 'phone', 'country_code'}
@@ -166,7 +242,69 @@ class Enquiry(models.Model):
                         student_vals['grade_id'] = rec.grade_id.id if rec.grade_id else False
                     if student_vals:
                         rec.student_profile_id.write(student_vals)
+        if {'parent_profile_id', 'student_profile_id'} & set(vals.keys()):
+            for rec in self:
+                rec._subscribe_related_partners()
+        if 'stage_id' in vals:
+            for rec in self:
+                rec._post_stage_event(old_stage_names.get(rec.id))
+        if 'is_enrolled' in vals or 'course_id' in vals or 'enrollment_id' in vals:
+            for rec in self.filtered('is_enrolled'):
+                rec.message_post(
+                    body='Student enrolled%s.' % ((' in %s' % rec.course_id.name) if rec.course_id else ''),
+                    subtype_xmlid='mail.mt_note',
+                )
+        if old_tutor_by_course:
+            for rec in self.filtered('course_id'):
+                old_tutor = old_tutor_by_course.get(rec.id)
+                if old_tutor != rec.course_id.tutor_id and rec.course_id.tutor_id:
+                    rec.message_post(
+                        body='Tutor assigned: %s.' % rec.course_id.tutor_id.name,
+                        subtype_xmlid='mail.mt_note',
+                    )
         return res
+
+    def _subscribe_related_partners(self):
+        for rec in self:
+            partner_ids = []
+            if rec.partner_id:
+                partner_ids.append(rec.partner_id.id)
+            if rec.parent_profile_id.partner_id:
+                partner_ids.append(rec.parent_profile_id.partner_id.id)
+            if rec.student_profile_id.partner_id:
+                partner_ids.append(rec.student_profile_id.partner_id.id)
+            if partner_ids:
+                rec.message_subscribe(partner_ids=list(set(partner_ids)))
+
+    def _schedule_enquiry_followup_activity(self):
+        todo_type = self.env.ref('mail.mail_activity_data_todo', raise_if_not_found=False)
+        if not todo_type:
+            return
+        for rec in self:
+            user = rec.assigned_user_id or self.env.user
+            rec.activity_schedule(
+                'mail.mail_activity_data_todo',
+                date_deadline=fields.Date.today(),
+                summary='Follow up enquiry',
+                note='Contact the parent or student and record the next step.',
+                user_id=user.id,
+            )
+
+    def _post_stage_event(self, old_stage_name=False):
+        self.ensure_one()
+        if old_stage_name == self.stage_id.name:
+            return
+        if self.stage_id.name == 'Demo Scheduled':
+            body = 'Demo scheduled.'
+        elif self.stage_id.name == 'Demo Completed':
+            body = 'Demo completed.'
+        elif self.stage_id.name == 'Enrolled':
+            body = 'Student enrolled.'
+        elif self.stage_id.name == 'Lost':
+            body = 'Enquiry marked as lost.'
+        else:
+            return
+        self.message_post(body=body, subtype_xmlid='mail.mt_note')
 
     @api.onchange('parent_profile_id')
     def _onchange_parent_profile_id(self):
@@ -433,13 +571,27 @@ class DemoSession(models.Model):
         for rec in records:
             if rec.status == 'scheduled' and rec.scheduled_datetime and rec.tutor_id:
                 rec._create_or_update_schedule()
+            if rec.course_id:
+                rec.course_id.message_post(
+                    body='Demo scheduled%s.' % (
+                        ' for %s' % fields.Datetime.to_string(rec.scheduled_datetime)
+                        if rec.scheduled_datetime else ''
+                    ),
+                    subtype_xmlid='mail.mt_note',
+                )
         return records
 
     def write(self, vals):
+        old_statuses = {rec.id: rec.status for rec in self}
         res = super(DemoSession, self).write(vals)
         for rec in self:
             if any(k in vals for k in ['status', 'scheduled_datetime', 'duration_minutes', 'tutor_id']):
                 rec._create_or_update_schedule()
+            if rec.course_id and old_statuses.get(rec.id) != rec.status:
+                if rec.status == 'completed':
+                    rec.course_id.message_post(body='Demo completed.', subtype_xmlid='mail.mt_note')
+                elif rec.status == 'cancelled':
+                    rec.course_id.message_post(body='Demo cancelled.', subtype_xmlid='mail.mt_note')
         return res
 
     def _create_or_update_schedule(self):

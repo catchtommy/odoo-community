@@ -44,6 +44,8 @@
                         <field name="grade_id"/>
                         <field name="tutor_id" domain="[('id', 'in', eligible_tutor_ids)]"/>
                         <field name="coordinator_id"/>
+                        <field name="schedule_id" readonly="1"/>
+                        <field name="subscription_plan_id" readonly="1"/>
                     </group>
                     <group string="Course Dates">
                         <field name="start_date"/><field name="end_date"/><field name="status"/>
@@ -122,6 +124,7 @@
                     </page>
                 </notebook>
             </sheet>
+            <chatter/>
         </form>
     </field>
 </record>
