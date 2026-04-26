@@ -26,6 +26,18 @@ class TutorProfile(models.Model):
     phone = fields.Char(string='Phone')
     timezone = fields.Selection(string='Timezone', selection=lambda self: [(tz, tz) for tz in sorted(__import__('pytz').all_timezones)], default='UTC')
     subject_ids = fields.Many2many('subject.master', string='Subjects')
+    category_ids = fields.Many2many(
+        'subject.category',
+        string='Categories',
+        compute='_compute_teaching_matrix',
+        inverse='_inverse_category_ids',
+        store=True,
+    )
+    tutor_subject_rate_ids = fields.One2many(
+        'tutor.subject.rate',
+        'tutor_id',
+        string='Tutor Pricing Matrix',
+    )
     grade_ids = fields.Many2many('grade.master', string='Grades')
     availability_ids = fields.One2many('tutor.availability', 'tutor_id', string='Availability')
     partner_id = fields.Many2one('res.partner', string='Contact')
@@ -33,6 +45,45 @@ class TutorProfile(models.Model):
     portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
     portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+
+    @api.depends(
+        'tutor_subject_rate_ids',
+        'tutor_subject_rate_ids.category_id',
+        'tutor_subject_rate_ids.subject_id',
+        'tutor_subject_rate_ids.active_flag',
+    )
+    def _compute_teaching_matrix(self):
+        for rec in self:
+            active_rates = rec.tutor_subject_rate_ids.filtered('active_flag')
+            rec.category_ids = active_rates.mapped('category_id')
+            matrix_subjects = active_rates.mapped('subject_id')
+            if matrix_subjects:
+                rec.subject_ids = matrix_subjects
+
+    def _inverse_category_ids(self):
+        """Allow manual category tagging while the detailed matrix remains authoritative."""
+        return True
+
+    @api.model
+    def get_eligible_tutors(self, category, subject, lesson_date=None):
+        """Return tutors configured for both category and subject on lesson_date."""
+        category_id = category.id if hasattr(category, 'id') else category
+        subject_id = subject.id if hasattr(subject, 'id') else subject
+        if not category_id or not subject_id:
+            return self.browse()
+        target_date = fields.Date.to_date(lesson_date) if lesson_date else fields.Date.today()
+        rate_domain = [
+            ('category_id', '=', category_id),
+            ('subject_id', '=', subject_id),
+            ('active_flag', '=', True),
+            ('effective_from', '<=', target_date),
+            '|', ('effective_to', '=', False), ('effective_to', '>=', target_date),
+        ]
+        return self.search([('tutor_subject_rate_ids', 'in', self.env['tutor.subject.rate'].search(rate_domain).ids)])
+
+    @api.model
+    def getEligibleTutors(self, category, subject):
+        return self.get_eligible_tutors(category, subject)
 
     @api.depends('partner_id')
     def _compute_portal_access(self):

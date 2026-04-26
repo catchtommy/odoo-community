@@ -20,6 +20,7 @@
         "views/profile_views.xml",
         "views/course_views.xml",
         "views/schedule_views.xml",
+        "views/tutor_payroll_views.xml",
         "views/attendance_views.xml",
         "views/progress_views.xml",
         "views/tuition_views.xml",

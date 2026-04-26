@@ -53,11 +53,19 @@ class ClassSchedule(models.Model):
                 rec.available_tutor_ids = rec.fallback_tutor_ids = self.env['tutor.profile']
                 rec.no_tutor_available = False
                 continue
-            subject, grade = rec.course_id.subject_id, rec.course_id.grade_id
+            category, subject, grade = rec.course_id.category_id, rec.course_id.subject_id, rec.course_id.grade_id
             selected_days = [d for d in day_fields if getattr(rec, d, False)]
             schedule_time = rec.schedule_hour + rec.schedule_minute / 60.0
             tutor_domain = []
-            if subject: tutor_domain.append(('subject_ids', 'in', [subject.id]))
+            if category and subject:
+                target_date = rec.start_date or fields.Date.today()
+                tutor_domain.append(('tutor_subject_rate_ids.category_id', '=', category.id))
+                tutor_domain.append(('tutor_subject_rate_ids.subject_id', '=', subject.id))
+                tutor_domain.append(('tutor_subject_rate_ids.active_flag', '=', True))
+                tutor_domain.append(('tutor_subject_rate_ids.effective_from', '<=', target_date))
+                tutor_domain.extend(['|', ('tutor_subject_rate_ids.effective_to', '=', False), ('tutor_subject_rate_ids.effective_to', '>=', target_date)])
+            elif subject:
+                tutor_domain.append(('subject_ids', 'in', [subject.id]))
             if grade: tutor_domain.append(('grade_ids', 'in', [grade.id]))
             all_tutors = self.env['tutor.profile'].search(tutor_domain if tutor_domain else [])
             available = self.env['tutor.profile']

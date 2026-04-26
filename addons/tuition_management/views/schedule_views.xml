@@ -114,6 +114,10 @@
                 <field name="name"/><field name="course_id"/><field name="tutor_id"/>
                 <field name="start_datetime"/><field name="stop_datetime"/>
                 <field name="lesson_status"/><field name="attendance_marked"/>
+                <field name="payable_hours" optional="hide"/>
+                <field name="tutor_rate_used" optional="hide"/>
+                <field name="tutor_calculated_amount" optional="hide"/>
+                <field name="tutor_payment_status" optional="hide"/>
             </list>
         </field>
     </record>
@@ -136,6 +140,13 @@
                         <field name="name"/><field name="schedule_id"/>
                         <field name="course_id"/><field name="tutor_id"/>
                         <field name="start_datetime"/><field name="stop_datetime"/>
+                    </group>
+                    <group string="Tutor Payment Snapshot">
+                        <field name="payable_hours"/>
+                        <field name="tutor_rate_used"/>
+                        <field name="tutor_calculated_amount"/>
+                        <field name="tutor_payment_status"/>
+                        <field name="tutor_payment_line_id"/>
                     </group>
                 </sheet>
             </form>

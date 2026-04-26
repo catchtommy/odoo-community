@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_tutor_subject_rate_list" model="ir.ui.view">
+        <field name="name">tutor.subject.rate.list</field>
+        <field name="model">tutor.subject.rate</field>
+        <field name="arch" type="xml">
+            <list string="Tutor Rates">
+                <field name="active_flag" widget="boolean_toggle"/>
+                <field name="tutor_id"/>
+                <field name="category_id"/>
+                <field name="subject_id"/>
+                <field name="standard_hourly_rate"/>
+                <field name="demo_rate_type"/>
+                <field name="demo_percentage"/>
+                <field name="demo_hourly_rate"/>
+                <field name="effective_from"/>
+                <field name="effective_to"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_tutor_subject_rate_form" model="ir.ui.view">
+        <field name="name">tutor.subject.rate.form</field>
+        <field name="model">tutor.subject.rate</field>
+        <field name="arch" type="xml">
+            <form string="Tutor Rate">
+                <sheet>
+                    <group>
+                        <group string="Mapping">
+                            <field name="active_flag"/>
+                            <field name="tutor_id"/>
+                            <field name="category_id"/>
+                            <field name="subject_id" domain="[('category_id', '=', category_id)]"/>
+                        </group>
+                        <group string="Effective Dates">
+                            <field name="effective_from"/>
+                            <field name="effective_to"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="Regular Pay">
+                            <field name="standard_hourly_rate"/>
+                        </group>
+                        <group string="Demo Pay">
+                            <field name="demo_rate_type"/>
+                            <field name="demo_percentage" invisible="demo_rate_type != 'percentage'"/>
+                            <field name="demo_hourly_rate" invisible="demo_rate_type != 'custom'"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_tutor_payment_line_list" model="ir.ui.view">
+        <field name="name">tutor.payment.line.list</field>
+        <field name="model">tutor.payment.line</field>
+        <field name="arch" type="xml">
+            <list string="Tutor Payment Lines" editable="bottom">
+                <field name="payment_run_id" readonly="1"/>
+                <field name="run_status" invisible="1"/>
+                <field name="tutor_id" readonly="1"/>
+                <field name="lesson_id" readonly="1"/>
+                <field name="category_id" readonly="1"/>
+                <field name="subject_id" readonly="1"/>
+                <field name="demo_flag" readonly="1"/>
+                <field name="hours_worked" readonly="run_status not in ['draft', 'preview']"/>
+                <field name="rate_used" readonly="run_status not in ['draft', 'preview']"/>
+                <field name="amount" readonly="run_status not in ['draft', 'preview']"/>
+                <field name="payment_status" readonly="run_status not in ['draft', 'preview']"/>
+                <field name="adjustment_reason"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_tutor_payment_summary_list" model="ir.ui.view">
+        <field name="name">tutor.payment.summary.list</field>
+        <field name="model">tutor.payment.summary</field>
+        <field name="arch" type="xml">
+            <list string="Tutor Payment Summaries">
+                <field name="tutor_id"/>
+                <field name="regular_hours"/>
+                <field name="demo_hours"/>
+                <field name="regular_pay"/>
+                <field name="demo_pay"/>
+                <field name="gross_pay"/>
+                <field name="payment_status"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_tutor_payment_summary_form" model="ir.ui.view">
+        <field name="name">tutor.payment.summary.form</field>
+        <field name="model">tutor.payment.summary</field>
+        <field name="arch" type="xml">
+            <form string="Tutor Payment Statement">
+                <sheet>
+                    <group>
+                        <field name="payment_run_id"/>
+                        <field name="tutor_id"/>
+                        <field name="payment_status"/>
+                    </group>
+                    <group string="Totals">
+                        <field name="regular_hours"/>
+                        <field name="demo_hours"/>
+                        <field name="regular_pay"/>
+                        <field name="demo_pay"/>
+                        <field name="gross_pay"/>
+                    </group>
+                    <notebook>
+                        <page string="Lesson Details">
+                            <field name="line_ids">
+                                <list create="false">
+                                    <field name="lesson_id"/>
+                                    <field name="run_status" invisible="1"/>
+                                    <field name="category_id"/>
+                                    <field name="subject_id"/>
+                                    <field name="demo_flag"/>
+                                    <field name="hours_worked"/>
+                                    <field name="rate_used"/>
+                                    <field name="amount"/>
+                                    <field name="payment_status"/>
+                                    <field name="adjustment_reason"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_tutor_payment_run_list" model="ir.ui.view">
+        <field name="name">tutor.payment.run.list</field>
+        <field name="model">tutor.payment.run</field>
+        <field name="arch" type="xml">
+            <list string="Tutor Payroll Runs">
+                <field name="name"/>
+                <field name="payment_period_from"/>
+                <field name="payment_period_to"/>
+                <field name="run_status"/>
+                <field name="total_tutors"/>
+                <field name="total_hours"/>
+                <field name="total_gross_pay"/>
+                <field name="created_by"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_tutor_payment_run_form" model="ir.ui.view">
+        <field name="name">tutor.payment.run.form</field>
+        <field name="model">tutor.payment.run</field>
+        <field name="arch" type="xml">
+            <form string="Tutor Payroll Run">
+                <header>
+                    <button name="action_generate_preview" type="object" string="Generate Preview" class="btn-primary" invisible="run_status not in ['draft', 'preview']"/>
+                    <button name="action_reset_to_draft" type="object" string="Reset Draft" invisible="run_status not in ['preview']"/>
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="run_status != 'preview'"/>
+                    <button name="action_mark_paid" type="object" string="Mark Paid" class="btn-primary" invisible="run_status != 'approved'"/>
+                    <field name="run_status" widget="statusbar" statusbar_visible="draft,preview,approved,paid"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <label for="name"/>
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="Period">
+                            <field name="payment_period_from" readonly="run_status not in ['draft', 'preview']"/>
+                            <field name="payment_period_to" readonly="run_status not in ['draft', 'preview']"/>
+                            <field name="created_by"/>
+                            <field name="created_date"/>
+                        </group>
+                        <group string="Payroll Liability">
+                            <field name="total_tutors"/>
+                            <field name="total_hours"/>
+                            <field name="total_gross_pay"/>
+                            <field name="approved_by"/>
+                            <field name="approved_date"/>
+                            <field name="paid_by"/>
+                            <field name="paid_date"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Preview Summaries">
+                            <field name="summary_ids">
+                                <list create="false">
+                                    <field name="tutor_id"/>
+                                    <field name="regular_hours"/>
+                                    <field name="demo_hours"/>
+                                    <field name="regular_pay"/>
+                                    <field name="demo_pay"/>
+                                    <field name="gross_pay"/>
+                                    <field name="payment_status"/>
+                                </list>
+                                <form string="Tutor Summary">
+                                    <group>
+                                        <field name="tutor_id"/>
+                                        <field name="regular_hours"/>
+                                        <field name="demo_hours"/>
+                                        <field name="regular_pay"/>
+                                        <field name="demo_pay"/>
+                                        <field name="gross_pay"/>
+                                        <field name="payment_status"/>
+                                    </group>
+                                    <field name="line_ids">
+                                        <list>
+                                            <field name="lesson_id"/>
+                                            <field name="category_id"/>
+                                            <field name="subject_id"/>
+                                            <field name="demo_flag"/>
+                                            <field name="hours_worked"/>
+                                            <field name="rate_used"/>
+                                            <field name="amount"/>
+                                            <field name="payment_status"/>
+                                            <field name="adjustment_reason"/>
+                                        </list>
+                                    </field>
+                                </form>
+                            </field>
+                        </page>
+                        <page string="Lesson Lines">
+                            <field name="line_ids">
+                                <list editable="bottom">
+                                    <field name="tutor_id" readonly="1"/>
+                                    <field name="run_status" invisible="1"/>
+                                    <field name="lesson_id" readonly="1"/>
+                                    <field name="category_id" readonly="1"/>
+                                    <field name="subject_id" readonly="1"/>
+                                    <field name="demo_flag" readonly="1"/>
+                                    <field name="hours_worked" readonly="run_status not in ['draft', 'preview']"/>
+                                    <field name="rate_used" readonly="run_status not in ['draft', 'preview']"/>
+                                    <field name="amount" readonly="run_status not in ['draft', 'preview']"/>
+                                    <field name="payment_status" readonly="run_status not in ['draft', 'preview']"/>
+                                    <field name="adjustment_reason"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_tutor_subject_rates" model="ir.actions.act_window">
+        <field name="name">Tutor Rates</field>
+        <field name="res_model">tutor.subject.rate</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_tutor_payment_runs" model="ir.actions.act_window">
+        <field name="name">Tutor Payroll</field>
+        <field name="res_model">tutor.payment.run</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_tutor_payment_summaries" model="ir.actions.act_window">
+        <field name="name">Tutor Payment Statements</field>
+        <field name="res_model">tutor.payment.summary</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

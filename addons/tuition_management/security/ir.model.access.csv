@@ -5,6 +5,10 @@ access_grade_master,access_grade_master,model_grade_master,base.group_user,1,1,1
 access_student_profile,access_student_profile,model_student_profile,base.group_user,1,1,1,1
 access_tutor_profile,access_tutor_profile,model_tutor_profile,base.group_user,1,1,1,1
 access_tutor_availability,access_tutor_availability,model_tutor_availability,base.group_user,1,1,1,1
+access_tutor_subject_rate,access_tutor_subject_rate,model_tutor_subject_rate,base.group_user,1,1,1,1
+access_tutor_payment_run,access_tutor_payment_run,model_tutor_payment_run,base.group_user,1,1,1,1
+access_tutor_payment_summary,access_tutor_payment_summary,model_tutor_payment_summary,base.group_user,1,1,1,1
+access_tutor_payment_line,access_tutor_payment_line,model_tutor_payment_line,base.group_user,1,1,1,1
 access_parent_profile,access_parent_profile,model_parent_profile,base.group_user,1,1,1,1
 access_tuition_time_slot,access_tuition_time_slot,model_tuition_time_slot,base.group_user,1,1,1,1
 access_course_master,access_course_master,model_course_master,base.group_user,1,1,1,1
@@ -43,6 +47,10 @@ access_subject_master_portal,access_subject_master_portal,model_subject_master,b
 access_grade_master_portal,access_grade_master_portal,model_grade_master,base.group_portal,1,0,0,0
 access_student_profile_portal,access_student_profile_portal,model_student_profile,base.group_portal,1,0,0,0
 access_tutor_profile_portal,access_tutor_profile_portal,model_tutor_profile,base.group_portal,1,0,0,0
+access_tutor_subject_rate_portal,access_tutor_subject_rate_portal,model_tutor_subject_rate,base.group_portal,1,0,0,0
+access_tutor_payment_run_portal,access_tutor_payment_run_portal,model_tutor_payment_run,base.group_portal,1,0,0,0
+access_tutor_payment_summary_portal,access_tutor_payment_summary_portal,model_tutor_payment_summary,base.group_portal,1,0,0,0
+access_tutor_payment_line_portal,access_tutor_payment_line_portal,model_tutor_payment_line,base.group_portal,1,0,0,0
 access_parent_profile_portal,access_parent_profile_portal,model_parent_profile,base.group_portal,1,0,0,0
 access_course_master_portal,access_course_master_portal,model_course_master,base.group_portal,1,0,0,0
 access_course_enrollment_portal,access_course_enrollment_portal,model_course_enrollment,base.group_portal,1,0,0,0

@@ -25,6 +25,11 @@
     <!-- Enquiries -->
     <menuitem id="menu_tuition_enquiries" name="Enquiries" parent="menu_tuition_root" sequence="20" action="action_enquiry"/>
 
+    <!-- Payroll -->
+    <menuitem id="menu_tuition_payroll" name="Payroll" parent="menu_tuition_root" sequence="25"/>
+    <menuitem id="menu_tuition_tutor_payroll" name="Tutor Payroll Runs" parent="menu_tuition_payroll" action="action_tutor_payment_runs"/>
+    <menuitem id="menu_tuition_tutor_payment_statements" name="Tutor Payment Statements" parent="menu_tuition_payroll" action="action_tutor_payment_summaries"/>
+
     <!-- Users -->
     <menuitem id="menu_tuition_users" name="Users" parent="menu_tuition_root" sequence="30"/>
     <menuitem id="menu_tuition_students" name="Students" parent="menu_tuition_users" action="action_student_profiles"/>
@@ -35,5 +40,6 @@
     <menuitem id="menu_tuition_settings" name="Settings" parent="menu_tuition_root" sequence="40"/>
     <menuitem id="menu_tuition_subjects" name="Subjects" parent="menu_tuition_settings" action="action_subject_masters"/>
     <menuitem id="menu_tuition_subject_categories" name="Subject Categories" parent="menu_tuition_settings" action="action_subject_categories"/>
+    <menuitem id="menu_tuition_tutor_rates" name="Tutor Rates" parent="menu_tuition_settings" action="action_tutor_subject_rates"/>
     <menuitem id="menu_tuition_grades" name="Grades" parent="menu_tuition_settings" action="action_grade_masters"/>
 </odoo>

@@ -13,5 +13,11 @@
             <field name="prefix">ENRL/</field>
             <field name="padding">4</field>
         </record>
+        <record id="seq_tutor_payment_run" model="ir.sequence">
+            <field name="name">Tutor Payroll Run Sequence</field>
+            <field name="code">tutor.payment.run</field>
+            <field name="prefix">TPR/</field>
+            <field name="padding">4</field>
+        </record>
     </data>
 </odoo>
