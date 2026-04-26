@@ -2,6 +2,7 @@
 from odoo import http, fields
 from odoo.http import request
 from datetime import timedelta, datetime
+from types import SimpleNamespace
 import base64
 
 from .portal_mixin import PortalMixin
@@ -475,21 +476,45 @@ class TutorPortal(http.Controller, PortalMixin):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
-        partner = tutor.partner_id
-        all_bills = request.env['account.move'].sudo().search([
-            ('partner_id', '=', partner.id),
-            ('move_type', '=', 'in_invoice'),
-        ], order='invoice_date desc')
-        paid_bills = all_bills.filtered(lambda b: b.payment_state == 'paid')
-        pending_bills = all_bills.filtered(lambda b: b.payment_state != 'paid' and b.state == 'posted')
+        payment_summaries = request.env['tutor.payment.summary'].sudo().search([
+            ('tutor_id', '=', tutor.id),
+            ('payment_status', 'in', ['approved', 'paid']),
+        ], order='payment_run_id desc, id desc')
+        paid_bills = self._prepare_tutor_payment_rows(
+            payment_summaries.filtered(lambda summary: summary.payment_status == 'paid')
+        )
+        pending_bills = self._prepare_tutor_payment_rows(
+            payment_summaries.filtered(lambda summary: summary.payment_status == 'approved')
+        )
         return request.render('tuition_management.portal_tutor_payments', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,
             'tutor': tutor,
             'paid_bills': paid_bills,
             'pending_bills': pending_bills,
-            'total_paid': sum(paid_bills.mapped('amount_total')),
-            'total_pending': sum(pending_bills.mapped('amount_residual')),
+            'total_paid': sum(bill.amount_total for bill in paid_bills),
+            'total_pending': sum(bill.amount_residual for bill in pending_bills),
             'page_name': 'tutor_payments',
             'page_title': 'Payments',
         })
+
+    def _prepare_tutor_payment_rows(self, summaries):
+        """Expose payroll summaries through the fields used by the existing portal template."""
+        rows = []
+        for summary in summaries:
+            run = summary.payment_run_id
+            paid_date = run.paid_date.date() if run.paid_date else False
+            invoice_date = paid_date or run.payment_period_to or run.payment_period_from
+            rows.append(SimpleNamespace(
+                id=summary.id,
+                name=run.name,
+                invoice_date=invoice_date,
+                amount_total=summary.gross_pay,
+                amount_residual=0.0 if summary.payment_status == 'paid' else summary.gross_pay,
+                payment_state='paid' if summary.payment_status == 'paid' else 'not_paid',
+                state='posted',
+                payment_status=summary.payment_status,
+                payment_run_id=run,
+                summary=summary,
+            ))
+        return rows
