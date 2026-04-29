@@ -73,6 +73,7 @@ class StudentPortal(http.Controller, PortalMixin):
             'user_tz': self._get_user_tz(),
             'page_name': 'student_schedule',
             'page_title': 'My Schedule',
+            'vc_error': kw.get('vc_error'),
         })
 
     # ──────────────────────────────────────────────
@@ -224,6 +225,7 @@ class StudentPortal(http.Controller, PortalMixin):
             'current_week': week,
             'user_tz': self._get_user_tz(),
             'page_name': 'course_lessons',
+            'vc_error': kw.get('vc_error'),
         })
 
     # ──────────────────────────────────────────────

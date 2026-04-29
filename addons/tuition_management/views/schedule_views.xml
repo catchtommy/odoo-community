@@ -8,6 +8,7 @@
             <list string="Class Schedules">
                 <field name="course_id"/><field name="schedule_type"/>
                 <field name="schedule_hour"/><field name="schedule_minute"/>
+                <field name="virtual_provider_default"/>
                 <field name="timezone"/><field name="status"/>
             </list>
         </field>
@@ -26,6 +27,7 @@
                         <field name="schedule_hour" string="Hour (00-23)"/>
                         <field name="schedule_minute" string="Minute (00-59)"/>
                         <field name="schedule_duration" string="Duration (Minutes)"/>
+                        <field name="virtual_provider_default"/>
                         <field name="timezone"/><field name="status"/>
                     </group>
                     <group string="Days of Week">
@@ -113,7 +115,7 @@
             <list string="Schedule Occurrences" create="false" edit="false">
                 <field name="name"/><field name="course_id"/><field name="tutor_id"/>
                 <field name="start_datetime"/><field name="stop_datetime"/>
-                <field name="lesson_status"/><field name="attendance_marked"/>
+                <field name="lesson_status"/><field name="virtual_provider"/><field name="virtual_meeting_state"/><field name="attendance_marked"/>
                 <field name="payable_hours" optional="hide"/>
                 <field name="tutor_rate_used" optional="hide"/>
                 <field name="tutor_calculated_amount" optional="hide"/>
@@ -134,12 +136,17 @@
             <form string="Schedule Occurrence" create="false" edit="false">
                 <header>
                     <button name="%(action_new_class_schedule)d" type="action" string="New Schedule" class="btn-primary" icon="fa-plus"/>
+                    <button name="action_open_virtual_classroom_wizard" type="object" string="Start Class" class="btn-primary" icon="fa-video-camera" invisible="lesson_status in ('cancelled', 'completed')"/>
+                    <button name="action_reset_virtual_meeting" type="object" string="Reset Meeting" class="btn-secondary" invisible="not virtual_meeting_id"/>
                 </header>
                 <sheet>
                     <group>
                         <field name="name"/><field name="schedule_id"/>
                         <field name="course_id"/><field name="tutor_id"/>
                         <field name="start_datetime"/><field name="stop_datetime"/>
+                        <field name="virtual_provider"/>
+                        <field name="virtual_meeting_id"/>
+                        <field name="virtual_meeting_state"/>
                     </group>
                     <group string="Tutor Payment Snapshot">
                         <field name="payable_hours"/>

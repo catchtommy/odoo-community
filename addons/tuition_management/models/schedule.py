@@ -34,6 +34,11 @@ class ClassSchedule(models.Model):
     start_date = fields.Date(string='Start Date', required=True)
     end_date = fields.Date(string='End Date', required=True)
     occurrence_ids = fields.One2many('class.schedule.occurrence', 'schedule_id', string='Occurrences')
+    virtual_provider_default = fields.Selection([
+        ('zoom', 'Zoom'),
+        ('bbb', 'BigBlueButton'),
+        ('google_meet', 'Google Meet'),
+    ], string='Default Classroom Provider')
 
     available_tutor_ids = fields.Many2many('tutor.profile', string='Available Tutors', compute='_compute_available_tutors', store=False)
     fallback_tutor_ids = fields.Many2many('tutor.profile', string='Subject/Grade Tutors', compute='_compute_available_tutors', store=False)
@@ -110,6 +115,7 @@ class ClassSchedule(models.Model):
                         'tutor_id': record.tutor_id.id if record.tutor_id else False,
                         'name': f"{record.course_id.name or 'Class'} - {current_date.strftime('%a %b %d, %Y')}",
                         'start_datetime': utc_start, 'stop_datetime': utc_start + timedelta(minutes=record.schedule_duration or 60),
+                        'virtual_provider': record.virtual_provider_default or record.course_id.virtual_provider_default,
                     })
                 current_date += timedelta(days=1)
             if occurrences:
@@ -161,7 +167,8 @@ class ClassSchedule(models.Model):
     def write(self, vals):
         res = super().write(vals)
         trigger_fields = ['start_date', 'end_date', 'schedule_hour', 'schedule_minute', 'schedule_duration',
-                          'timezone', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'schedule_type', 'course_id']
+                          'timezone', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+                          'schedule_type', 'course_id', 'virtual_provider_default']
         if any(f in vals for f in trigger_fields):
             for record in self:
                 record._generate_occurrences()
@@ -246,6 +253,22 @@ class ClassScheduleOccurrence(models.Model):
     is_rescheduled = fields.Boolean(string='Rescheduled', default=False)
     rescheduled_from_id = fields.Many2one('class.schedule.occurrence', string='Rescheduled From')
     is_demo = fields.Boolean(string='Is Demo Session', default=False)
+    virtual_provider = fields.Selection([
+        ('zoom', 'Zoom'),
+        ('bbb', 'BigBlueButton'),
+        ('google_meet', 'Google Meet'),
+    ], string='Classroom Provider')
+    virtual_meeting_id = fields.Many2one(
+        'virtual.classroom.meeting',
+        string='Virtual Meeting',
+        readonly=True,
+        copy=False,
+    )
+    virtual_meeting_state = fields.Selection(
+        related='virtual_meeting_id.state',
+        string='Meeting State',
+        readonly=True,
+    )
 
     @api.depends('attendance_ids')
     def _compute_attendance_marked(self):
@@ -290,6 +313,45 @@ class ClassScheduleOccurrence(models.Model):
         wizard = self.env['cancel.lesson.wizard'].create({'occurrence_id': self.id})
         return {'type': 'ir.actions.act_window', 'name': 'Cancel Lesson',
                 'res_model': 'cancel.lesson.wizard', 'view_mode': 'form', 'res_id': wizard.id, 'target': 'new'}
+
+    def action_start_virtual_class(self):
+        self.ensure_one()
+        service = self.env['virtual.classroom.service']
+        meeting = service.start_meeting(self, self.virtual_provider)
+        url = service.get_tutor_start_url(meeting, self.tutor_id)
+        if not url:
+            raise UserError('Virtual classroom was created, but no launch URL was returned.')
+        return {
+            'type': 'ir.actions.act_url',
+            'url': url,
+            'target': 'new',
+        }
+
+    def action_open_virtual_classroom_wizard(self):
+        self.ensure_one()
+        provider = (
+            self.virtual_provider
+            or self.schedule_id.virtual_provider_default
+            or self.course_id.virtual_provider_default
+        )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Start Virtual Class',
+            'res_model': 'virtual.classroom.start.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_occurrence_id': self.id,
+                'default_provider': provider,
+            },
+        }
+
+    def action_reset_virtual_meeting(self):
+        for occurrence in self:
+            if occurrence.virtual_meeting_id:
+                occurrence.virtual_meeting_id.action_mark_cancelled()
+            occurrence.write({'virtual_meeting_id': False})
+        return True
 
 
 class ScheduleDeleteWizard(models.TransientModel):
@@ -380,6 +442,7 @@ class CancelLessonWizard(models.TransientModel):
                 'lesson_status': 'scheduled',
                 'is_rescheduled': True,
                 'rescheduled_from_id': occ.id,
+                'virtual_provider': occ.virtual_provider or occ.schedule_id.virtual_provider_default or occ.course_id.virtual_provider_default,
             })
 
         return {'type': 'ir.actions.act_window_close'}

@@ -138,6 +138,8 @@ class TutorPortal(http.Controller, PortalMixin):
             'user_tz': self._get_user_tz(),
             'page_name': 'tutor_schedule',
             'page_title': 'My Schedule',
+            'csrf_token': request.csrf_token(),
+            'vc_error': kw.get('vc_error'),
         })
 
     # ──────────────────────────────────────────────
@@ -200,6 +202,8 @@ class TutorPortal(http.Controller, PortalMixin):
             'user_tz': self._get_user_tz(),
             'back_url': f'/my/tutor/courses/{course.id}',
             'page_name': 'tutor_lessons',
+            'csrf_token': request.csrf_token(),
+            'vc_error': kw.get('vc_error'),
         })
 
     # ──────────────────────────────────────────────

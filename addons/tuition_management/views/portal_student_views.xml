@@ -124,6 +124,9 @@
             <div class="tm-card-header">
                 <div class="tm-card-title"><i class="fa fa-list"/> Sessions</div>
             </div>
+            <t t-if="vc_error">
+                <div class="alert alert-warning" style="margin:12px 16px;"><t t-esc="vc_error"/></div>
+            </t>
             <div style="padding:10px 16px;border-bottom:1px solid var(--tm-border);display:flex;justify-content:space-between;align-items:center;">
                 <a t-attf-href="/my/student/schedule?week_offset=#{(week_offset or 0) - 1}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-chevron-left"/> Prev</a>
                 <span style="font-size:12px;font-weight:600;color:var(--tm-text);"><t t-esc="week_label or 'This Week'"/></span>
@@ -131,7 +134,7 @@
             </div>
             <t t-if="occ_data">
                 <table class="tm-table">
-                    <thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Tutor</th><th>Status</th><th>Attendance</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Tutor</th><th>Classroom</th><th>Status</th><th>Attendance</th></tr></thead>
                     <tbody>
                         <t t-foreach="occ_data" t-as="od">
                             <tr>
@@ -139,6 +142,16 @@
                                 <td><t t-esc="od['time_str']"/></td>
                                 <td><t t-esc="od['occ'].course_id.name or '—'"/></td>
                                 <td><t t-esc="od['occ'].tutor_id.name or '—'"/></td>
+                                <td>
+                                    <t t-if="od['occ'].virtual_provider">
+                                        <span class="tm-badge tm-badge-blue">
+                                            <t t-esc="dict(od['occ']._fields['virtual_provider'].selection).get(od['occ'].virtual_provider)"/>
+                                        </span>
+                                    </t>
+                                    <a t-attf-href="/my/student/lesson/#{od['occ'].id}/join-class" target="_blank" class="tm-btn tm-btn-green tm-btn-sm" style="margin-left:6px;">
+                                        <i class="fa fa-video-camera"/> Join
+                                    </a>
+                                </td>
                                 <td>
                                     <span t-attf-class="tm-badge #{od['occ'].lesson_status == 'completed' and 'tm-badge-green' or od['occ'].lesson_status == 'cancelled' and 'tm-badge-red' or od['occ'].lesson_status == 'no_show' and 'tm-badge-orange' or 'tm-badge-blue'}">
                                         <t t-esc="od['occ'].lesson_status.capitalize()"/>
@@ -208,11 +221,9 @@
                                 <i class="fa fa-check-circle" style="margin-right:4px;"/>
                                 Status: <span class="tm-badge tm-badge-green" style="font-size:10px;"><t t-esc="enr.status.capitalize()"/></span>
                             </div>
-                            <t t-if="enr.course_id.virtual_class_url">
-                                <a t-att-href="enr.course_id.virtual_class_url" target="_blank" style="color:var(--tm-green);text-decoration:none;">
-                                    <i class="fa fa-video-camera"/> Join Class
-                                </a>
-                            </t>
+                            <a href="/my/student/schedule" style="color:var(--tm-green);text-decoration:none;">
+                                <i class="fa fa-video-camera"/> Join from Schedule
+                            </a>
                         </div>
                     </div>
                 </div>

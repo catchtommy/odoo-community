@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_view_form_virtual_classroom" model="ir.ui.view">
+        <field name="name">res.config.settings.virtual.classroom</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="Virtual Classroom Integrations" string="Virtual Classroom Integrations" name="virtual_classroom_integrations">
+                    <block title="Zoom" name="tuition_zoom_settings">
+                        <setting string="Zoom API">
+                            <div class="content-group">
+                                <field name="vc_zoom_client_id" placeholder="Client ID"/>
+                                <field name="vc_zoom_client_secret" password="True" placeholder="Client Secret"/>
+                                <field name="vc_zoom_account_id" placeholder="Account ID"/>
+                                <field name="vc_zoom_host_email" placeholder="host@example.com"/>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="BigBlueButton" name="tuition_bbb_settings">
+                        <setting string="BBB API">
+                            <div class="content-group">
+                                <field name="vc_bbb_server_url" placeholder="https://bbb.example.com"/>
+                                <field name="vc_bbb_secret" password="True" placeholder="Secret"/>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="Google Meet" name="tuition_google_meet_settings">
+                        <setting string="Google Calendar API">
+                            <div class="content-group">
+                                <field name="vc_google_client_id" placeholder="Client ID"/>
+                                <field name="vc_google_client_secret" password="True" placeholder="Client Secret"/>
+                                <field name="vc_google_redirect_uri" placeholder="Redirect URI"/>
+                                <field name="vc_google_organizer_email" placeholder="organizer@example.com"/>
+                                <field name="vc_google_refresh_token" password="True" placeholder="OAuth Refresh Token"/>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="action_virtual_classroom_settings" model="ir.actions.act_window">
+        <field name="name">Virtual Classroom Integrations</field>
+        <field name="path">virtual-classroom-integrations</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="context">{'module': 'tuition_management', 'bin_size': False}</field>
+    </record>
+</odoo>

@@ -53,6 +53,9 @@
                 </group>
                 <group>
                     <group string="Virtual Classroom">
+                        <field name="virtual_provider_default"/>
+                        <field name="google_meet_static_url" widget="url" placeholder="https://meet.google.com/..."/>
+                        <separator string="Legacy Static Classroom" colspan="2"/>
                         <field name="virtual_class_platform"/>
                         <field name="virtual_class_url" widget="url" placeholder="https://..."/>
                         <field name="virtual_class_meeting_id" invisible="not virtual_class_platform"/>
@@ -68,6 +71,8 @@
                                 <field name="start_datetime" string="Lesson Time" readonly="1"/>
                                 <field name="tutor_id" string="Teacher"/>
                                 <field name="lesson_status" string="Status" readonly="1"/>
+                                <field name="virtual_provider" string="Classroom"/>
+                                <field name="virtual_meeting_state" string="Meeting" readonly="1"/>
                                 <field name="payable_hours" readonly="1" optional="hide"/>
                                 <field name="tutor_rate_used" readonly="1" optional="hide"/>
                                 <field name="tutor_calculated_amount" readonly="1" optional="hide"/>
@@ -75,6 +80,7 @@
                                 <field name="is_rescheduled" string="Rescheduled" readonly="1"/>
                                 <field name="cancellation_reason" string="Cancel Reason" readonly="1" optional="hide"/>
                                 <field name="attendance_marked" string="Attendance Marked"/>
+                                <button name="action_open_virtual_classroom_wizard" type="object" string="Start Class" class="btn-link" icon="fa-video-camera" invisible="lesson_status in ('cancelled', 'completed')"/>
                                 <button name="action_mark_attendance" type="object" string="Mark Attendance" class="btn-link" icon="fa-check-square-o"/>
                                 <button name="action_cancel_lesson" type="object" string="Cancel Lesson" class="btn-link text-warning" icon="fa-ban" invisible="lesson_status == 'cancelled'"/>
                             </list>

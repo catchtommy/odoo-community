@@ -42,6 +42,12 @@ class CourseMaster(models.Model):
     demo_session_ids = fields.One2many('demo.session', 'course_id', string='Demo Sessions')
 
     # Virtual Classroom
+    virtual_provider_default = fields.Selection([
+        ('zoom', 'Zoom'),
+        ('bbb', 'BigBlueButton'),
+        ('google_meet', 'Google Meet'),
+    ], string='Default Classroom Provider', tracking=True)
+    google_meet_static_url = fields.Char(string='Static Google Meet URL')
     virtual_class_platform = fields.Selection([
         ('zoom', 'Zoom'),
         ('google_meet', 'Google Meet'),

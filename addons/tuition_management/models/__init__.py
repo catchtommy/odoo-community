@@ -1,2 +1,2 @@
 # -*- coding: utf-8 -*-
-from . import subjects, master, profile, attendance, progress, subscription, course, enquiry, schedule, product, billing, tutor_payroll
+from . import subjects, master, profile, attendance, progress, subscription, course, enquiry, schedule, product, billing, tutor_payroll, virtual_classroom, res_config_settings
