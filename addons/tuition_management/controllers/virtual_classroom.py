@@ -38,7 +38,7 @@ class VirtualClassroomPortal(http.Controller, PortalMixin):
 
     @http.route('/my/tutor/lesson/<int:occurrence_id>/start-class', type='http',
                 auth='user', website=True, methods=['POST'], csrf=True)
-    def tutor_start_class(self, occurrence_id, provider=None, **kw):
+    def tutor_start_class(self, occurrence_id, **kw):
         fallback = request.httprequest.referrer or '/my/tutor/schedule'
         tutor = self._get_tutor()
         occurrence = request.env['class.schedule.occurrence'].sudo().browse(occurrence_id)
@@ -46,6 +46,8 @@ class VirtualClassroomPortal(http.Controller, PortalMixin):
             return request.redirect('/my/tutor/schedule')
         try:
             service = request.env['virtual.classroom.service']
+            # Provider is resolved exclusively from course — never per-session
+            provider = occurrence.course_id.virtual_provider_default or 'bbb'
             meeting = service.start_meeting(occurrence, provider)
             url = service.get_tutor_start_url(meeting, tutor)
         except (AccessError, UserError) as exc:

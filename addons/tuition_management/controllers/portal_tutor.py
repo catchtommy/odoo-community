@@ -67,6 +67,13 @@ class TutorPortal(http.Controller, PortalMixin):
             ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
         ], order='start_datetime asc')
 
+        # Fetch the very next upcoming session for the Start Class card
+        next_session = request.env['class.schedule.occurrence'].sudo().search([
+            ('course_id', '=', course.id),
+            ('lesson_status', '=', 'scheduled'),
+            ('start_datetime', '>=', datetime.utcnow()),
+        ], order='start_datetime asc', limit=1)
+
         enrolled_students = course.enrollment_ids.filtered(lambda e: e.status == 'active')
         active_enrollments = course.enrollment_ids.filtered(lambda e: e.status == 'active')
         course_assignments = course.assignment_ids
@@ -74,12 +81,15 @@ class TutorPortal(http.Controller, PortalMixin):
             ('course_id', '=', course.id),
         ], order='report_date desc')
 
+        vc_provider_labels = {'bbb': 'BigBlueButton', 'zoom': 'Zoom', 'google_meet': 'Google Meet'}
+
         return request.render('tuition_management.portal_tutor_course_detail', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,
             'tutor': tutor,
             'course': course,
             'this_week_lessons': this_week_lessons,
+            'next_session': next_session,
             'active_enrollments': active_enrollments,
             'active_enrollment_count': len(active_enrollments),
             'enrolled_students': enrolled_students,
@@ -90,7 +100,26 @@ class TutorPortal(http.Controller, PortalMixin):
             'page_name': 'tutor_course_detail',
             'page_title': course.name,
             'user_tz': self._get_user_tz(),
+            'vc_provider_labels': vc_provider_labels,
+            'vc_error': kw.get('vc_error'),
+            'vc_success': kw.get('vc_success'),
         })
+
+    @http.route(['/my/tutor/courses/<int:course_id>/update-provider'], type='http',
+                auth='user', website=True, methods=['POST'], csrf=True)
+    def portal_tutor_update_provider(self, course_id, provider=None, **kw):
+        """Allow tutor/admin to change the course VC provider from the portal course page."""
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        course = request.env['course.master'].sudo().browse(course_id)
+        if not course.exists() or course.tutor_id.id != tutor.id:
+            return request.redirect('/my/tutor/courses')
+        valid_providers = {'bbb', 'zoom', 'google_meet'}
+        if provider not in valid_providers:
+            return request.redirect(f'/my/tutor/courses/{course_id}?vc_error=Invalid+provider+selected')
+        course.sudo().write({'virtual_provider_default': provider})
+        return request.redirect(f'/my/tutor/courses/{course_id}?vc_success=Provider+updated+successfully')
 
     # ──────────────────────────────────────────────
     # SCHEDULE

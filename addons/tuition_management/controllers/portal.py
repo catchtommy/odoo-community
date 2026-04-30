@@ -84,6 +84,14 @@ class TuitionPortal(CustomerPortal, PortalMixin):
             present_sessions = request.env['attendance.record'].sudo().search_count([
                 ('student_id', '=', student.id), ('status', '=', 'present')])
             attendance_rate = ('%d%%' % round(present_sessions * 100 / total_sessions)) if total_sessions else '—'
+            # Next upcoming session for the student dashboard card
+            next_session = request.env['class.schedule.occurrence'].sudo().search([
+                ('course_id', 'in', course_ids),
+                ('lesson_status', '=', 'scheduled'),
+                ('start_datetime', '>=', fields.Datetime.now()),
+            ], order='start_datetime asc', limit=1)
+            next_session_live = bool(next_session and next_session.virtual_meeting_id
+                                     and next_session.virtual_meeting_id.state == 'ready')
             values.update({
                 'student': student,
                 'course_count': len(enrollments),
@@ -94,6 +102,8 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 'recent_courses': enrollments[:5],
                 'upcoming_assignments': assignments[:5],
                 'today': today,
+                'next_session': next_session,
+                'next_session_live': next_session_live,
             })
             return request.render('tuition_management.portal_student_dashboard', values)
 

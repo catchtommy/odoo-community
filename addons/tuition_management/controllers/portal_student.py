@@ -56,11 +56,25 @@ class StudentPortal(http.Controller, PortalMixin):
             except Exception:
                 date_str = str(occ.start_datetime) if occ.start_datetime else ''
                 time_str = ''
+            # Determine session live-state for student waiting-room logic
+            # One room per course — check course-level meeting, not occurrence-level
+            meeting = occ.virtual_meeting_id
+            if not (meeting and meeting.state == 'ready'):
+                provider_code = occ.virtual_provider or occ.course_id.virtual_provider_default or 'bbb'
+                meeting = request.env['virtual.classroom.meeting'].sudo().search([
+                    ('course_id', '=', occ.course_id.id),
+                    ('provider', '=', provider_code),
+                    ('state', '=', 'ready'),
+                ], limit=1)
+            meeting_live = bool(meeting and meeting.state == 'ready')
+            provider = occ.virtual_provider  # computed from course
             occ_data.append({
                 'occ': occ,
                 'date_str': date_str,
                 'time_str': time_str,
                 'att_status': attendance_map.get(occ.id, ''),
+                'meeting_live': meeting_live,
+                'provider': provider,
             })
 
         return request.render('tuition_management.portal_student_schedule', {
@@ -154,6 +168,23 @@ class StudentPortal(http.Controller, PortalMixin):
             ('student_id', '=', enrollment.student_id.id),
         ], order='report_date desc')
 
+        # Next upcoming session for the Join button on course detail
+        from datetime import datetime as _dt
+        next_session = request.env['class.schedule.occurrence'].sudo().search([
+            ('course_id', '=', course.id),
+            ('lesson_status', '=', 'scheduled'),
+            ('start_datetime', '>=', _dt.utcnow()),
+        ], order='start_datetime asc', limit=1)
+        provider_code = course.virtual_provider_default or 'bbb'
+        course_meeting_live = False
+        if next_session:
+            live_meeting = request.env['virtual.classroom.meeting'].sudo().search([
+                ('course_id', '=', course.id),
+                ('provider', '=', provider_code),
+                ('state', '=', 'ready'),
+            ], limit=1)
+            course_meeting_live = bool(live_meeting)
+
         return request.render('tuition_management.portal_course_detail', {
             'user': request.env.user,
             'is_student': bool(student), 'is_parent': bool(parent), 'is_tutor': False,
@@ -168,6 +199,8 @@ class StudentPortal(http.Controller, PortalMixin):
             'user_tz': self._get_user_tz(),
             'page_name': 'my_courses',
             'page_title': course.name,
+            'next_session': next_session,
+            'course_meeting_live': course_meeting_live,
         })
 
     @http.route(['/my/courses/<int:course_id>/lessons'], type='http', auth='user', website=True)

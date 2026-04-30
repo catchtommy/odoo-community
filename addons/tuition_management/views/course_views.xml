@@ -17,6 +17,7 @@
         <form string="Course">
             <header>
                 <button name="action_enroll_student" string="Enroll Student" type="object" class="btn-primary" icon="fa-user-plus"/>
+                <button name="action_start_virtual_class" string="Start Virtual Class" type="object" class="btn-success" icon="fa-video-camera" invisible="status not in ('active',)"/>
                 <button name="action_cancel_course" string="Cancel Course" type="object" class="btn-danger" icon="fa-times-circle" invisible="status == 'cancelled'" confirm="Are you sure you want to cancel this course?"/>
                 <field name="status" widget="statusbar"/>
             </header>
@@ -43,24 +44,15 @@
                         <field name="subject_id" domain="[('category_id', '=', category_id)]"/>
                         <field name="grade_id"/>
                         <field name="tutor_id" domain="[('id', 'in', eligible_tutor_ids)]"/>
-                        <field name="coordinator_id"/>
-                        <field name="schedule_id" readonly="1"/>
-                        <field name="subscription_plan_id" readonly="1"/>
+                        <field name="coordinator_id" domain="[('share', '=', False)]"/>
                     </group>
                     <group string="Course Dates">
                         <field name="start_date"/><field name="end_date"/><field name="status"/>
                     </group>
                 </group>
                 <group>
-                    <group string="Virtual Classroom">
-                        <field name="virtual_provider_default"/>
-                        <field name="google_meet_static_url" widget="url" placeholder="https://meet.google.com/..."/>
-                        <separator string="Legacy Static Classroom" colspan="2"/>
-                        <field name="virtual_class_platform"/>
-                        <field name="virtual_class_url" widget="url" placeholder="https://..."/>
-                        <field name="virtual_class_meeting_id" invisible="not virtual_class_platform"/>
-                        <field name="virtual_class_passcode" invisible="not virtual_class_platform"/>
-                        <field name="virtual_class_notes" invisible="not virtual_class_platform"/>
+                    <group string="Virtual Classroom Settings">
+                        <field name="virtual_provider_default" widget="radio"/>
                     </group>
                 </group>
                 <notebook>
@@ -71,7 +63,7 @@
                                 <field name="start_datetime" string="Lesson Time" readonly="1"/>
                                 <field name="tutor_id" string="Teacher"/>
                                 <field name="lesson_status" string="Status" readonly="1"/>
-                                <field name="virtual_provider" string="Classroom"/>
+                                <field name="virtual_provider" string="Provider" readonly="1"/>
                                 <field name="virtual_meeting_state" string="Meeting" readonly="1"/>
                                 <field name="payable_hours" readonly="1" optional="hide"/>
                                 <field name="tutor_rate_used" readonly="1" optional="hide"/>
@@ -80,7 +72,6 @@
                                 <field name="is_rescheduled" string="Rescheduled" readonly="1"/>
                                 <field name="cancellation_reason" string="Cancel Reason" readonly="1" optional="hide"/>
                                 <field name="attendance_marked" string="Attendance Marked"/>
-                                <button name="action_open_virtual_classroom_wizard" type="object" string="Start Class" class="btn-link" icon="fa-video-camera" invisible="lesson_status in ('cancelled', 'completed')"/>
                                 <button name="action_mark_attendance" type="object" string="Mark Attendance" class="btn-link" icon="fa-check-square-o"/>
                                 <button name="action_cancel_lesson" type="object" string="Cancel Lesson" class="btn-link text-warning" icon="fa-ban" invisible="lesson_status == 'cancelled'"/>
                             </list>

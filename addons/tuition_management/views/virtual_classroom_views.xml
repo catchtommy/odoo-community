@@ -68,9 +68,12 @@
             <form string="Start Virtual Class">
                 <sheet>
                     <group>
-                        <field name="occurrence_id"/>
-                        <field name="provider"/>
+                        <field name="occurrence_id" readonly="1"/>
+                        <field name="provider" readonly="1" string="Provider (from Course)"/>
                     </group>
+                    <div class="alert alert-info" role="alert" style="margin-top:8px;">
+                        <i class="fa fa-info-circle"/> The provider is set at course level. To change it, edit the course's Virtual Classroom Settings.
+                    </div>
                 </sheet>
                 <footer>
                     <button name="action_start_class" type="object" string="Start Class" class="btn-primary"/>

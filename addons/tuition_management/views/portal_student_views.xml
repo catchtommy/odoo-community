@@ -11,6 +11,57 @@
 
         <p class="tm-page-subtitle">Welcome back, <strong><t t-esc="user.name"/></strong> — here's your overview.</p>
 
+        <!-- Upcoming Session Card — TOP PRIORITY -->
+        <t t-if="next_session">
+            <div class="tm-card" style="margin-bottom:20px;border-left:4px solid var(--tm-primary);">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-video-camera"/> Next Upcoming Session</div>
+                    <a href="/my/student/schedule" class="tm-card-action">Full Schedule →</a>
+                </div>
+                <div class="tm-card-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+                    <div>
+                        <div style="font-size:12px;color:var(--tm-text-light);">Course</div>
+                        <div style="font-weight:700;font-size:15px;"><t t-esc="next_session.course_id.name or '—'"/></div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:var(--tm-text-light);">Date &amp; Time</div>
+                        <div style="font-weight:700;"><t t-esc="next_session.start_datetime and next_session.start_datetime.strftime('%a %d %b %Y, %H:%M UTC') or '—'"/></div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:var(--tm-text-light);">Platform</div>
+                        <t t-set="_prov" t-value="next_session.course_id.virtual_provider_default or 'bbb'"/>
+                        <span t-attf-class="tm-badge #{_prov == 'bbb' and 'tm-badge-blue' or _prov == 'zoom' and 'tm-badge-purple' or 'tm-badge-green'}">
+                            <i class="fa fa-video-camera"/>
+                            <t t-if="_prov == 'bbb'"> BigBlueButton</t>
+                            <t t-elif="_prov == 'zoom'"> Zoom</t>
+                            <t t-else=""> Google Meet</t>
+                        </span>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:var(--tm-text-light);">Status</div>
+                        <t t-if="next_session_live">
+                            <span class="tm-badge tm-badge-green"><i class="fa fa-circle"/> Live Now</span>
+                        </t>
+                        <t t-else="">
+                            <span class="tm-badge tm-badge-orange"><i class="fa fa-clock-o"/> Upcoming</span>
+                        </t>
+                    </div>
+                    <div style="margin-left:auto;">
+                        <t t-if="next_session_live">
+                            <a t-attf-href="/my/student/lesson/#{next_session.id}/join-class" target="_blank" class="tm-btn tm-btn-green">
+                                <i class="fa fa-video-camera"/> Join Now
+                            </a>
+                        </t>
+                        <t t-else="">
+                            <a t-attf-href="/my/student/lesson/#{next_session.id}/join-class" target="_blank" class="tm-btn tm-btn-outline" title="You will enter a waiting room until the tutor starts">
+                                <i class="fa fa-sign-in"/> Join (Waiting Room)
+                            </a>
+                        </t>
+                    </div>
+                </div>
+            </div>
+        </t>
+
         <div class="tm-stat-grid">
             <a href="/my/courses" class="tm-stat-card">
                 <div class="tm-stat-card-top">
@@ -134,7 +185,7 @@
             </div>
             <t t-if="occ_data">
                 <table class="tm-table">
-                    <thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Tutor</th><th>Classroom</th><th>Status</th><th>Attendance</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Time</th><th>Course</th><th>Tutor</th><th>Platform</th><th>Status</th><th>Attendance</th></tr></thead>
                     <tbody>
                         <t t-foreach="occ_data" t-as="od">
                             <tr>
@@ -143,14 +194,13 @@
                                 <td><t t-esc="od['occ'].course_id.name or '—'"/></td>
                                 <td><t t-esc="od['occ'].tutor_id.name or '—'"/></td>
                                 <td>
-                                    <t t-if="od['occ'].virtual_provider">
-                                        <span class="tm-badge tm-badge-blue">
-                                            <t t-esc="dict(od['occ']._fields['virtual_provider'].selection).get(od['occ'].virtual_provider)"/>
-                                        </span>
-                                    </t>
-                                    <a t-attf-href="/my/student/lesson/#{od['occ'].id}/join-class" target="_blank" class="tm-btn tm-btn-green tm-btn-sm" style="margin-left:6px;">
-                                        <i class="fa fa-video-camera"/> Join
-                                    </a>
+                                    <!-- Provider badge — read-only, resolved from course -->
+                                    <t t-set="_prov" t-value="od['occ'].course_id.virtual_provider_default or 'bbb'"/>
+                                    <span t-attf-class="tm-badge #{_prov == 'bbb' and 'tm-badge-blue' or _prov == 'zoom' and 'tm-badge-purple' or 'tm-badge-green'}" title="Platform">
+                                        <t t-if="_prov == 'bbb'">BBB</t>
+                                        <t t-elif="_prov == 'zoom'">Zoom</t>
+                                        <t t-else="">Meet</t>
+                                    </span>
                                 </td>
                                 <td>
                                     <span t-attf-class="tm-badge #{od['occ'].lesson_status == 'completed' and 'tm-badge-green' or od['occ'].lesson_status == 'cancelled' and 'tm-badge-red' or od['occ'].lesson_status == 'no_show' and 'tm-badge-orange' or 'tm-badge-blue'}">
@@ -221,9 +271,6 @@
                                 <i class="fa fa-check-circle" style="margin-right:4px;"/>
                                 Status: <span class="tm-badge tm-badge-green" style="font-size:10px;"><t t-esc="enr.status.capitalize()"/></span>
                             </div>
-                            <a href="/my/student/schedule" style="color:var(--tm-green);text-decoration:none;">
-                                <i class="fa fa-video-camera"/> Join from Schedule
-                            </a>
                         </div>
                     </div>
                 </div>
@@ -428,7 +475,7 @@
                         <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--tm-border);">
                             <div class="tm-label">Re-submit</div>
                             <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
-                                <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                 <div style="margin-bottom:12px;">
                                     <input type="file" name="submission_file" class="form-control form-control-sm"/>
                                 </div>
@@ -438,7 +485,7 @@
                     </t>
                     <t t-if="not submission">
                         <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                             <div style="margin-bottom:12px;">
                                 <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Upload File *</label>
                                 <input type="file" name="submission_file" class="form-control form-control-sm" required="required"/>

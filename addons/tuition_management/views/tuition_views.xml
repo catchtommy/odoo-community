@@ -160,8 +160,20 @@
                         <field name="scheduled_datetime"/>
                         <field name="timezone"/>
                         <field name="duration_minutes" string="Duration (Minutes)"/>
+                    </group>
+                    <group string="Tutor Selection">
                         <field name="available_tutor_ids" invisible="1"/>
-                        <field name="tutor_id" domain="[('id', 'in', available_tutor_ids)]"/>
+                        <field name="no_tutor_available" invisible="1"/>
+                        <div colspan="2" invisible="no_tutor_available">
+                            <p class="text-muted mb-1"><i class="fa fa-check-circle text-success"/> Tutors available for the selected date and time:</p>
+                            <field name="available_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
+                        </div>
+                        <div colspan="2" invisible="not no_tutor_available">
+                            <div class="alert alert-warning mb-2" role="alert">
+                                <i class="fa fa-exclamation-triangle"/> <strong>No tutors available</strong> for the selected date and time.
+                            </div>
+                        </div>
+                        <field name="tutor_id" string="Assign Tutor"/>
                     </group>
                     <group>
                         <field name="status"/><field name="rating"/>

@@ -52,6 +52,43 @@
             </div>
         </div>
 
+        <!-- Next Session Card — displayed prominently on dashboard -->
+        <t t-set="_next" t-value="upcoming_lessons and upcoming_lessons[0] or False"/>
+        <t t-if="_next">
+            <div class="tm-card" style="margin-bottom:20px;border-left:4px solid var(--tm-primary);">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-video-camera"/> Next Session</div>
+                    <a href="/my/tutor/schedule" class="tm-card-action">Full Schedule →</a>
+                </div>
+                <div class="tm-card-body" style="display:flex;align-items:center;gap:24px;flex-wrap:wrap;">
+                    <div>
+                        <div style="font-size:12px;color:var(--tm-text-light);">Course</div>
+                        <div style="font-weight:700;font-size:15px;"><t t-esc="_next.course_id.name or '—'"/></div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:var(--tm-text-light);">Date &amp; Time</div>
+                        <div style="font-weight:600;"><t t-esc="_next.start_datetime and _next.start_datetime.strftime('%a %d %b %Y, %H:%M UTC') or '—'"/></div>
+                    </div>
+                    <div>
+                        <div style="font-size:12px;color:var(--tm-text-light);">Platform</div>
+                        <t t-set="_prov" t-value="_next.course_id.virtual_provider_default or 'bbb'"/>
+                        <span t-attf-class="tm-badge #{_prov == 'bbb' and 'tm-badge-blue' or _prov == 'zoom' and 'tm-badge-purple' or 'tm-badge-green'}">
+                            <i class="fa fa-video-camera"/>
+                            <t t-if="_prov == 'bbb'"> BBB</t>
+                            <t t-elif="_prov == 'zoom'"> Zoom</t>
+                            <t t-else=""> Meet</t>
+                        </span>
+                    </div>
+                    <div style="margin-left:auto;">
+                        <form t-attf-action="/my/tutor/lesson/#{_next.id}/start-class" method="post" target="_blank">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-play"/> Start Class</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </t>
+
         <div class="tm-grid-2">
             <div>
                 <div class="tm-card">
@@ -85,7 +122,7 @@
                     </div>
                     <t t-if="upcoming_lessons">
                         <table class="tm-table">
-                            <thead><tr><th>Date</th><th>Course</th><th>Status</th><th></th></tr></thead>
+                            <thead><tr><th>Date</th><th>Course</th><th>Provider</th><th>Status</th><th></th></tr></thead>
                             <tbody>
                                 <t t-foreach="upcoming_lessons" t-as="lesson">
                                     <tr>
@@ -94,11 +131,23 @@
                                         </td>
                                         <td><t t-esc="lesson.course_id.name or '—'"/></td>
                                         <td>
+                                            <t t-set="_prov" t-value="lesson.course_id.virtual_provider_default or 'bbb'"/>
+                                            <span t-attf-class="tm-badge #{_prov == 'bbb' and 'tm-badge-blue' or _prov == 'zoom' and 'tm-badge-purple' or 'tm-badge-green'}" title="Provider from course">
+                                                <t t-if="_prov == 'bbb'">BBB</t>
+                                                <t t-elif="_prov == 'zoom'">Zoom</t>
+                                                <t t-else="">Meet</t>
+                                            </span>
+                                        </td>
+                                        <td>
                                             <span t-attf-class="tm-badge #{lesson.lesson_status == 'completed' and 'tm-badge-green' or lesson.lesson_status == 'cancelled' and 'tm-badge-red' or 'tm-badge-blue'}">
                                                 <t t-esc="lesson.lesson_status.capitalize()"/>
                                             </span>
                                         </td>
-                                        <td>
+                                        <td style="display:flex;gap:6px;align-items:center;">
+                                            <form t-if="lesson.lesson_status not in ('cancelled', 'completed')" t-attf-action="/my/tutor/lesson/#{lesson.id}/start-class" method="post" target="_blank">
+                                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-play"/> Start</button>
+                                            </form>
                                             <a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm">
                                                 <i class="fa fa-check-square-o"/>
                                                 <t t-if="lesson.attendance_marked">Edit</t>
@@ -150,15 +199,15 @@
                                 <td><t t-esc="od['time_str']"/></td>
                                 <td><t t-esc="od['occ'].course_id.name or '—'"/></td>
                                 <td>
-                                    <form t-attf-action="/my/tutor/lesson/#{od['occ'].id}/start-class" method="post" target="_blank" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                                        <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
-                                        <select name="provider" class="form-select form-select-sm" style="width:auto;min-width:128px;">
-                                            <option value="zoom" t-att-selected="'selected' if od['occ'].virtual_provider == 'zoom' else None">Zoom</option>
-                                            <option value="bbb" t-att-selected="'selected' if od['occ'].virtual_provider == 'bbb' else None">BigBlueButton</option>
-                                            <option value="google_meet" t-att-selected="'selected' if od['occ'].virtual_provider == 'google_meet' else None">Google Meet</option>
-                                        </select>
-                                        <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm" t-att-disabled="'disabled' if od['occ'].lesson_status in ('cancelled', 'completed') else None">
-                                            <i class="fa fa-video-camera"/> Start
+                                    <!-- Provider badge — read-only, inherited from course -->
+                                    <t t-set="_prov" t-value="od['occ'].course_id.virtual_provider_default or 'bbb'"/>
+                                    <span t-attf-class="tm-badge #{_prov == 'bbb' and 'tm-badge-blue' or _prov == 'zoom' and 'tm-badge-purple' or 'tm-badge-green'}" style="margin-right:6px;" title="Provider is set at course level">
+                                        <i class="fa fa-video-camera"/> <t t-if="_prov == 'bbb'">BBB</t><t t-elif="_prov == 'zoom'">Zoom</t><t t-else="">Meet</t>
+                                    </span>
+                                    <form t-if="od['occ'].lesson_status not in ('cancelled', 'completed')" t-attf-action="/my/tutor/lesson/#{od['occ'].id}/start-class" method="post" target="_blank" style="display:inline-block;">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm">
+                                            <i class="fa fa-play"/> Start
                                         </button>
                                     </form>
                                 </td>
@@ -297,7 +346,7 @@
             <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Report Details</div></div>
             <div class="tm-card-body">
                 <form t-attf-action="/my/tutor/courses/#{course.id}/progress/create" method="POST">
-                    <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
                         <div>
                             <label class="form-label">Title *</label>
@@ -492,9 +541,6 @@
                                     <t t-if="c.end_date"> — <t t-esc="c.end_date" t-options='{"widget": "date"}'/></t>
                                 </div>
                             </t>
-                            <a t-attf-href="/my/tutor/courses/#{c.id}/lessons" style="color:var(--tm-green);text-decoration:none;">
-                                <i class="fa fa-video-camera"/> Start from Schedule
-                            </a>
                         </div>
                     </div>
                 </div>
@@ -529,7 +575,6 @@
                         </div>
                     </div>
                     <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                        <a t-attf-href="/my/tutor/courses/#{course.id}/lessons" class="tm-btn tm-btn-green"><i class="fa fa-video-camera"/> Start from Schedule</a>
                     </div>
                 </div>
             </div>
@@ -558,6 +603,93 @@
                 <div class="tm-stat-card-top">
                     <div><div class="tm-stat-value"><t t-esc="len(course_progress_reports)"/></div><div class="tm-stat-label">Progress Reports</div></div>
                     <div class="tm-stat-icon green"><i class="fa fa-line-chart"/></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- VC: Feedback messages -->
+        <t t-if="vc_error">
+            <div class="alert alert-warning" style="margin-bottom:16px;"><i class="fa fa-exclamation-triangle" title="Warning"/> <t t-esc="vc_error"/></div>
+        </t>
+        <t t-if="vc_success">
+            <div class="alert alert-success" style="margin-bottom:16px;"><i class="fa fa-check-circle"/> <t t-esc="vc_success"/></div>
+        </t>
+
+        <!-- VC: Next Session Card + Settings side-by-side -->
+        <div class="tm-grid-2" style="margin-bottom:20px;">
+
+            <!-- Next Upcoming Session -->
+            <div class="tm-card">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-video-camera"/> Next Session</div>
+                </div>
+                <div class="tm-card-body">
+                    <t t-if="next_session">
+                        <t t-set="_prov" t-value="course.virtual_provider_default or 'bbb'"/>
+                        <div style="margin-bottom:10px;">
+                            <div style="font-size:13px;color:var(--tm-text-light);">Date &amp; Time</div>
+                            <div style="font-weight:700;font-size:15px;"><t t-esc="next_session.start_datetime and next_session.start_datetime.strftime('%a %d %b %Y, %H:%M UTC') or '—'"/></div>
+                        </div>
+                        <div style="margin-bottom:14px;">
+                            <div style="font-size:13px;color:var(--tm-text-light);">Platform</div>
+                            <span t-attf-class="tm-badge #{_prov == 'bbb' and 'tm-badge-blue' or _prov == 'zoom' and 'tm-badge-purple' or 'tm-badge-green'}">
+                                <i class="fa fa-video-camera"/>
+                                <t t-if="_prov == 'bbb'"> BigBlueButton</t>
+                                <t t-elif="_prov == 'zoom'"> Zoom</t>
+                                <t t-else=""> Google Meet</t>
+                            </span>
+                        </div>
+                        <form t-attf-action="/my/tutor/lesson/#{next_session.id}/start-class" method="post" target="_blank">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm" style="width:100%;">
+                                <i class="fa fa-play-circle"/> Start Next Class
+                            </button>
+                        </form>
+                    </t>
+                    <t t-else="">
+                        <div class="tm-empty"><i class="fa fa-calendar-o"/><p>No upcoming sessions scheduled.</p></div>
+                    </t>
+                </div>
+            </div>
+
+            <!-- Virtual Classroom Settings — provider change -->
+            <div class="tm-card">
+                <div class="tm-card-header">
+                    <div class="tm-card-title"><i class="fa fa-cog"/> Virtual Classroom Settings</div>
+                </div>
+                <div class="tm-card-body">
+                    <p style="font-size:12px;color:var(--tm-text-light);margin-bottom:12px;">
+                        Changing the provider here affects <strong>all future sessions</strong> of this course. Past sessions are not affected.
+                    </p>
+                    <form t-attf-action="/my/tutor/courses/#{course.id}/update-provider" method="post">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:14px;">
+                            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+                                <input type="radio" name="provider" value="bbb" t-att-checked="'checked' if course.virtual_provider_default == 'bbb' else None"/>
+                                <span class="tm-badge tm-badge-blue"><i class="fa fa-video-camera"/> BigBlueButton</span>
+                                <span style="color:var(--tm-text-light);">(Default)</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+                                <input type="radio" name="provider" value="zoom" t-att-checked="'checked' if course.virtual_provider_default == 'zoom' else None"/>
+                                <span class="tm-badge tm-badge-purple"><i class="fa fa-video-camera"/> Zoom</span>
+                            </label>
+                            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13px;">
+                                <input type="radio" name="provider" value="google_meet" t-att-checked="'checked' if course.virtual_provider_default == 'google_meet' else None"/>
+                                <span class="tm-badge tm-badge-green"><i class="fa fa-video-camera"/> Google Meet</span>
+                            </label>
+                        </div>
+                        <t t-if="course.virtual_provider_default == 'google_meet'">
+                            <div style="margin-bottom:12px;">
+                                <label style="font-size:12px;color:var(--tm-text-light);">Google Meet Static URL (optional)</label>
+                                <input type="text" name="google_meet_url" class="form-control form-control-sm" style="margin-top:4px;"
+                                       t-att-value="course.google_meet_static_url or ''"
+                                       placeholder="https://meet.google.com/..."/>
+                            </div>
+                        </t>
+                        <button type="submit" class="tm-btn tm-btn-green tm-btn-sm">
+                            <i class="fa fa-save"/> Save Provider
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>
@@ -711,7 +843,7 @@
         </div>
 
         <form t-attf-action="/my/tutor/lesson/#{occurrence.id}/attendance/save" method="POST">
-            <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
             <div class="tm-card" style="margin-bottom:16px;">
                 <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-flag"/> Lesson Status</div></div>
                 <div class="tm-card-body">
@@ -813,7 +945,7 @@
                 <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-plus"/> New Assignment</div></div>
                 <div class="tm-card-body">
                     <form t-attf-action="/my/tutor/courses/#{course.id}/assignments/create" method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                         <div style="margin-bottom:12px;">
                             <label class="form-label">Title *</label>
                             <input type="text" name="name" class="form-control form-control-sm" required="required" placeholder="e.g. Chapter 5 Worksheet"/>
@@ -933,7 +1065,7 @@
                                         <div class="p-2 mb-2" style="background:var(--tm-bg); border-radius:8px; font-size:11px;"><span class="fw-bold">Feedback:</span> <t t-esc="sub.feedback"/></div>
                                     </t>
                                     <form t-attf-action="/my/tutor/submission/#{sub.id}/grade" method="POST" class="mt-2">
-                                        <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                         <div class="row g-2 align-items-end">
                                             <div class="col-3">
                                                 <label class="form-label fw-bold" style="font-size:10px;">Score</label>
@@ -983,22 +1115,22 @@
             <t t-if="not occ_data"><div class="tm-empty"><i class="fa fa-calendar"/><p>No lessons found for this period.</p></div></t>
             <t t-if="occ_data">
                 <table class="tm-table">
-                    <thead><tr><th>Date</th><th>Time</th><th>Classroom</th><th>Status</th><th>Attendance</th><th></th></tr></thead>
+                    <thead><tr><th>Date</th><th>Time</th><th>Provider</th><th>Status</th><th>Attendance</th><th></th></tr></thead>
                     <tbody>
                         <t t-foreach="occ_data" t-as="od">
                             <tr>
                                 <td class="fw-bold" style="white-space:nowrap;"><t t-esc="od['date_str']"/></td>
                                 <td><t t-esc="od['time_str']"/></td>
                                 <td>
-                                    <form t-attf-action="/my/tutor/lesson/#{od['occ'].id}/start-class" method="post" target="_blank" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
-                                        <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
-                                        <select name="provider" class="form-select form-select-sm" style="width:auto;min-width:128px;">
-                                            <option value="zoom" t-att-selected="'selected' if od['occ'].virtual_provider == 'zoom' else None">Zoom</option>
-                                            <option value="bbb" t-att-selected="'selected' if od['occ'].virtual_provider == 'bbb' else None">BigBlueButton</option>
-                                            <option value="google_meet" t-att-selected="'selected' if od['occ'].virtual_provider == 'google_meet' else None">Google Meet</option>
-                                        </select>
-                                        <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm" t-att-disabled="'disabled' if od['occ'].lesson_status in ('cancelled', 'completed') else None">
-                                            <i class="fa fa-video-camera"/> Start
+                                    <!-- Provider badge — read-only, inherited from course -->
+                                    <t t-set="_prov" t-value="od['occ'].course_id.virtual_provider_default or 'bbb'"/>
+                                    <span t-attf-class="tm-badge #{_prov == 'bbb' and 'tm-badge-blue' or _prov == 'zoom' and 'tm-badge-purple' or 'tm-badge-green'}" style="margin-right:6px;" title="Provider is set at course level">
+                                        <i class="fa fa-video-camera"/> <t t-if="_prov == 'bbb'">BBB</t><t t-elif="_prov == 'zoom'">Zoom</t><t t-else="">Meet</t>
+                                    </span>
+                                    <form t-if="od['occ'].lesson_status not in ('cancelled', 'completed')" t-attf-action="/my/tutor/lesson/#{od['occ'].id}/start-class" method="post" target="_blank" style="display:inline-block;">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm">
+                                            <i class="fa fa-play"/> Start
                                         </button>
                                     </form>
                                 </td>

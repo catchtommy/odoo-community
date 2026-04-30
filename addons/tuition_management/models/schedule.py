@@ -34,11 +34,14 @@ class ClassSchedule(models.Model):
     start_date = fields.Date(string='Start Date', required=True)
     end_date = fields.Date(string='End Date', required=True)
     occurrence_ids = fields.One2many('class.schedule.occurrence', 'schedule_id', string='Occurrences')
+
+    # NOTE: virtual_provider_default has been moved to course.master.
+    # This field is kept only for data migration. Do NOT set on new schedules.
     virtual_provider_default = fields.Selection([
         ('zoom', 'Zoom'),
         ('bbb', 'BigBlueButton'),
         ('google_meet', 'Google Meet'),
-    ], string='Default Classroom Provider')
+    ], string='[Deprecated] Schedule Provider')
 
     available_tutor_ids = fields.Many2many('tutor.profile', string='Available Tutors', compute='_compute_available_tutors', store=False)
     fallback_tutor_ids = fields.Many2many('tutor.profile', string='Subject/Grade Tutors', compute='_compute_available_tutors', store=False)
@@ -115,7 +118,7 @@ class ClassSchedule(models.Model):
                         'tutor_id': record.tutor_id.id if record.tutor_id else False,
                         'name': f"{record.course_id.name or 'Class'} - {current_date.strftime('%a %b %d, %Y')}",
                         'start_datetime': utc_start, 'stop_datetime': utc_start + timedelta(minutes=record.schedule_duration or 60),
-                        'virtual_provider': record.virtual_provider_default or record.course_id.virtual_provider_default,
+                        # Provider is NOT stored per-occurrence; resolved dynamically from course at runtime
                     })
                 current_date += timedelta(days=1)
             if occurrences:
@@ -168,7 +171,7 @@ class ClassSchedule(models.Model):
         res = super().write(vals)
         trigger_fields = ['start_date', 'end_date', 'schedule_hour', 'schedule_minute', 'schedule_duration',
                           'timezone', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-                          'schedule_type', 'course_id', 'virtual_provider_default']
+                          'schedule_type', 'course_id']
         if any(f in vals for f in trigger_fields):
             for record in self:
                 record._generate_occurrences()
@@ -253,11 +256,13 @@ class ClassScheduleOccurrence(models.Model):
     is_rescheduled = fields.Boolean(string='Rescheduled', default=False)
     rescheduled_from_id = fields.Many2one('class.schedule.occurrence', string='Rescheduled From')
     is_demo = fields.Boolean(string='Is Demo Session', default=False)
+    # Provider is NOT stored on the occurrence. It is always resolved dynamically from
+    # the parent course so that changing the course provider affects all future sessions.
     virtual_provider = fields.Selection([
         ('zoom', 'Zoom'),
         ('bbb', 'BigBlueButton'),
         ('google_meet', 'Google Meet'),
-    ], string='Classroom Provider')
+    ], string='Classroom Provider', compute='_compute_virtual_provider', store=False)
     virtual_meeting_id = fields.Many2one(
         'virtual.classroom.meeting',
         string='Virtual Meeting',
@@ -274,6 +279,12 @@ class ClassScheduleOccurrence(models.Model):
     def _compute_attendance_marked(self):
         for rec in self:
             rec.attendance_marked = bool(rec.attendance_ids)
+
+    @api.depends('course_id', 'course_id.virtual_provider_default')
+    def _compute_virtual_provider(self):
+        """Always resolve provider from course. Sessions never own the provider."""
+        for rec in self:
+            rec.virtual_provider = rec.course_id.virtual_provider_default or 'bbb'
 
     def write(self, vals):
         if vals.get('lesson_status') == 'cancelled':
@@ -316,8 +327,10 @@ class ClassScheduleOccurrence(models.Model):
 
     def action_start_virtual_class(self):
         self.ensure_one()
+        # Provider is resolved from course, not stored on occurrence
+        provider = self.course_id.virtual_provider_default or 'bbb'
         service = self.env['virtual.classroom.service']
-        meeting = service.start_meeting(self, self.virtual_provider)
+        meeting = service.start_meeting(self, provider)
         url = service.get_tutor_start_url(meeting, self.tutor_id)
         if not url:
             raise UserError('Virtual classroom was created, but no launch URL was returned.')
@@ -329,11 +342,8 @@ class ClassScheduleOccurrence(models.Model):
 
     def action_open_virtual_classroom_wizard(self):
         self.ensure_one()
-        provider = (
-            self.virtual_provider
-            or self.schedule_id.virtual_provider_default
-            or self.course_id.virtual_provider_default
-        )
+        # Provider comes from course only — no per-occurrence override
+        provider = self.course_id.virtual_provider_default or 'bbb'
         return {
             'type': 'ir.actions.act_window',
             'name': 'Start Virtual Class',
@@ -442,7 +452,7 @@ class CancelLessonWizard(models.TransientModel):
                 'lesson_status': 'scheduled',
                 'is_rescheduled': True,
                 'rescheduled_from_id': occ.id,
-                'virtual_provider': occ.virtual_provider or occ.schedule_id.virtual_provider_default or occ.course_id.virtual_provider_default,
+                # Provider is resolved dynamically from course at runtime — not stored
             })
 
         return {'type': 'ir.actions.act_window_close'}

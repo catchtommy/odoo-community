@@ -526,12 +526,14 @@ class DemoSession(models.Model):
     ], string='Timezone', default='UTC')
     duration_minutes = fields.Integer(string='Duration (Minutes)', default=30)
     available_tutor_ids = fields.Many2many('tutor.profile', compute='_compute_available_tutors', store=False)
+    no_tutor_available = fields.Boolean(compute='_compute_available_tutors', store=False)
     
     @api.depends('scheduled_datetime', 'duration_minutes', 'subject_id')
     def _compute_available_tutors(self):
         for rec in self:
             if not rec.scheduled_datetime:
                 rec.available_tutor_ids = self.env['tutor.profile'].search([])
+                rec.no_tutor_available = False
                 continue
             
             day_name = rec.scheduled_datetime.strftime('%A').lower()
@@ -547,7 +549,9 @@ class DemoSession(models.Model):
             if rec.subject_id:
                 domain.append(('subject_ids', 'in', rec.subject_id.id))
                 
-            rec.available_tutor_ids = self.env['tutor.profile'].search(domain)
+            available = self.env['tutor.profile'].search(domain)
+            rec.available_tutor_ids = available
+            rec.no_tutor_available = not bool(available)
 
     status = fields.Selection([
         ('scheduled', 'Scheduled'),

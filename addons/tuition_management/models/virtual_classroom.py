@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import fields, models
+from odoo import api, fields, models
 from odoo.exceptions import UserError
 
 
@@ -57,9 +57,9 @@ class VirtualClassroomMeeting(models.Model):
 
     _sql_constraints = [
         (
-            'uniq_occurrence_provider',
-            'unique(occurrence_id, provider)',
-            'A meeting already exists for this lesson and provider.',
+            'uniq_course_provider',
+            'unique(course_id, provider)',
+            'A meeting already exists for this course and provider.',
         ),
     ]
 
@@ -83,16 +83,19 @@ class VirtualClassroomStartWizard(models.TransientModel):
         required=True,
         readonly=True,
     )
-    provider = fields.Selection([
-        ('zoom', 'Zoom'),
-        ('bbb', 'BigBlueButton'),
-        ('google_meet', 'Google Meet'),
-    ], string='Provider', required=True)
+    # Provider is resolved from the course — not chosen per session
+    provider = fields.Selection(
+        related='occurrence_id.course_id.virtual_provider_default',
+        string='Provider',
+        readonly=True,
+    )
 
     def action_start_class(self):
         self.ensure_one()
+        # Resolve provider exclusively from course
+        provider = self.occurrence_id.course_id.virtual_provider_default or 'bbb'
         service = self.env['virtual.classroom.service']
-        meeting = service.start_meeting(self.occurrence_id, self.provider)
+        meeting = service.start_meeting(self.occurrence_id, provider)
         url = service.get_tutor_start_url(meeting, self.occurrence_id.tutor_id)
         if not url:
             raise UserError('Virtual classroom was created, but no launch URL was returned.')

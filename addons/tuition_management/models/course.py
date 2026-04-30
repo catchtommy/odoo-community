@@ -41,24 +41,26 @@ class CourseMaster(models.Model):
     occurrence_ids = fields.One2many('class.schedule.occurrence', 'course_id', string='Schedule Occurrences')
     demo_session_ids = fields.One2many('demo.session', 'course_id', string='Demo Sessions')
 
-    # Virtual Classroom
+    # Virtual Classroom — provider is defined ONLY at course level.
+    # All scheduled sessions inherit the provider dynamically from here.
     virtual_provider_default = fields.Selection([
-        ('zoom', 'Zoom'),
         ('bbb', 'BigBlueButton'),
+        ('zoom', 'Zoom'),
         ('google_meet', 'Google Meet'),
-    ], string='Default Classroom Provider', tracking=True)
+    ], string='Virtual Classroom Provider', default='bbb', required=True, tracking=True)
     google_meet_static_url = fields.Char(string='Static Google Meet URL')
+    # Legacy static classroom fields — kept for data migration only
     virtual_class_platform = fields.Selection([
         ('zoom', 'Zoom'),
         ('google_meet', 'Google Meet'),
         ('bigbluebutton', 'BigBlueButton'),
         ('microsoft_teams', 'Microsoft Teams'),
         ('other', 'Other'),
-    ], string='Platform')
-    virtual_class_url = fields.Char(string='Meeting URL')
-    virtual_class_meeting_id = fields.Char(string='Meeting ID')
-    virtual_class_passcode = fields.Char(string='Passcode')
-    virtual_class_notes = fields.Text(string='Virtual Class Notes')
+    ], string='Legacy Platform')
+    virtual_class_url = fields.Char(string='Legacy Meeting URL')
+    virtual_class_meeting_id = fields.Char(string='Legacy Meeting ID')
+    virtual_class_passcode = fields.Char(string='Legacy Passcode')
+    virtual_class_notes = fields.Text(string='Legacy Virtual Class Notes')
 
     student_count = fields.Integer(string='Total Students', compute='_compute_student_count')
 
@@ -91,6 +93,9 @@ class CourseMaster(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list):
+        # Enforce BigBlueButton as the default provider at ORM level
+        for vals in vals_list:
+            vals.setdefault('virtual_provider_default', 'bbb')
         records = super().create(vals_list)
         for rec in records:
             rec._subscribe_related_partners()
@@ -251,8 +256,28 @@ class CourseMaster(models.Model):
             'context': {'default_course_id': self.id},
         }
 
+    def action_start_virtual_class(self):
+        """Start the virtual classroom for this course and open the host URL (admin backend)."""
+        self.ensure_one()
+        service = self.env['virtual.classroom.service']
+        provider = self.virtual_provider_default or 'bbb'
+        occurrence = self.env['class.schedule.occurrence'].search([
+            ('course_id', '=', self.id),
+            ('lesson_status', '=', 'scheduled'),
+        ], order='start_datetime asc', limit=1)
+        if not occurrence:
+            raise UserError("No scheduled lessons found for this course.")
+        meeting = service.start_meeting(occurrence, provider)
+        url = service.get_tutor_start_url(meeting, self.tutor_id)
+        if not url:
+            raise UserError("Could not generate a virtual classroom URL.")
+        return {
+            'type': 'ir.actions.act_url',
+            'url': url,
+            'target': 'new',
+        }
+
     def action_cancel_course(self):
-        """Initiate course cancellation with validations."""
         self.ensure_one()
         now = fields.Datetime.now()
 

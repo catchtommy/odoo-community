@@ -43,17 +43,20 @@ class VirtualClassroomService(models.AbstractModel):
         return 'bbb' if legacy == 'bigbluebutton' else legacy
 
     def _selected_provider(self, occurrence, provider_code=False):
-        provider = (
-            provider_code
-            or occurrence.virtual_provider
-            or occurrence.schedule_id.virtual_provider_default
-            or occurrence.course_id.virtual_provider_default
-            or self._legacy_provider(occurrence.course_id)
-        )
+        """
+        Provider resolution order (single source of truth = course):
+        1. Explicitly passed provider_code (only used internally, never from per-session UI)
+        2. Course-level virtual_provider_default  ← canonical source
+        3. Legacy platform field (migration compatibility)
+        4. Fallback: BigBlueButton (system default)
+        """
+        provider = provider_code or occurrence.course_id.virtual_provider_default
+        if not provider:
+            provider = self._legacy_provider(occurrence.course_id)
         if provider == 'bigbluebutton':
             provider = 'bbb'
-        if provider not in PROVIDERS:
-            raise UserError('No supported virtual classroom provider selected for this lesson.')
+        if not provider or provider not in PROVIDERS:
+            provider = 'bbb'
         return provider
 
     def _ensure_meeting(self, occurrence, provider_code):
@@ -62,16 +65,17 @@ class VirtualClassroomService(models.AbstractModel):
         existing = occurrence.virtual_meeting_id
         if existing and existing.provider != provider_code and existing.state == 'ready':
             raise UserError(
-                'This lesson already has a %s meeting. Reset it before changing provider.'
+                'This course already has a %s meeting. Reset it before changing provider.'
                 % dict(existing._fields['provider'].selection).get(existing.provider)
             )
 
+        # One room per course — search at course level, not occurrence level
         meeting = self.env['virtual.classroom.meeting'].sudo().search([
-            ('occurrence_id', '=', occurrence.id),
+            ('course_id', '=', occurrence.course_id.id),
             ('provider', '=', provider_code),
         ], limit=1)
         if meeting and meeting.state == 'ready' and (meeting.host_url or meeting.moderator_url) and provider_code != 'bbb':
-            occurrence.sudo().write({'virtual_meeting_id': meeting.id, 'virtual_provider': provider_code})
+            occurrence.sudo().write({'virtual_meeting_id': meeting.id})
             return meeting
 
         if not meeting:
@@ -86,10 +90,8 @@ class VirtualClassroomService(models.AbstractModel):
             vals = self._provider(provider_code).create_or_get_meeting(meeting) or {}
             vals.update({'state': 'ready', 'last_sync_at': fields.Datetime.now()})
             meeting.write(vals)
-            occurrence.sudo().write({
-                'virtual_provider': provider_code,
-                'virtual_meeting_id': meeting.id,
-            })
+            # Link meeting to occurrence; provider is resolved from course, not stored on occurrence
+            occurrence.sudo().write({'virtual_meeting_id': meeting.id})
         except Exception as exc:
             meeting.write({
                 'state': 'failed',
@@ -112,7 +114,8 @@ class VirtualClassroomService(models.AbstractModel):
 
     def get_tutor_start_url(self, meeting, tutor=False):
         meeting.ensure_one()
-        display_name = tutor.name if tutor else (meeting.tutor_id.name or self.env.user.name)
+        # Use the logged-in user's name (works for both tutor and admin)
+        display_name = tutor.name if tutor else self.env.user.name
         return self._provider(meeting.provider).get_moderator_url(meeting, display_name)
 
     def _is_local_url(self, url):
@@ -122,12 +125,8 @@ class VirtualClassroomService(models.AbstractModel):
         return parsed.hostname in ('localhost', '127.0.0.1')
 
     def _legacy_join_url(self, occurrence):
-        provider = (
-            occurrence.virtual_provider
-            or occurrence.schedule_id.virtual_provider_default
-            or occurrence.course_id.virtual_provider_default
-            or self._legacy_provider(occurrence.course_id)
-        )
+        # Provider always from course
+        provider = occurrence.course_id.virtual_provider_default or self._legacy_provider(occurrence.course_id)
         if provider == 'bigbluebutton':
             provider = 'bbb'
         if provider == 'bbb':
@@ -150,6 +149,14 @@ class VirtualClassroomService(models.AbstractModel):
             raise UserError('This class has been cancelled.')
 
         meeting = occurrence.virtual_meeting_id
+        # Also check course-level meeting (one room per course — any session can reuse it)
+        if not (meeting and meeting.state == 'ready'):
+            provider_code = self._selected_provider(occurrence)
+            meeting = self.env['virtual.classroom.meeting'].sudo().search([
+                ('course_id', '=', occurrence.course_id.id),
+                ('provider', '=', provider_code),
+                ('state', '=', 'ready'),
+            ], limit=1)
         if meeting and meeting.state == 'ready':
             display_name = student.name or self.env.user.name
             return self._provider(meeting.provider).get_attendee_url(meeting, display_name)
