@@ -51,7 +51,8 @@
                         <field name="student_name" readonly="1" force_save="1"/>
                     </group>
                     <group string="Academic Information">
-                        <field name="subject_id" readonly="is_enrolled"/>
+                        <field name="category_id" readonly="is_enrolled"/>
+                        <field name="subject_id" domain="[('category_id', '=', category_id)]" readonly="is_enrolled"/>
                         <field name="grade_id" readonly="is_enrolled"/>
                     </group>
                     <group string="Notes">

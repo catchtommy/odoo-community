@@ -3,26 +3,26 @@
    ============================================================ */
 
 :root {
-    --tm-primary:       #6c5ce7;
-    --tm-primary-dark:  #5a4bd1;
-    --tm-primary-light: #f0eeff;
-    --tm-sidebar-bg:    #2c2f3f;
-    --tm-sidebar-text:  #b8bcc8;
-    --tm-sidebar-hover: #3d4158;
-    --tm-sidebar-active:#6c5ce7;
+    --tm-primary:       #4A7CC9;
+    --tm-primary-dark:  #3A6AB5;
+    --tm-primary-light: #EEF3FB;
+    --tm-sidebar-bg:    #1E3A5F;
+    --tm-sidebar-text:  #A8C0DC;
+    --tm-sidebar-hover: #2A4F80;
+    --tm-sidebar-active:#4A7CC9;
     --tm-sidebar-width: 220px;
     --tm-header-height: 56px;
-    --tm-bg:            #f4f5f9;
+    --tm-bg:            #F4F7FC;
     --tm-card-bg:       #ffffff;
-    --tm-border:        #e4e7ef;
-    --tm-text:          #2c2f3f;
-    --tm-text-light:    #8990a8;
+    --tm-border:        #D0DCF0;
+    --tm-text:          #1E3A5F;
+    --tm-text-light:    #7A9ABF;
     --tm-success:       #00b894;
     --tm-warning:       #fdcb6e;
     --tm-danger:        #e17055;
-    --tm-info:          #0984e3;
-    --tm-shadow:        0 2px 8px rgba(44,47,63,0.08);
-    --tm-shadow-md:     0 4px 16px rgba(44,47,63,0.12);
+    --tm-info:          #4A7CC9;
+    --tm-shadow:        0 2px 8px rgba(30,58,95,0.08);
+    --tm-shadow-md:     0 4px 16px rgba(30,58,95,0.12);
     --tm-radius:        10px;
     --tm-radius-sm:     6px;
 }
@@ -139,7 +139,7 @@ body.tm-portal-layout footer.o_footer {
 }
 
 .tm-nav-item.active {
-    background: rgba(108,92,231,0.15);
+    background: rgba(74,124,201,0.2);
     border-left-color: var(--tm-primary);
     color: #fff;
 }

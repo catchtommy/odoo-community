@@ -6,8 +6,8 @@
         :root {
             --tm-blue: #4A7CC9;
             --tm-blue-dark: #3A6AB5;
-            --tm-indigo: #5C6BC0;
-            --tm-indigo-dark: #4A5AB0;
+            --tm-indigo: #4A7CC9;
+            --tm-indigo-dark: #3A6AB5;
             --tm-teal: #4DB6AC;
             --tm-teal-dark: #3A9E94;
             --tm-green: #66BB6A;
@@ -30,9 +30,14 @@
         .tm-hero-stat { background: rgba(255,255,255,0.18); border-radius: 10px; padding: 12px 16px; text-align: center; min-width: 90px; backdrop-filter: blur(4px); }
         .tm-hero-stat .num { font-size: 24px; font-weight: 800; line-height: 1; }
         .tm-hero-stat .lbl { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.8; margin-top: 2px; }
-        .tm-card { border: 1px solid var(--tm-border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; background: #fff; }
-        .tm-card-header { padding: 12px 18px; font-weight: 600; font-size: 13px; color: #fff; display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
-        .tm-card-header i.tm-chevron { transition: transform 0.25s; font-size: 12px; }
+        .tm-card { border: 1px solid var(--tm-border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; background: #fff; border-top: none; }
+        .tm-card-header { padding: 12px 18px; font-weight: 600; font-size: 13px; background: #4A7CC9; color: #fff; display: flex; justify-content: space-between; align-items: center; cursor: pointer; border-radius: 10px 10px 0 0; }
+        .tm-card-header a, .tm-card-header .tm-card-title { color: #fff !important; text-decoration: none; }
+        .tm-card-header .tm-btn { color: #fff; border-color: rgba(255,255,255,0.5); }
+        .tm-card-header .tm-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+        .tm-card-header .tm-btn-blue { background: rgba(255,255,255,0.2); color: #fff; border: 1.5px solid rgba(255,255,255,0.4); }
+        .tm-card-header .tm-btn-outline { background: transparent; border-color: rgba(255,255,255,0.5); color: #fff; }
+        .tm-card-header i.tm-chevron { transition: transform 0.25s; font-size: 12px; color: rgba(255,255,255,0.8); }
         .tm-card-header.collapsed i.tm-chevron { transform: rotate(-90deg); }
         .tm-card-body { padding: 18px; }
         .tm-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--tm-text-light); font-weight: 700; margin-bottom: 2px; }
@@ -47,6 +52,8 @@
         .tm-badge-teal { background: #E5F5F3; color: #3a8a80; }
         .tm-btn { display: inline-flex; align-items: center; gap: 6px; padding: 7px 16px; border-radius: 8px; font-size: 12px; font-weight: 600; text-decoration: none; border: none; cursor: pointer; transition: all 0.15s; }
         .tm-btn:hover { filter: brightness(0.94); text-decoration: none; }
+        .tm-btn-primary { background: #4A7CC9; color: #fff; border: none; }
+        .tm-btn-primary:hover { background: #3A6AB5; color: #fff; }
         .tm-btn-blue { background: var(--tm-blue); color: #fff; }
         .tm-btn-blue:hover { color: #fff; }
         .tm-btn-green { background: var(--tm-green-dark); color: #fff; }
@@ -99,23 +106,27 @@
         /* ── Form field sizing ── */
         .tm-portal-layout .form-control,
         .tm-portal-layout .form-select {
-            font-size: 13px; padding: 6px 10px; border-radius: 6px;
+            font-size: 14px; padding: 9px 12px; border-radius: 8px;
             border: 1px solid var(--tm-border); max-width: 100%;
             box-sizing: border-box; height: auto; line-height: 1.5;
+            background: #fff; color: var(--tm-text);
         }
         .tm-portal-layout .form-control:focus,
         .tm-portal-layout .form-select:focus {
             border-color: var(--tm-blue);
-            box-shadow: 0 0 0 2px rgba(74,124,201,0.12); outline: none;
+            box-shadow: 0 0 0 3px rgba(74,124,201,0.15); outline: none;
         }
         .tm-portal-layout .form-control-sm,
-        .tm-portal-layout .form-select-sm { font-size: 12px; padding: 5px 8px; }
-        .tm-portal-layout textarea.form-control { resize: vertical; min-height: 60px; }
+        .tm-portal-layout .form-select-sm { font-size: 13px; padding: 6px 10px; border-radius: 6px; }
+        .tm-portal-layout textarea.form-control { resize: vertical; min-height: 80px; }
         .tm-portal-layout .form-label,
         .tm-portal-layout label {
-            font-size: 11px; font-weight: 600; color: var(--tm-text);
-            margin-bottom: 4px; display: block;
+            font-size: 13px; font-weight: 600; color: var(--tm-text);
+            margin-bottom: 6px; display: block;
         }
+        /* ── Form group helper ── */
+        .tm-form-group { margin-bottom: 16px; }
+        .tm-form-label { font-size: 13px; font-weight: 600; color: var(--tm-text); margin-bottom: 6px; display: block; }
         .tm-portal-layout .mb-3 { margin-bottom: 14px !important; }
         .tm-portal-layout .input-group .form-control { border-radius: 6px 0 0 6px; }
         .tm-portal-layout .input-group .input-group-text {

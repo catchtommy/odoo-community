@@ -34,8 +34,18 @@ class Enquiry(models.Model):
     email = fields.Char(string='Email')
     country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
+    category_id = fields.Many2one('subject.category', string='Category')
     subject_id = fields.Many2one('subject.master', string='Subject', required=True)
     grade_id = fields.Many2one('grade.master', string='Grade', required=True)
+
+    @api.onchange('category_id')
+    def _onchange_enquiry_category_id(self):
+        if self.category_id:
+            # Clear subject if it doesn't belong to the selected category
+            if self.subject_id and self.subject_id.category_id != self.category_id:
+                self.subject_id = False
+        else:
+            self.subject_id = False
     stage_id = fields.Many2one(
         'enquiry.stage',
         string='Stage',

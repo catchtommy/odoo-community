@@ -7,7 +7,7 @@
     </record>
 
     <!-- Top Level -->
-    <menuitem id="menu_tuition_root" name="Tuition" sequence="50"/>
+    <menuitem id="menu_tuition_root" name="Shiningace" sequence="50"/>
     <menuitem id="menu_tuition_dashboard" name="Dashboard" parent="menu_tuition_root" action="action_tuition_dashboard" sequence="1"/>
 
     <!-- Scheduling -->

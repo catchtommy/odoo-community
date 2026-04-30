@@ -347,13 +347,13 @@
             <div class="tm-card-body">
                 <form t-attf-action="/my/tutor/courses/#{course.id}/progress/create" method="POST">
                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-                        <div>
-                            <label class="form-label">Title *</label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label">Title *</label>
                             <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Monthly Progress"/>
                         </div>
-                        <div>
-                            <label class="form-label">Student *</label>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label">Student *</label>
                             <select name="student_id" class="form-select" required="required">
                                 <option value="">Select student...</option>
                                 <t t-foreach="enrolled_students" t-as="enr">
@@ -361,12 +361,12 @@
                                 </t>
                             </select>
                         </div>
-                        <div>
-                            <label class="form-label">Report Date</label>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label">Report Date</label>
                             <input type="date" name="report_date" class="form-control"/>
                         </div>
-                        <div>
-                            <label class="form-label">Overall Rating</label>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label">Overall Rating</label>
                             <select name="overall_rating" class="form-select">
                                 <option value="">Select...</option>
                                 <option value="excellent">Excellent</option>
@@ -375,28 +375,28 @@
                                 <option value="needs_improvement">Needs Improvement</option>
                             </select>
                         </div>
-                        <div>
-                            <label class="form-label">Score</label>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label">Score</label>
                             <input type="number" name="score" class="form-control" step="0.1" min="0" placeholder="0"/>
                         </div>
-                        <div>
-                            <label class="form-label">Max Score</label>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label">Max Score</label>
                             <input type="number" name="max_score" class="form-control" step="0.1" min="0" value="100"/>
                         </div>
                     </div>
-                    <div style="margin-top:14px;">
-                        <label class="form-label">Strengths</label>
-                        <textarea name="strengths" class="form-control" rows="2" placeholder="What the student excels at..."/>
+                    <div class="tm-form-group" style="margin-top:18px;">
+                        <label class="tm-form-label">Strengths</label>
+                        <textarea name="strengths" class="form-control" rows="3" placeholder="What the student excels at..."/>
                     </div>
-                    <div style="margin-top:14px;">
-                        <label class="form-label">Areas to Improve</label>
-                        <textarea name="areas_to_improve" class="form-control" rows="2" placeholder="Where improvement is needed..."/>
+                    <div class="tm-form-group">
+                        <label class="tm-form-label">Areas to Improve</label>
+                        <textarea name="areas_to_improve" class="form-control" rows="3" placeholder="Where improvement is needed..."/>
                     </div>
-                    <div style="margin-top:14px;">
-                        <label class="form-label">Comments</label>
+                    <div class="tm-form-group">
+                        <label class="tm-form-label">Comments</label>
                         <textarea name="comments" class="form-control" rows="3" placeholder="General comments..."/>
                     </div>
-                    <div style="margin-top:20px;display:flex;justify-content:flex-end;gap:8px;">
+                    <div style="margin-top:24px;display:flex;justify-content:flex-end;gap:10px;">
                         <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline">Cancel</a>
                         <button type="submit" class="tm-btn tm-btn-green"><i class="fa fa-save"/> Save Report</button>
                     </div>
@@ -946,13 +946,13 @@
                 <div class="tm-card-body">
                     <form t-attf-action="/my/tutor/courses/#{course.id}/assignments/create" method="POST" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                        <div style="margin-bottom:12px;">
-                            <label class="form-label">Title *</label>
-                            <input type="text" name="name" class="form-control form-control-sm" required="required" placeholder="e.g. Chapter 5 Worksheet"/>
+                        <div class="tm-form-group">
+                            <label class="tm-form-label">Title *</label>
+                            <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Chapter 5 Worksheet"/>
                         </div>
-                        <div style="margin-bottom:12px;">
-                            <label class="form-label">Type</label>
-                            <select name="assignment_type" class="form-select form-select-sm">
+                        <div class="tm-form-group">
+                            <label class="tm-form-label">Type</label>
+                            <select name="assignment_type" class="form-select">
                                 <option value="homework">Homework</option>
                                 <option value="quiz">Quiz</option>
                                 <option value="test">Test</option>
@@ -961,19 +961,19 @@
                                 <option value="other">Other</option>
                             </select>
                         </div>
-                        <div style="margin-bottom:12px;">
-                            <label class="form-label">Due Date</label>
-                            <input type="date" name="due_date" class="form-control form-control-sm"/>
+                        <div class="tm-form-group">
+                            <label class="tm-form-label">Due Date</label>
+                            <input type="date" name="due_date" class="form-control"/>
                         </div>
-                        <div style="margin-bottom:12px;">
-                            <label class="form-label">Description</label>
-                            <textarea name="description" class="form-control form-control-sm" rows="3" placeholder="Instructions..."/>
+                        <div class="tm-form-group">
+                            <label class="tm-form-label">Description</label>
+                            <textarea name="description" class="form-control" rows="3" placeholder="Instructions..."/>
                         </div>
-                        <div style="margin-bottom:16px;">
-                            <label class="form-label">Attachment</label>
-                            <input type="file" name="attachment" class="form-control form-control-sm"/>
+                        <div class="tm-form-group">
+                            <label class="tm-form-label">Attachment</label>
+                            <input type="file" name="attachment" class="form-control"/>
                         </div>
-                        <button type="submit" class="tm-btn tm-btn-primary" style="width:100%;justify-content:center;"><i class="fa fa-plus"/> Create</button>
+                        <button type="submit" class="tm-btn tm-btn-primary" style="width:100%;justify-content:center;"><i class="fa fa-plus"/> Create Assignment</button>
                     </form>
                 </div>
             </div>

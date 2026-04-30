@@ -64,10 +64,9 @@ class VirtualClassroomService(models.AbstractModel):
 
         existing = occurrence.virtual_meeting_id
         if existing and existing.provider != provider_code and existing.state == 'ready':
-            raise UserError(
-                'This course already has a %s meeting. Reset it before changing provider.'
-                % dict(existing._fields['provider'].selection).get(existing.provider)
-            )
+            # Auto-reset the existing meeting so the provider can be switched
+            existing.sudo().action_mark_cancelled()
+            occurrence.sudo().write({'virtual_meeting_id': False})
 
         # One room per course — search at course level, not occurrence level
         meeting = self.env['virtual.classroom.meeting'].sudo().search([
