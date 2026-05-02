@@ -25,12 +25,16 @@
                     <button name="action_invite_to_portal" type="object"
                             string="Invite to Portal" class="btn-primary"
                             invisible="has_portal_access or not id"/>
+                    <button name="action_invite_to_portal" type="object"
+                            string="Manage Portal Access" class="btn-secondary"
+                            invisible="not has_portal_access or not id"/>
                 </header>
                 <sheet>
                     <field name="has_portal_access" invisible="1"/>
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" icon="fa-globe"
-                                invisible="not has_portal_access" disabled="1">
+                                name="action_invite_to_portal" type="object"
+                                invisible="not has_portal_access">
                             <span class="o_stat_text text-success">Portal Active</span>
                         </button>
                     </div>
@@ -99,12 +103,16 @@
                     <button name="action_invite_to_portal" type="object"
                             string="Invite to Portal" class="btn-primary"
                             invisible="has_portal_access or not id"/>
+                    <button name="action_invite_to_portal" type="object"
+                            string="Manage Portal Access" class="btn-secondary"
+                            invisible="not has_portal_access or not id"/>
                 </header>
                 <sheet>
                     <field name="has_portal_access" invisible="1"/>
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" icon="fa-globe"
-                                invisible="not has_portal_access" disabled="1">
+                                name="action_invite_to_portal" type="object"
+                                invisible="not has_portal_access">
                             <span class="o_stat_text text-success">Portal Active</span>
                         </button>
                     </div>
@@ -208,12 +216,16 @@
                     <button name="action_invite_to_portal" type="object"
                             string="Invite to Portal" class="btn-primary"
                             invisible="has_portal_access or not id"/>
+                    <button name="action_invite_to_portal" type="object"
+                            string="Manage Portal Access" class="btn-secondary"
+                            invisible="not has_portal_access or not id"/>
                 </header>
                 <sheet>
                     <field name="has_portal_access" invisible="1"/>
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" icon="fa-globe"
-                                invisible="not has_portal_access" disabled="1">
+                                name="action_invite_to_portal" type="object"
+                                invisible="not has_portal_access">
                             <span class="o_stat_text text-success">Portal Active</span>
                         </button>
                     </div>

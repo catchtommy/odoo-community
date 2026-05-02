@@ -24,18 +24,37 @@
                 <sheet>
                     <group>
                         <field name="course_id"/><field name="schedule_type"/>
-                        <field name="schedule_hour" string="Hour (00-23)"/>
-                        <field name="schedule_minute" string="Minute (00-59)"/>
+                        <div style="display:flex;align-items:center;gap:8px;padding:4px 0;" colspan="2">
+                            <span class="o_form_label" style="min-width:120px;">Class Time</span>
+                            <field name="schedule_hour_sel" string="Hour" nolabel="1" style="width:90px;"/>
+                            <span style="font-size:18px;font-weight:bold;line-height:1;">:</span>
+                            <field name="schedule_minute_sel" string="Minute" nolabel="1" style="width:90px;"/>
+                        </div>
                         <field name="schedule_duration" string="Duration (Minutes)"/>
-                        <field name="virtual_provider_default"/>
                         <field name="timezone"/><field name="status"/>
                     </group>
                     <group string="Days of Week">
-                        <field name="monday"/><field name="tuesday"/><field name="wednesday"/>
-                        <field name="thursday"/><field name="friday"/><field name="saturday"/><field name="sunday"/>
+                        <div colspan="2" style="display:flex;gap:24px;flex-wrap:wrap;">
+                            <div style="display:flex;gap:16px;">
+                                <field name="monday" widget="boolean_toggle"/><span style="line-height:2;">Monday</span>
+                                <field name="tuesday" widget="boolean_toggle"/><span style="line-height:2;">Tuesday</span>
+                                <field name="wednesday" widget="boolean_toggle"/><span style="line-height:2;">Wednesday</span>
+                                <field name="thursday" widget="boolean_toggle"/><span style="line-height:2;">Thursday</span>
+                            </div>
+                            <div style="display:flex;gap:16px;">
+                                <field name="friday" widget="boolean_toggle"/><span style="line-height:2;">Friday</span>
+                                <field name="saturday" widget="boolean_toggle"/><span style="line-height:2;">Saturday</span>
+                                <field name="sunday" widget="boolean_toggle"/><span style="line-height:2;">Sunday</span>
+                            </div>
+                        </div>
                     </group>
                     <group string="Recurrence Period">
-                        <field name="start_date"/><field name="end_date"/>
+                        <div style="display:flex;align-items:center;gap:8px;padding:4px 0;" colspan="2">
+                            <span class="o_form_label" style="min-width:80px;">Start Date</span>
+                            <field name="start_date" nolabel="1" style="width:140px;"/>
+                            <span class="o_form_label" style="min-width:80px;margin-left:16px;">End Date</span>
+                            <field name="end_date" nolabel="1" style="width:140px;"/>
+                        </div>
                     </group>
                     <group string="Tutor Selection" invisible="not course_id">
                         <field name="no_tutor_available" invisible="1"/>

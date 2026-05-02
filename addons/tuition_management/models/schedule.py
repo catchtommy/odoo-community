@@ -15,6 +15,12 @@ class ClassSchedule(models.Model):
                                      string='Schedule Type', default='recurring')
     schedule_hour = fields.Integer(string='Hour', default=9)
     schedule_minute = fields.Integer(string='Minute', default=0)
+    schedule_hour_sel = fields.Selection(
+        selection=[(str(h), '%02d' % h) for h in range(24)],
+        string='Hour', compute='_compute_time_sel', inverse='_set_hour_sel', store=False)
+    schedule_minute_sel = fields.Selection(
+        selection=[(str(m), '%02d' % m) for m in range(60)],
+        string='Minute', compute='_compute_time_sel', inverse='_set_minute_sel', store=False)
     schedule_duration = fields.Integer(string='Duration (Minutes)', default=60)
     timezone = fields.Selection([
         ('US/Eastern', 'US/Eastern'), ('US/Central', 'US/Central'), ('US/Mountain', 'US/Mountain'),
@@ -46,6 +52,20 @@ class ClassSchedule(models.Model):
     available_tutor_ids = fields.Many2many('tutor.profile', string='Available Tutors', compute='_compute_available_tutors', store=False)
     fallback_tutor_ids = fields.Many2many('tutor.profile', string='Subject/Grade Tutors', compute='_compute_available_tutors', store=False)
     no_tutor_available = fields.Boolean(string='No Tutor Available', compute='_compute_available_tutors', store=False)
+
+    @api.depends('schedule_hour', 'schedule_minute')
+    def _compute_time_sel(self):
+        for rec in self:
+            rec.schedule_hour_sel = str(rec.schedule_hour)
+            rec.schedule_minute_sel = str(rec.schedule_minute)
+
+    def _set_hour_sel(self):
+        for rec in self:
+            rec.schedule_hour = int(rec.schedule_hour_sel or 0)
+
+    def _set_minute_sel(self):
+        for rec in self:
+            rec.schedule_minute = int(rec.schedule_minute_sel or 0)
 
     @api.onchange('available_tutor_ids', 'fallback_tutor_ids', 'no_tutor_available')
     def _onchange_tutor_list(self):

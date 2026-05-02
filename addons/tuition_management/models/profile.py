@@ -117,16 +117,8 @@ class TutorProfile(models.Model):
                     'phone': '%s%s' % (rec.country_code or '', rec.phone or '') if rec.phone else False,
                 })
                 rec.partner_id = partner.id
-            if rec.email and rec.partner_id:
-                existing_user = self.env['res.users'].sudo().with_context(active_test=False).search([('login', '=', rec.email)], limit=1)
-                if not existing_user:
-                    user = self.env['res.users'].sudo().with_context(no_reset_password=True).create({
-                        'name': rec.name,
-                        'login': rec.email,
-                        'email': rec.email,
-                        'partner_id': rec.partner_id.id,
-                    })
-                    self.env['portal.access.wizard'].new()._assign_portal_group(user)
+            # Portal user creation is intentionally NOT automatic.
+            # Use the "Invite to Portal" button to grant access manually.
         return records
 
     def write(self, vals):
@@ -231,17 +223,8 @@ class StudentProfile(models.Model):
                 vals['partner_id'] = partner.id
 
         records = super().create(vals_list)
-        for rec in records:
-            if rec.email and rec.partner_id:
-                existing_user = self.env['res.users'].sudo().with_context(active_test=False).search([('login', '=', rec.email)], limit=1)
-                if not existing_user:
-                    user = self.env['res.users'].sudo().with_context(no_reset_password=True).create({
-                        'name': rec.name,
-                        'login': rec.email,
-                        'email': rec.email,
-                        'partner_id': rec.partner_id.id,
-                    })
-                    self.env['portal.access.wizard'].new()._assign_portal_group(user)
+        # Portal user creation is intentionally NOT automatic.
+        # Use the "Invite to Portal" button to grant access manually.
         return records
 
     def write(self, vals):
@@ -328,17 +311,8 @@ class ParentProfile(models.Model):
                 vals['partner_id'] = partner.id
 
         records = super().create(vals_list)
-        for rec in records:
-            if rec.email and rec.partner_id:
-                existing_user = self.env['res.users'].sudo().with_context(active_test=False).search([('login', '=', rec.email)], limit=1)
-                if not existing_user:
-                    user = self.env['res.users'].sudo().with_context(no_reset_password=True).create({
-                        'name': rec.name,
-                        'login': rec.email,
-                        'email': rec.email,
-                        'partner_id': rec.partner_id.id,
-                    })
-                    self.env['portal.access.wizard'].new()._assign_portal_group(user)
+        # Portal user creation is intentionally NOT automatic.
+        # Use the "Invite to Portal" button to grant access manually.
         return records
 
     def write(self, vals):
