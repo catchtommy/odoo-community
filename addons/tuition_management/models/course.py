@@ -18,7 +18,51 @@ class CourseMaster(models.Model):
     ], string='Status', default='draft', tracking=True)
     start_date = fields.Date(string='Start Date')
     end_date = fields.Date(string='End Date')
-    tutor_id = fields.Many2one('tutor.profile', string='Tutor', tracking=True)
+    category_id = fields.Many2one(
+        'subject.category',
+        string='Category',
+        store=True,
+    )
+    tutor_id = fields.Many2one('tutor.profile', string='Primary Tutor', tracking=True)
+    tutor_ids = fields.Many2many(
+        'tutor.profile',
+        'course_master_tutor_rel',
+        'course_id',
+        'tutor_id',
+        string='Tutors',
+        tracking=True,
+    )
+    eligible_tutor_ids = fields.Many2many(
+        'tutor.profile',
+        string='Eligible Tutors',
+        compute='_compute_eligible_tutor_ids',
+        store=False,
+    )
+
+    @api.onchange('subject_id')
+    def _onchange_subject_id(self):
+        if self.subject_id and self.subject_id.category_id:
+            self.category_id = self.subject_id.category_id
+        elif not self.subject_id:
+            pass  # Keep category when subject cleared so user can re-filter
+
+    @api.onchange('category_id')
+    def _onchange_category_id(self):
+        if self.subject_id and self.subject_id.category_id != self.category_id:
+            self.subject_id = False
+
+    @api.depends('subject_id', 'grade_id')
+    def _compute_eligible_tutor_ids(self):
+        tutor_model = self.env['tutor.profile']
+        for rec in self:
+            if rec.subject_id:
+                domain = [('subject_ids', 'in', rec.subject_id.ids)]
+                if rec.grade_id:
+                    # Include tutors who match the grade OR have no grades set (teach all grades)
+                    domain += ['|', ('grade_ids', 'in', rec.grade_id.ids), ('grade_ids', '=', False)]
+                rec.eligible_tutor_ids = tutor_model.search(domain)
+            else:
+                rec.eligible_tutor_ids = tutor_model.browse()
     coordinator_id = fields.Many2one('res.users', string='Coordinator')
     schedule_ids = fields.One2many('class.schedule', 'course_id', string='Schedules')
     schedule_id = fields.Many2one(
@@ -98,6 +142,9 @@ class CourseMaster(models.Model):
             vals.setdefault('virtual_provider_default', 'bbb')
         records = super().create(vals_list)
         for rec in records:
+            # Sync primary tutor into tutor_ids set
+            if rec.tutor_id and rec.tutor_id not in rec.tutor_ids:
+                rec.sudo().write({'tutor_ids': [(4, rec.tutor_id.id)]})
             rec._subscribe_related_partners()
             rec.message_post(
                 body='Course created: %s.' % rec.name,
@@ -112,19 +159,26 @@ class CourseMaster(models.Model):
     def write(self, vals):
         old_tutors = {rec.id: rec.tutor_id for rec in self}
         res = super().write(vals)
-        if {'enrollment_ids', 'tutor_id'} & set(vals.keys()):
+        if {'enrollment_ids', 'tutor_id', 'tutor_ids'} & set(vals.keys()):
             for rec in self:
                 rec._subscribe_related_partners()
         if 'tutor_id' in vals:
             for rec in self.filtered('tutor_id'):
                 if old_tutors.get(rec.id) != rec.tutor_id:
+                    # Keep tutor_ids in sync — primary tutor is always in the set
+                    if rec.tutor_id and rec.tutor_id not in rec.tutor_ids:
+                        rec.sudo().write({'tutor_ids': [(4, rec.tutor_id.id)]})
                     rec._post_tutor_assigned_message()
         return res
 
     def _subscribe_related_partners(self):
         for rec in self:
             partner_ids = []
-            if rec.tutor_id.partner_id:
+            # Subscribe all tutors (primary + supporting)
+            for tutor in rec.tutor_ids:
+                if tutor.partner_id:
+                    partner_ids.append(tutor.partner_id.id)
+            if rec.tutor_id and rec.tutor_id.partner_id:
                 partner_ids.append(rec.tutor_id.partner_id.id)
             for student in rec.enrollment_ids.mapped('student_id'):
                 if student.partner_id:

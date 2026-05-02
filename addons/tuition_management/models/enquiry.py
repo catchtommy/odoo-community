@@ -521,6 +521,55 @@ class DemoSession(models.Model):
         if self.course_id and self.course_id.subject_id:
             self.subject_id = self.course_id.subject_id.id
 
+    @api.onchange('tutor_id')
+    def _onchange_tutor_id_warn(self):
+        """Warn when assigning a demo to a tutor different from existing course tutors."""
+        if not self.tutor_id or not self.course_id:
+            return
+        course = self.course_id
+        if not course.tutor_id:
+            return
+        if self.tutor_id not in course.tutor_ids:
+            existing = ', '.join(t.name for t in course.tutor_ids)
+            return {
+                'warning': {
+                    'title': 'Multiple Tutors',
+                    'message': (
+                        'This course is already managed by: %s.\n\n'
+                        'Adding a demo with %s will give them portal access to this course '
+                        'alongside the existing tutor(s).'
+                    ) % (existing, self.tutor_id.name),
+                }
+            }
+
+    def _sync_tutor_to_course(self):
+        """Auto-set course tutor from demo session if not set; add to tutor_ids if new."""
+        self.ensure_one()
+        course = self.course_id
+        if not course or not self.tutor_id:
+            return
+        if not course.tutor_id:
+            course.sudo().write({
+                'tutor_id': self.tutor_id.id,
+                'tutor_ids': [(4, self.tutor_id.id)],
+            })
+            course.message_post(
+                body='Primary tutor auto-set to <b>%s</b> from demo session.' % self.tutor_id.name,
+                subtype_xmlid='mail.mt_note',
+            )
+        elif self.tutor_id not in course.tutor_ids:
+            course.sudo().write({'tutor_ids': [(4, self.tutor_id.id)]})
+            course.message_post(
+                body=(
+                    '&#8505; A demo session was added with tutor <b>%s</b>. '
+                    'They have been added to the course and will have portal access alongside: <b>%s</b>.'
+                ) % (
+                    self.tutor_id.name,
+                    ', '.join(t.name for t in course.tutor_ids - self.tutor_id),
+                ),
+                subtype_xmlid='mail.mt_note',
+            )
+
     scheduled_datetime = fields.Datetime(string='Scheduled Date & Time')
     timezone = fields.Selection([
         ('US/Eastern', 'US/Eastern'),
@@ -583,6 +632,7 @@ class DemoSession(models.Model):
     def create(self, vals_list):
         records = super(DemoSession, self).create(vals_list)
         for rec in records:
+            rec._sync_tutor_to_course()
             if rec.status == 'scheduled' and rec.scheduled_datetime and rec.tutor_id:
                 rec._create_or_update_schedule()
             if rec.course_id:

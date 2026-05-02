@@ -20,8 +20,9 @@ class TutorPortal(http.Controller, PortalMixin):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
+        # Show courses where this tutor is primary OR in the tutors set
         courses = request.env['course.master'].sudo().search([
-            ('tutor_id', '=', tutor.id),
+            ('tutor_ids', 'in', tutor.id),
         ])
         today = fields.Date.today()
         start_of_week = today - timedelta(days=today.weekday())
@@ -55,21 +56,25 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or course.tutor_id.id != tutor.id:
+        # Allow access if this tutor is in the course's tutor set
+        if not course.exists() or tutor not in course.tutor_ids:
             return request.redirect('/my/tutor/courses')
 
         today = fields.Date.today()
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
+        # Only show this tutor's assigned lessons for this week
         this_week_lessons = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', '=', course.id),
+            ('tutor_id', '=', tutor.id),
             ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
             ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
         ], order='start_datetime asc')
 
-        # Fetch the very next upcoming session for the Start Class card
+        # Fetch the very next upcoming session assigned to this tutor
         next_session = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', '=', course.id),
+            ('tutor_id', '=', tutor.id),
             ('lesson_status', '=', 'scheduled'),
             ('start_datetime', '>=', datetime.utcnow()),
         ], order='start_datetime asc', limit=1)
@@ -113,7 +118,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or course.tutor_id.id != tutor.id:
+        if not course.exists() or tutor not in course.tutor_ids:
             return request.redirect('/my/tutor/courses')
         valid_providers = {'bbb', 'zoom', 'google_meet'}
         if provider not in valid_providers:
@@ -184,7 +189,7 @@ class TutorPortal(http.Controller, PortalMixin):
         course = request.env['course.master'].sudo().browse(course_id)
         if not course.exists():
             return request.redirect('/my/tutor/courses')
-        if course.tutor_id and course.tutor_id.id != tutor.id:
+        if tutor not in course.tutor_ids:
             return request.redirect('/my/tutor/courses')
 
         today = fields.Date.today()
@@ -205,6 +210,7 @@ class TutorPortal(http.Controller, PortalMixin):
 
         occurrences = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', '=', course.id),
+            ('tutor_id', '=', tutor.id),
             ('start_datetime', '>=', datetime.combine(start_date, datetime.min.time())),
             ('start_datetime', '<=', datetime.combine(end_date, datetime.max.time())),
         ], order='start_datetime asc')
@@ -247,7 +253,7 @@ class TutorPortal(http.Controller, PortalMixin):
         occurrence = request.env['class.schedule.occurrence'].sudo().browse(occurrence_id)
         if not occurrence.exists():
             return request.redirect('/my/tutor/courses')
-        if occurrence.tutor_id and occurrence.tutor_id.id != tutor.id:
+        if occurrence.tutor_id and occurrence.tutor_id != tutor:
             return request.redirect('/my/tutor/courses')
 
         enrolled = occurrence.course_id.enrollment_ids.filtered(lambda e: e.status == 'active')
@@ -285,7 +291,7 @@ class TutorPortal(http.Controller, PortalMixin):
         occurrence = request.env['class.schedule.occurrence'].sudo().browse(occurrence_id)
         if not occurrence.exists():
             return request.redirect('/my/tutor/courses')
-        if occurrence.tutor_id and occurrence.tutor_id.id != tutor.id:
+        if occurrence.tutor_id and occurrence.tutor_id != tutor:
             return request.redirect('/my/tutor/courses')
 
         lesson_status = kw.get('lesson_status', 'completed')
@@ -330,7 +336,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or course.tutor_id.id != tutor.id:
+        if not course.exists() or tutor not in course.tutor_ids:
             return request.redirect('/my/tutor/courses')
         return request.render('tuition_management.portal_tutor_assignments', {
             'user': request.env.user,
@@ -349,7 +355,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or course.tutor_id.id != tutor.id:
+        if not course.exists() or tutor not in course.tutor_ids:
             return request.redirect('/my/tutor/courses')
 
         vals = {
@@ -382,7 +388,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         assignment = request.env['course.assignment'].sudo().browse(assignment_id)
-        if not assignment.exists() or assignment.course_id.tutor_id.id != tutor.id:
+        if not assignment.exists() or tutor not in assignment.course_id.tutor_ids:
             return request.redirect('/my/tutor/courses')
         return request.render('tuition_management.portal_tutor_assignment_detail', {
             'user': request.env.user,
@@ -402,7 +408,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         submission = request.env['assignment.submission'].sudo().browse(submission_id)
-        if not submission.exists() or submission.assignment_id.course_id.tutor_id.id != tutor.id:
+        if not submission.exists() or tutor not in submission.assignment_id.course_id.tutor_ids:
             return request.redirect('/my/tutor/courses')
         try:
             score = float(kw.get('score', 0))
@@ -420,7 +426,7 @@ class TutorPortal(http.Controller, PortalMixin):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
-        courses = request.env['course.master'].sudo().search([('tutor_id', '=', tutor.id)])
+        courses = request.env['course.master'].sudo().search([('tutor_ids', 'in', tutor.id)])
         assignments = request.env['course.assignment'].sudo().search([
             ('course_id', 'in', courses.ids),
         ], order='due_date desc')
@@ -443,7 +449,7 @@ class TutorPortal(http.Controller, PortalMixin):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
-        courses = request.env['course.master'].sudo().search([('tutor_id', '=', tutor.id)])
+        courses = request.env['course.master'].sudo().search([('tutor_ids', 'in', tutor.id)])
         reports = request.env['progress.report'].sudo().search([
             ('course_id', 'in', courses.ids),
         ], order='report_date desc')
@@ -463,7 +469,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or course.tutor_id.id != tutor.id:
+        if not course.exists() or tutor not in course.tutor_ids:
             return request.redirect('/my/tutor/courses')
         enrolled_students = course.enrollment_ids.filtered(lambda e: e.status == 'active')
         return request.render('tuition_management.portal_tutor_progress_new', {
@@ -484,7 +490,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or course.tutor_id.id != tutor.id:
+        if not course.exists() or tutor not in course.tutor_ids:
             return request.redirect('/my/tutor/courses')
         vals = {
             'name': kw.get('name', 'Progress Report'),

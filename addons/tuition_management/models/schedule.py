@@ -52,6 +52,28 @@ class ClassSchedule(models.Model):
         tutor_ids = (self.fallback_tutor_ids if self.no_tutor_available else self.available_tutor_ids).ids
         return {'domain': {'tutor_id': [('id', 'in', tutor_ids)] if tutor_ids else []}}
 
+    @api.onchange('tutor_id')
+    def _onchange_tutor_id_warn(self):
+        """Inform the user when the selected tutor is different from existing course tutors."""
+        if not self.tutor_id or not self.course_id:
+            return
+        course = self.course_id
+        if not course.tutor_id:
+            # No tutor yet — fine, this will become the primary
+            return
+        if self.tutor_id not in course.tutor_ids:
+            existing = ', '.join(t.name for t in course.tutor_ids)
+            return {
+                'warning': {
+                    'title': 'Multiple Tutors',
+                    'message': (
+                        'This course is already managed by: %s.\n\n'
+                        'Adding a schedule with %s will give them portal access to this course '
+                        'alongside the existing tutor(s).'
+                    ) % (existing, self.tutor_id.name),
+                }
+            }
+
     @api.depends('schedule_hour', 'schedule_minute', 'monday', 'tuesday', 'wednesday',
                  'thursday', 'friday', 'saturday', 'sunday', 'course_id')
     def _compute_available_tutors(self):
@@ -165,7 +187,39 @@ class ClassSchedule(models.Model):
         records = super().create(vals_list)
         for record in records:
             record._generate_occurrences()
+            record._sync_tutor_to_course()
         return records
+
+    def _sync_tutor_to_course(self):
+        """Auto-set course tutor from schedule if not set; warn if adding a new tutor to an already-managed course."""
+        self.ensure_one()
+        course = self.course_id
+        if not course or not self.tutor_id:
+            return
+        if not course.tutor_id:
+            # No primary tutor yet — auto-assign from this schedule
+            course.sudo().write({
+                'tutor_id': self.tutor_id.id,
+                'tutor_ids': [(4, self.tutor_id.id)],
+            })
+            course.message_post(
+                body='Primary tutor auto-set to <b>%s</b> from schedule.' % self.tutor_id.name,
+                subtype_xmlid='mail.mt_note',
+            )
+        elif self.tutor_id not in course.tutor_ids:
+            # New tutor not yet on course — add them and log a notice
+            course.sudo().write({'tutor_ids': [(4, self.tutor_id.id)]})
+            course.message_post(
+                body=(
+                    '&#8505; A new schedule was added with tutor <b>%s</b>. '
+                    'This tutor has been added to the course and will have portal access alongside '
+                    'the existing tutor(s): <b>%s</b>.'
+                ) % (
+                    self.tutor_id.name,
+                    ', '.join(t.name for t in course.tutor_ids - self.tutor_id),
+                ),
+                subtype_xmlid='mail.mt_note',
+            )
 
     def write(self, vals):
         res = super().write(vals)
