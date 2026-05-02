@@ -37,8 +37,14 @@ class ClassSchedule(models.Model):
     friday = fields.Boolean(string='Friday')
     saturday = fields.Boolean(string='Saturday')
     sunday = fields.Boolean(string='Sunday')
-    start_date = fields.Date(string='Start Date', required=True)
-    end_date = fields.Date(string='End Date', required=True)
+    start_date = fields.Date(string='Start Date')
+    end_date = fields.Date(string='End Date')
+    schedule_date = fields.Date(string='Date')  # used for one_time schedules only
+    is_reschedule = fields.Boolean(string='Is a Reschedule?', default=False)
+    rescheduled_from_id = fields.Many2one(
+        'class.schedule.occurrence', string='Replaces Cancelled Class',
+        domain=[('lesson_status', '=', 'cancelled')],
+        help='Link to the cancelled occurrence that this one-time class replaces')
     occurrence_ids = fields.One2many('class.schedule.occurrence', 'schedule_id', string='Occurrences')
 
     # NOTE: virtual_provider_default has been moved to course.master.
@@ -142,12 +148,26 @@ class ClassSchedule(models.Model):
     def _generate_occurrences(self):
         for record in self:
             record.occurrence_ids.filtered(lambda o: o.lesson_status == 'scheduled').sudo().unlink()
+            if record.schedule_type == 'one_time':
+                if not record.schedule_date:
+                    continue
+                effective_date = record.schedule_date
+                tz = pytz.timezone(record.timezone or 'UTC')
+                local_dt = tz.localize(fields.Datetime.to_datetime(effective_date).replace(
+                    hour=record.schedule_hour, minute=record.schedule_minute, second=0))
+                utc_start = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
+                self.env['class.schedule.occurrence'].sudo().create([{
+                    'schedule_id': record.id, 'course_id': record.course_id.id,
+                    'tutor_id': record.tutor_id.id if record.tutor_id else False,
+                    'name': f"{record.course_id.name or 'Class'} - {effective_date.strftime('%a %b %d, %Y')}",
+                    'start_datetime': utc_start,
+                    'stop_datetime': utc_start + timedelta(minutes=record.schedule_duration or 60),
+                }])
+                continue
             if not record.start_date or not record.end_date:
                 continue
             day_map = {'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4, 'saturday': 5, 'sunday': 6}
             selected_days = [day_map[d] for d in day_map if getattr(record, d)]
-            if not selected_days and record.schedule_type == 'one_time':
-                selected_days = [record.start_date.weekday()]
             tz = pytz.timezone(record.timezone or 'UTC')
             occurrences, current_date = [], record.start_date
             while current_date <= record.end_date:
@@ -243,7 +263,7 @@ class ClassSchedule(models.Model):
 
     def write(self, vals):
         res = super().write(vals)
-        trigger_fields = ['start_date', 'end_date', 'schedule_hour', 'schedule_minute', 'schedule_duration',
+        trigger_fields = ['start_date', 'end_date', 'schedule_date', 'schedule_hour', 'schedule_minute', 'schedule_duration',
                           'timezone', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
                           'schedule_type', 'course_id']
         if any(f in vals for f in trigger_fields):
@@ -279,6 +299,14 @@ class ClassSchedule(models.Model):
     def action_delete_schedule(self):
         self.ensure_one()
         return self.unlink()
+
+    @api.constrains('schedule_type', 'start_date', 'end_date', 'schedule_date')
+    def _check_required_dates(self):
+        for rec in self:
+            if rec.schedule_type == 'one_time' and not rec.schedule_date:
+                raise UserError('Please set a Date for a one-time schedule.')
+            if rec.schedule_type == 'recurring' and (not rec.start_date or not rec.end_date):
+                raise UserError('Please set Start Date and End Date for a recurring schedule.')
 
     @api.constrains('schedule_type', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday')
     def _check_weekday_selected(self):

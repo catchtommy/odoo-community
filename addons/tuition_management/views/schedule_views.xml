@@ -33,7 +33,18 @@
                         <field name="schedule_duration" string="Duration (Minutes)"/>
                         <field name="timezone"/><field name="status"/>
                     </group>
-                    <group string="Days of Week">
+                    <!-- One Time: single date picker -->
+                    <group invisible="schedule_type != 'one_time'">
+                        <field name="schedule_date" required="schedule_type == 'one_time'"/>
+                    </group>
+                    <!-- One Time: reschedule linkage -->
+                    <group string="Reschedule" invisible="schedule_type != 'one_time'">
+                        <field name="is_reschedule"/>
+                        <field name="rescheduled_from_id" invisible="not is_reschedule"
+                               required="is_reschedule and schedule_type == 'one_time'"/>
+                    </group>
+                    <!-- Recurring: days of week -->
+                    <group string="Days of Week" invisible="schedule_type == 'one_time'">
                         <div colspan="2" style="display:flex;gap:24px;flex-wrap:wrap;">
                             <div style="display:flex;gap:16px;">
                                 <field name="monday" widget="boolean_toggle"/><span style="line-height:2;">Monday</span>
@@ -48,12 +59,15 @@
                             </div>
                         </div>
                     </group>
-                    <group string="Recurrence Period">
+                    <!-- Recurring: start/end date range -->
+                    <group string="Recurrence Period" invisible="schedule_type == 'one_time'">
                         <div style="display:flex;align-items:center;gap:8px;padding:4px 0;" colspan="2">
                             <span class="o_form_label" style="min-width:80px;">Start Date</span>
-                            <field name="start_date" nolabel="1" style="width:140px;"/>
+                            <field name="start_date" nolabel="1" style="width:140px;"
+                                   required="schedule_type == 'recurring'"/>
                             <span class="o_form_label" style="min-width:80px;margin-left:16px;">End Date</span>
-                            <field name="end_date" nolabel="1" style="width:140px;"/>
+                            <field name="end_date" nolabel="1" style="width:140px;"
+                                   required="schedule_type == 'recurring'"/>
                         </div>
                     </group>
                     <group string="Tutor Selection" invisible="not course_id">
