@@ -156,12 +156,17 @@ class ClassSchedule(models.Model):
                 local_dt = tz.localize(fields.Datetime.to_datetime(effective_date).replace(
                     hour=record.schedule_hour, minute=record.schedule_minute, second=0))
                 utc_start = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
+                occ_name = f"{record.course_id.name or 'Class'} - {effective_date.strftime('%a %b %d, %Y')}"
+                if record.is_reschedule and record.rescheduled_from_id:
+                    occ_name += ' (Rescheduled)'
                 self.env['class.schedule.occurrence'].sudo().create([{
                     'schedule_id': record.id, 'course_id': record.course_id.id,
                     'tutor_id': record.tutor_id.id if record.tutor_id else False,
-                    'name': f"{record.course_id.name or 'Class'} - {effective_date.strftime('%a %b %d, %Y')}",
+                    'name': occ_name,
                     'start_datetime': utc_start,
                     'stop_datetime': utc_start + timedelta(minutes=record.schedule_duration or 60),
+                    'is_rescheduled': record.is_reschedule and bool(record.rescheduled_from_id),
+                    'rescheduled_from_id': record.rescheduled_from_id.id if record.is_reschedule and record.rescheduled_from_id else False,
                 }])
                 continue
             if not record.start_date or not record.end_date:
@@ -265,7 +270,7 @@ class ClassSchedule(models.Model):
         res = super().write(vals)
         trigger_fields = ['start_date', 'end_date', 'schedule_date', 'schedule_hour', 'schedule_minute', 'schedule_duration',
                           'timezone', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
-                          'schedule_type', 'course_id']
+                          'schedule_type', 'course_id', 'is_reschedule', 'rescheduled_from_id']
         if any(f in vals for f in trigger_fields):
             for record in self:
                 record._generate_occurrences()
