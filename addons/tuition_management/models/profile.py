@@ -386,7 +386,7 @@ class PortalAccessWizard(models.TransientModel):
                  'ivory', 'jewel', 'knack', 'lemon', 'mango', 'noble', 'ocean', 'pearl',
                  'quest', 'river', 'solar', 'tiger', 'ultra', 'vivid', 'whale', 'xenon',
                  'yacht', 'zebra', 'amber', 'blaze', 'coral', 'drift', 'ember', 'frost']
-        return '%s%s@%d' % (random.choice(words).capitalize(), random.choice(words).Capitalize(), random.randint(1000, 9999))
+        return '%s%s@%d' % (random.choice(words).capitalize(), random.choice(words).capitalize(), random.randint(1000, 9999))
 
     @api.model
     def default_get(self, fields_list):

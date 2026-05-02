@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="report_demo_tutor_ada" model="tutor.profile">
+        <field name="name">Ada Report Tutor</field>
+        <field name="subject_ids" eval="[(6, 0, [ref('tuition_management.subject_mathematics')])]"/>
+    </record>
+
+    <record id="report_demo_tutor_rate_ada_math" model="tutor.subject.rate">
+        <field name="tutor_id" ref="report_demo_tutor_ada"/>
+        <field name="category_id" ref="tuition_management.subject_cat_sciences"/>
+        <field name="subject_id" ref="tuition_management.subject_mathematics"/>
+        <field name="standard_hourly_rate">40.0</field>
+        <field name="demo_rate_type">percentage</field>
+        <field name="demo_percentage">50.0</field>
+        <field name="effective_from">2026-01-01</field>
+        <field name="active_flag">1</field>
+    </record>
+
+    <record id="report_demo_course_math" model="course.master">
+        <field name="name">Reporting Demo - Mathematics</field>
+        <field name="category_id" ref="tuition_management.subject_cat_sciences"/>
+        <field name="subject_id" ref="tuition_management.subject_mathematics"/>
+        <field name="grade_id" ref="tuition_management.grade_10"/>
+        <field name="tutor_id" ref="report_demo_tutor_ada"/>
+        <field name="status">active</field>
+        <field name="start_date">2026-04-01</field>
+        <field name="end_date">2026-05-31</field>
+    </record>
+
+    <record id="report_demo_occurrence_completed" model="class.schedule.occurrence">
+        <field name="name">Reporting Demo Math - Completed</field>
+        <field name="course_id" ref="report_demo_course_math"/>
+        <field name="tutor_id" ref="report_demo_tutor_ada"/>
+        <field name="start_datetime">2026-04-24 15:00:00</field>
+        <field name="stop_datetime">2026-04-24 16:00:00</field>
+        <field name="lesson_status">completed</field>
+        <field name="is_demo">0</field>
+    </record>
+
+    <record id="report_demo_occurrence_cancelled" model="class.schedule.occurrence">
+        <field name="name">Reporting Demo Math - Cancelled</field>
+        <field name="course_id" ref="report_demo_course_math"/>
+        <field name="tutor_id" ref="report_demo_tutor_ada"/>
+        <field name="start_datetime">2026-04-25 15:00:00</field>
+        <field name="stop_datetime">2026-04-25 16:00:00</field>
+        <field name="lesson_status">cancelled</field>
+        <field name="is_demo">0</field>
+    </record>
+
+    <record id="report_demo_occurrence_rescheduled" model="class.schedule.occurrence">
+        <field name="name">Reporting Demo Math - Rescheduled</field>
+        <field name="course_id" ref="report_demo_course_math"/>
+        <field name="tutor_id" ref="report_demo_tutor_ada"/>
+        <field name="start_datetime">2026-04-27 15:00:00</field>
+        <field name="stop_datetime">2026-04-27 16:00:00</field>
+        <field name="lesson_status">rescheduled</field>
+        <field name="is_rescheduled">1</field>
+        <field name="is_demo">0</field>
+    </record>
+
+    <record id="report_demo_occurrence_demo" model="class.schedule.occurrence">
+        <field name="name">Reporting Demo Math - Demo</field>
+        <field name="course_id" ref="report_demo_course_math"/>
+        <field name="tutor_id" ref="report_demo_tutor_ada"/>
+        <field name="start_datetime">2026-04-28 15:00:00</field>
+        <field name="stop_datetime">2026-04-28 15:30:00</field>
+        <field name="lesson_status">scheduled</field>
+        <field name="is_demo">1</field>
+    </record>
+</odoo>

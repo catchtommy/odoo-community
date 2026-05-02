@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Class Status Report -->
+    <record id="view_tuition_class_status_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.class.status.wizard.form</field>
+        <field name="model">tuition.class.status.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Class Status Report">
+                <header>
+                    <button name="action_refresh" type="object" string="Apply" class="btn-primary" icon="fa-filter"/>
+                </header>
+                <sheet>
+                    <group string="Date Range">
+                        <field name="from_date"/>
+                        <field name="to_date"/>
+                    </group>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_scheduled_classes" type="object" class="oe_stat_button" icon="fa-calendar">
+                            <field name="total_scheduled_classes" string="Scheduled" widget="statinfo"/>
+                        </button>
+                        <button name="action_open_demos" type="object" class="oe_stat_button" icon="fa-star">
+                            <field name="total_demos" string="Demos" widget="statinfo"/>
+                        </button>
+                        <button name="action_open_completed_classes" type="object" class="oe_stat_button" icon="fa-check">
+                            <field name="completed_classes" string="Completed" widget="statinfo"/>
+                        </button>
+                        <button name="action_open_cancelled_classes" type="object" class="oe_stat_button" icon="fa-ban">
+                            <field name="cancelled_classes" string="Cancelled" widget="statinfo"/>
+                        </button>
+                        <button name="action_open_rescheduled_classes" type="object" class="oe_stat_button" icon="fa-refresh">
+                            <field name="rescheduled_classes" string="Rescheduled" widget="statinfo"/>
+                        </button>
+                        <button name="action_open_happened_classes" type="object" class="oe_stat_button" icon="fa-play">
+                            <field name="happened_classes" string="Happened" widget="statinfo"/>
+                        </button>
+                        <button name="action_open_billable_classes" type="object" class="oe_stat_button" icon="fa-money">
+                            <field name="billable_actual_classes" string="Billable" widget="statinfo"/>
+                        </button>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_tuition_class_status_report" model="ir.actions.act_window">
+        <field name="name">Class Status Report</field>
+        <field name="res_model">tuition.class.status.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
+    <!-- Subject-wise Report -->
+    <record id="view_tuition_subject_wise_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.subject.wise.wizard.form</field>
+        <field name="model">tuition.subject.wise.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Subject-wise Report">
+                <header>
+                    <button name="action_refresh" type="object" string="Apply" class="btn-primary" icon="fa-filter"/>
+                </header>
+                <sheet>
+                    <group string="Date Range">
+                        <field name="from_date"/>
+                        <field name="to_date"/>
+                    </group>
+                    <field name="line_ids" nolabel="1">
+                        <list string="Subject-wise Report" create="false" edit="false" delete="false">
+                            <field name="category_id"/>
+                            <field name="subject_id"/>
+                            <field name="total_classes" sum="Classes"/>
+                            <button name="action_open_classes" type="object" icon="fa-external-link" string="Details"/>
+                            <field name="total_demos" sum="Demos"/>
+                            <button name="action_open_demos" type="object" icon="fa-external-link" string="Details"/>
+                            <field name="total_sessions" sum="Total"/>
+                            <button name="action_open_total" type="object" icon="fa-external-link" string="Details"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_tuition_subject_wise_report" model="ir.actions.act_window">
+        <field name="name">Subject-wise Report</field>
+        <field name="res_model">tuition.subject.wise.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
+    <!-- Tutor-wise Report -->
+    <record id="view_tuition_tutor_wise_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.tutor.wise.wizard.form</field>
+        <field name="model">tuition.tutor.wise.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Tutor-wise Report">
+                <header>
+                    <button name="action_refresh" type="object" string="Apply" class="btn-primary" icon="fa-filter"/>
+                </header>
+                <sheet>
+                    <group string="Date Range">
+                        <field name="from_date"/>
+                        <field name="to_date"/>
+                    </group>
+                    <field name="line_ids" nolabel="1">
+                        <list string="Tutor-wise Report" create="false" edit="false" delete="false">
+                            <field name="tutor_id"/>
+                            <field name="category_subject"/>
+                            <field name="category_id" optional="hide"/>
+                            <field name="subject_id" optional="hide"/>
+                            <field name="total_classes" sum="Classes"/>
+                            <button name="action_open_classes" type="object" icon="fa-external-link" string="Details"/>
+                            <field name="total_demos" sum="Demos"/>
+                            <button name="action_open_demos" type="object" icon="fa-external-link" string="Details"/>
+                            <field name="completed_classes" sum="Completed"/>
+                            <button name="action_open_completed" type="object" icon="fa-external-link" string="Details"/>
+                            <field name="cancelled_classes" sum="Cancelled"/>
+                            <button name="action_open_cancelled" type="object" icon="fa-external-link" string="Details"/>
+                            <field name="effective_classes" sum="Effective"/>
+                            <button name="action_open_effective" type="object" icon="fa-external-link" string="Details"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_tuition_tutor_wise_report" model="ir.actions.act_window">
+        <field name="name">Tutor-wise Report</field>
+        <field name="res_model">tuition.tutor.wise.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+
+    <!-- Reporting Menu -->
+    <menuitem id="menu_tuition_reports" name="Reports" parent="menu_tuition_root" sequence="35"/>
+    <menuitem id="menu_tuition_class_status_report" name="Class Status Report" parent="menu_tuition_reports" action="action_tuition_class_status_report" sequence="10"/>
+    <menuitem id="menu_tuition_subject_wise_report" name="Subject-wise Report" parent="menu_tuition_reports" action="action_tuition_subject_wise_report" sequence="20"/>
+    <menuitem id="menu_tuition_tutor_wise_report" name="Tutor-wise Report" parent="menu_tuition_reports" action="action_tuition_tutor_wise_report" sequence="30"/>
+</odoo>

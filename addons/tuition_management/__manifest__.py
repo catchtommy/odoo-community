@@ -31,6 +31,7 @@
         "views/tuition_views.xml",
         "views/billing_views.xml",
         "views/menu_views.xml",
+        "views/report_views.xml",
         "views/tuition_billing_views.xml",
         "views/portal_css.xml",
         "views/portal_layout.xml",
@@ -41,6 +42,9 @@
         "views/portal_templates.xml",
         "views/portal_public_enquiry.xml",
         "views/product_views.xml",
+    ],
+    "demo": [
+        "data/report_demo_data.xml",
     ],
     "installable": True,
     "application": True,
