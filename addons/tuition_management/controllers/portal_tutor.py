@@ -11,6 +11,10 @@ from .portal_mixin import PortalMixin
 class TutorPortal(http.Controller, PortalMixin):
     """Tutor-specific portal routes."""
 
+    def _tutor_has_course_access(self, tutor, course):
+        """Return True if tutor is the primary tutor OR in the supporting tutors set."""
+        return course.tutor_id == tutor or tutor in course.tutor_ids
+
     # ──────────────────────────────────────────────
     # COURSES
     # ──────────────────────────────────────────────
@@ -20,8 +24,10 @@ class TutorPortal(http.Controller, PortalMixin):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
-        # Show courses where this tutor is primary OR in the tutors set
+        # Show courses where this tutor is the primary tutor OR in the supporting tutors set
         courses = request.env['course.master'].sudo().search([
+            '|',
+            ('tutor_id', '=', tutor.id),
             ('tutor_ids', 'in', tutor.id),
         ])
         today = fields.Date.today()
@@ -56,8 +62,8 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        # Allow access if this tutor is in the course's tutor set
-        if not course.exists() or tutor not in course.tutor_ids:
+        # Allow access if this tutor is the primary tutor OR in the supporting tutors set
+        if not course.exists() or (course.tutor_id != tutor and tutor not in course.tutor_ids):
             return request.redirect('/my/tutor/courses')
 
         today = fields.Date.today()
@@ -71,11 +77,14 @@ class TutorPortal(http.Controller, PortalMixin):
             ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
         ], order='start_datetime asc')
 
-        # Fetch the very next upcoming session assigned to this tutor
+        # Fetch the very next upcoming session for this course (any tutor) so
+        # supporting/monitoring tutors who aren't assigned to the lesson can still
+        # see and launch it from the course detail page.
+        # Use NOT IN cancelled/completed rather than = 'scheduled' because generated
+        # occurrences may carry lesson_status 'pending' or False.
         next_session = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', '=', course.id),
-            ('tutor_id', '=', tutor.id),
-            ('lesson_status', '=', 'scheduled'),
+            ('lesson_status', 'not in', ['cancelled', 'completed', 'no_show']),
             ('start_datetime', '>=', datetime.utcnow()),
         ], order='start_datetime asc', limit=1)
 
@@ -118,7 +127,8 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or tutor not in course.tutor_ids:
+        # Allow access if this tutor is the primary tutor OR in the supporting tutors set
+        if not course.exists() or (course.tutor_id != tutor and tutor not in course.tutor_ids):
             return request.redirect('/my/tutor/courses')
         valid_providers = {'bbb', 'zoom', 'google_meet'}
         if provider not in valid_providers:
@@ -189,7 +199,7 @@ class TutorPortal(http.Controller, PortalMixin):
         course = request.env['course.master'].sudo().browse(course_id)
         if not course.exists():
             return request.redirect('/my/tutor/courses')
-        if tutor not in course.tutor_ids:
+        if not self._tutor_has_course_access(tutor, course):
             return request.redirect('/my/tutor/courses')
 
         today = fields.Date.today()
@@ -336,7 +346,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or tutor not in course.tutor_ids:
+        if not course.exists() or not self._tutor_has_course_access(tutor, course):
             return request.redirect('/my/tutor/courses')
         return request.render('tuition_management.portal_tutor_assignments', {
             'user': request.env.user,
@@ -355,7 +365,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or tutor not in course.tutor_ids:
+        if not course.exists() or not self._tutor_has_course_access(tutor, course):
             return request.redirect('/my/tutor/courses')
 
         vals = {
@@ -388,7 +398,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         assignment = request.env['course.assignment'].sudo().browse(assignment_id)
-        if not assignment.exists() or tutor not in assignment.course_id.tutor_ids:
+        if not assignment.exists() or not self._tutor_has_course_access(tutor, assignment.course_id):
             return request.redirect('/my/tutor/courses')
         return request.render('tuition_management.portal_tutor_assignment_detail', {
             'user': request.env.user,
@@ -408,7 +418,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         submission = request.env['assignment.submission'].sudo().browse(submission_id)
-        if not submission.exists() or tutor not in submission.assignment_id.course_id.tutor_ids:
+        if not submission.exists() or not self._tutor_has_course_access(tutor, submission.assignment_id.course_id):
             return request.redirect('/my/tutor/courses')
         try:
             score = float(kw.get('score', 0))
@@ -426,7 +436,9 @@ class TutorPortal(http.Controller, PortalMixin):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
-        courses = request.env['course.master'].sudo().search([('tutor_ids', 'in', tutor.id)])
+        courses = request.env['course.master'].sudo().search([
+            '|', ('tutor_id', '=', tutor.id), ('tutor_ids', 'in', tutor.id),
+        ])
         assignments = request.env['course.assignment'].sudo().search([
             ('course_id', 'in', courses.ids),
         ], order='due_date desc')
@@ -449,7 +461,9 @@ class TutorPortal(http.Controller, PortalMixin):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
-        courses = request.env['course.master'].sudo().search([('tutor_ids', 'in', tutor.id)])
+        courses = request.env['course.master'].sudo().search([
+            '|', ('tutor_id', '=', tutor.id), ('tutor_ids', 'in', tutor.id),
+        ])
         reports = request.env['progress.report'].sudo().search([
             ('course_id', 'in', courses.ids),
         ], order='report_date desc')
@@ -469,7 +483,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or tutor not in course.tutor_ids:
+        if not course.exists() or not self._tutor_has_course_access(tutor, course):
             return request.redirect('/my/tutor/courses')
         enrolled_students = course.enrollment_ids.filtered(lambda e: e.status == 'active')
         return request.render('tuition_management.portal_tutor_progress_new', {
@@ -490,7 +504,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
-        if not course.exists() or tutor not in course.tutor_ids:
+        if not course.exists() or not self._tutor_has_course_access(tutor, course):
             return request.redirect('/my/tutor/courses')
         vals = {
             'name': kw.get('name', 'Progress Report'),

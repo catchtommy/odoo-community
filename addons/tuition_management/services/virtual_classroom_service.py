@@ -36,7 +36,16 @@ class VirtualClassroomService(models.AbstractModel):
         tutor = self.env['tutor.profile'].sudo().search([
             ('partner_id', '=', self.env.user.partner_id.id),
         ], limit=1)
-        return bool(tutor and occurrence.tutor_id.id == tutor.id)
+        if not tutor:
+            return False
+        course = occurrence.course_id
+        # Allow the occurrence's assigned tutor, the course primary tutor,
+        # or any supporting tutor in the course's tutor_ids M2M.
+        return (
+            occurrence.tutor_id.id == tutor.id
+            or course.tutor_id.id == tutor.id
+            or tutor.id in course.tutor_ids.ids
+        )
 
     def _legacy_provider(self, course):
         legacy = course.virtual_class_platform

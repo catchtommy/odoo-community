@@ -42,7 +42,14 @@ class VirtualClassroomPortal(http.Controller, PortalMixin):
         fallback = request.httprequest.referrer or '/my/tutor/schedule'
         tutor = self._get_tutor()
         occurrence = request.env['class.schedule.occurrence'].sudo().browse(occurrence_id)
-        if not tutor or not occurrence.exists() or occurrence.tutor_id.id != tutor.id:
+        # Allow any tutor who has access to the course to launch the class —
+        # this supports monitoring/co-tutors who are on the course but not
+        # assigned to this specific occurrence.
+        if not tutor or not occurrence.exists():
+            return request.redirect('/my/tutor/schedule')
+        course = occurrence.course_id
+        # Allow any tutor who is the primary tutor OR in the supporting tutors set
+        if course.tutor_id != tutor and tutor not in course.tutor_ids:
             return request.redirect('/my/tutor/schedule')
         try:
             service = request.env['virtual.classroom.service']

@@ -117,14 +117,9 @@ class CourseMasterTutorPricing(models.Model):
         for rec in self.filtered(lambda c: c.category_id and c.subject_id):
             if rec.subject_id.category_id != rec.category_id:
                 raise ValidationError("Course subject must belong to the selected category.")
-        for rec in self.filtered(lambda c: c.category_id and c.subject_id and c.tutor_id):
-            eligible = self.env['tutor.profile'].get_eligible_tutors(
-                rec.category_id,
-                rec.subject_id,
-                rec.start_date or fields.Date.today(),
-            )
-            if rec.tutor_id not in eligible:
-                raise ValidationError("Selected tutor is not configured for this course category and subject.")
+        for rec in self.filtered(lambda c: c.subject_id and c.tutor_id):
+            if rec.subject_id not in rec.tutor_id.subject_ids:
+                raise ValidationError("Selected tutor is not configured for this course subject.")
 
     @api.model_create_multi
     def create(self, vals_list):

@@ -692,10 +692,22 @@ class DemoSession(models.Model):
             self.schedule_occurrence_id = new_occ.id
 
     def unlink(self):
-        """When demo session is destroyed manually natively from tree view, destroy the schedules first mapping."""
+        """When a demo session is deleted:
+        - If the linked occurrence has attendance marked, leave it intact (just detach).
+        - If the linked occurrence has no attendance marked, force-delete it regardless of lesson status.
+        Future lesson deletion is handled by ClassSchedule.unlink().
+        """
         for rec in self:
-            if rec.schedule_occurrence_id:
-                rec.schedule_occurrence_id.unlink()
+            occ = rec.schedule_occurrence_id
+            if not occ:
+                continue
+            if occ.attendance_marked:
+                # Attendance has been recorded — keep the occurrence, just detach the link
+                occ.sudo().write({'schedule_id': False})
+                rec.schedule_occurrence_id = False
+            else:
+                # No attendance — safe to delete regardless of lesson status
+                occ.with_context(force_delete_lesson=True).sudo().unlink()
         return super(DemoSession, self).unlink()
 
     def action_delete_demo(self):

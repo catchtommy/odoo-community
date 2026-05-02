@@ -727,7 +727,9 @@
                                     <td style="white-space:nowrap;"><t t-esc="lesson.start_datetime" t-options='{"widget": "datetime", "format": "EEE, dd MMM"}'/></td>
                                     <td><span t-attf-class="tm-badge #{lesson.lesson_status == 'completed' and 'tm-badge-green' or lesson.lesson_status == 'cancelled' and 'tm-badge-red' or lesson.lesson_status == 'no_show' and 'tm-badge-orange' or 'tm-badge-blue'}"><t t-esc="lesson.lesson_status.capitalize()"/></span></td>
                                     <td><span t-attf-class="tm-badge #{lesson.attendance_marked and 'tm-badge-green' or 'tm-badge-grey'}"><t t-if="lesson.attendance_marked">Marked</t><t t-else="">Pending</t></span></td>
-                                    <td><a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-check-square-o"/> <t t-if="lesson.attendance_marked">Edit</t><t t-else="">Mark</t></a></td>
+                                    <td style="white-space:nowrap;">
+                                        <a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-check-square-o"/> <t t-if="lesson.attendance_marked">Edit</t><t t-else="">Mark</t></a>
+                                    </td>
                                 </tr>
                             </t>
                         </tbody>
