@@ -185,8 +185,8 @@
             <div class="alert alert-danger mt-2" role="alert">
                 <strong>On cancellation:</strong>
                 <ul class="mb-0">
-                    <li>All future schedules will be cancelled</li>
-                    <li>Unmarked past schedules (listed above) will be cancelled</li>
+                    <li>All future lessons will be <strong>deleted</strong> (regardless of status)</li>
+                    <li>Unmarked past schedules (listed above) will be marked as Cancelled</li>
                     <li>All enrolments will be cancelled</li>
                     <li>All linked subscriptions will be cancelled</li>
                 </ul>

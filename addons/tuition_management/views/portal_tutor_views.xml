@@ -832,9 +832,48 @@
             .tm-att-radio input { display:none; }
             .tm-att-radio input[value="present"]:checked + label { background:#EDF7ED; border-color:var(--tm-success); color:#4a8a4e; }
             .tm-att-radio input[value="absent"]:checked + label { background:#FDEAEA; border-color:#e53935; color:#c05050; }
-            .tm-att-radio input[value="late"]:checked + label { background:#FFF0E8; border-color:#f57c00; color:#c26030; }
-            .tm-att-radio input[value="excused"]:checked + label { background:#ECEFF1; border-color:#90a4ae; color:#455A64; }
+            .tm-rating-radio { display:flex; gap:6px; flex-wrap:wrap; }
+            .tm-rating-radio label { padding:5px 14px; border-radius:6px; font-size:12px; font-weight:600; cursor:pointer; border:1.5px solid #e0e0e0; transition:all 0.15s; }
+            .tm-rating-radio input { display:none; }
+            .tm-rating-radio input[value="excellent"]:checked + label { background:#EDF7ED; border-color:var(--tm-success); color:#4a8a4e; }
+            .tm-rating-radio input[value="good"]:checked + label { background:#E8F4FD; border-color:#1976d2; color:#1565c0; }
+            .tm-rating-radio input[value="satisfactory"]:checked + label { background:#FFF8E1; border-color:#f9a825; color:#c67800; }
+            .tm-tech-issue-fields { display:none; margin-top:12px; padding:12px; background:#FFF8F8; border-radius:8px; border:1px solid #fde0e0; }
+            .tm-summary-required { display:none; }
         </style>
+        <script type="text/javascript">
+            document.addEventListener('DOMContentLoaded', function() {
+                // Technical issue toggle
+                var toggle = document.getElementById('has_technical_issues');
+                var fields = document.getElementById('tech_issue_fields');
+                if (toggle &amp;&amp; fields) {
+                    function updateFields() { fields.style.display = toggle.checked ? 'block' : 'none'; }
+                    toggle.addEventListener('change', updateFields);
+                    updateFields();
+                }
+
+                // Lesson summary required asterisks: hide when all students absent
+                function updateSummaryRequired() {
+                    var radios = document.querySelectorAll('.tm-att-radio input[type="radio"]');
+                    var studentIds = {};
+                    radios.forEach(function(r) { studentIds[r.name] = true; });
+                    var allAbsent = Object.keys(studentIds).length > 0 &amp;&amp; Object.keys(studentIds).every(function(name) {
+                        var checked = document.querySelector('.tm-att-radio input[name="' + name + '"]:checked');
+                        return checked &amp;&amp; checked.value === 'absent';
+                    });
+                    document.querySelectorAll('.tm-summary-required').forEach(function(el) {
+                        el.style.display = allAbsent ? 'none' : 'inline';
+                    });
+                    document.getElementById('topic_covered').required = !allAbsent;
+                    var ratingInputs = document.querySelectorAll('input[name="class_rating"]');
+                    ratingInputs.forEach(function(r) { r.required = !allAbsent; });
+                }
+                document.querySelectorAll('.tm-att-radio input[type="radio"]').forEach(function(r) {
+                    r.addEventListener('change', updateSummaryRequired);
+                });
+                updateSummaryRequired();
+            });
+        </script>
 
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
             <div>
@@ -846,42 +885,86 @@
 
         <form t-attf-action="/my/tutor/lesson/#{occurrence.id}/attendance/save" method="POST">
             <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+            <!-- Lesson Summary (top) -->
             <div class="tm-card" style="margin-bottom:16px;">
-                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-flag"/> Lesson Status</div></div>
-                <div class="tm-card-body">
-                    <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
-                        <select name="lesson_status" class="form-select" style="border-radius:8px;font-size:13px;max-width:220px;">
-                            <option value="completed" t-att-selected="'selected' if occurrence.lesson_status == 'completed' else None">Completed</option>
-                            <option value="scheduled" t-att-selected="'selected' if occurrence.lesson_status == 'scheduled' else None">Scheduled</option>
-                            <option value="no_show" t-att-selected="'selected' if occurrence.lesson_status == 'no_show' else None">No Show</option>
-                        </select>
-                        <small style="color:var(--tm-text-light);"><i class="fa fa-info-circle"/> Only administrators can cancel a lesson.</small>
+                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-book"/> Lesson Summary</div></div>
+                <div class="tm-card-body" style="display:flex;flex-direction:column;gap:16px;">
+                    <div class="tm-form-group" style="margin:0;">
+                        <label class="tm-form-label">Topic Covered <span class="tm-summary-required" style="color:#e53935;">*</span></label>
+                        <textarea id="topic_covered" name="topic_covered" class="form-control" rows="6" style="font-size:14px;line-height:1.6;" placeholder="What was taught in this lesson?"><t t-esc="occurrence.topic_covered or ''"/></textarea>
+                    </div>
+                    <div class="tm-form-group" style="margin:0;">
+                        <label class="tm-form-label">Class Rating <span class="tm-summary-required" style="color:#e53935;">*</span></label>
+                        <div class="tm-rating-radio">
+                            <input type="radio" name="class_rating" id="rating_excellent" value="excellent" t-att-checked="'checked' if occurrence.class_rating == 'excellent' else None"/>
+                            <label for="rating_excellent">⭐ Excellent</label>
+                            <input type="radio" name="class_rating" id="rating_good" value="good" t-att-checked="'checked' if occurrence.class_rating == 'good' else None"/>
+                            <label for="rating_good">👍 Good</label>
+                            <input type="radio" name="class_rating" id="rating_satisfactory" value="satisfactory" t-att-checked="'checked' if occurrence.class_rating == 'satisfactory' else None"/>
+                            <label for="rating_satisfactory">✔ Satisfactory</label>
+                        </div>
+                    </div>
+                    <div class="tm-form-group" style="margin:0;">
+                        <label class="tm-form-label">Next Steps</label>
+                        <textarea name="next_steps" class="form-control" rows="6" style="font-size:14px;line-height:1.6;" placeholder="What should students prepare or expect next?"><t t-esc="occurrence.next_steps or ''"/></textarea>
+                    </div>
+                    <div class="tm-form-group" style="margin:0;">
+                        <label class="tm-form-label">Homework Assigned</label>
+                        <textarea name="homework" class="form-control" rows="6" style="font-size:14px;line-height:1.6;" placeholder="Describe any homework given..."><t t-esc="occurrence.homework or ''"/></textarea>
+                    </div>
+                    <div class="tm-form-group" style="margin:0;">
+                        <label class="tm-form-label">Tutor Comments</label>
+                        <textarea name="tutor_comments" class="form-control" rows="6" style="font-size:14px;line-height:1.6;" placeholder="Any additional comments for the admin..."><t t-esc="occurrence.tutor_comments or ''"/></textarea>
                     </div>
                 </div>
             </div>
+
+            <!-- Technical Issues -->
+            <div class="tm-card" style="margin-bottom:16px;">
+                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-exclamation-triangle"/> Technical Issues</div></div>
+                <div class="tm-card-body">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                        <input type="checkbox" id="has_technical_issues" name="has_technical_issues" class="form-check-input" style="width:18px;height:18px;" t-att-checked="'checked' if occurrence.has_technical_issues else None"/>
+                        <label for="has_technical_issues" style="font-size:13px;font-weight:600;margin:0;cursor:pointer;">Technical issues occurred during this lesson</label>
+                    </div>
+                    <div id="tech_issue_fields" class="tm-tech-issue-fields">
+                        <div class="tm-form-group" style="margin:0 0 12px;">
+                            <label class="tm-form-label">Issue Type</label>
+                            <select name="technical_issue_type" class="form-select" style="border-radius:8px;font-size:13px;">
+                                <option value="">— Select —</option>
+                                <t t-foreach="technical_issue_types" t-as="ti">
+                                    <option t-att-value="ti[0]" t-att-selected="'selected' if occurrence.technical_issue_type == ti[0] else None"><t t-esc="ti[1]"/></option>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="tm-form-group" style="margin:0;">
+                            <label class="tm-form-label">Issue Details</label>
+                            <textarea name="technical_issue_details" class="form-control" rows="3" placeholder="Describe the technical issue..."><t t-esc="occurrence.technical_issue_details or ''"/></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Attendance (bottom) -->
             <div class="tm-card" style="margin-bottom:16px;">
                 <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-users"/> Student Attendance</div></div>
                 <t t-if="not student_data"><div class="tm-empty"><i class="fa fa-users"/><p>No students enrolled.</p></div></t>
                 <t t-if="student_data">
                     <table class="tm-table">
-                        <thead><tr><th>Student</th><th>Status</th><th style="width:70px;">Billable</th><th>Remarks</th></tr></thead>
+                        <thead><tr><th>Student</th><th>Status</th><th>Remarks</th></tr></thead>
                         <tbody>
                             <t t-foreach="student_data" t-as="sd">
                                 <tr>
                                     <td class="fw-bold"><t t-esc="sd['student'].name"/></td>
                                     <td>
                                         <div class="tm-att-radio">
-                                            <input type="radio" t-attf-name="status_#{sd['student'].id}" t-attf-id="present_#{sd['student'].id}" value="present" t-att-checked="'checked' if sd['status'] == 'present' else None"/>
+                                            <input type="radio" t-attf-name="status_#{sd['student'].id}" t-attf-id="present_#{sd['student'].id}" value="present" t-att-checked="'checked' if sd['status'] in ('present', False, None, '') else None"/>
                                             <label t-attf-for="present_#{sd['student'].id}">Present</label>
                                             <input type="radio" t-attf-name="status_#{sd['student'].id}" t-attf-id="absent_#{sd['student'].id}" value="absent" t-att-checked="'checked' if sd['status'] == 'absent' else None"/>
                                             <label t-attf-for="absent_#{sd['student'].id}">Absent</label>
-                                            <input type="radio" t-attf-name="status_#{sd['student'].id}" t-attf-id="late_#{sd['student'].id}" value="late" t-att-checked="'checked' if sd['status'] == 'late' else None"/>
-                                            <label t-attf-for="late_#{sd['student'].id}">Late</label>
-                                            <input type="radio" t-attf-name="status_#{sd['student'].id}" t-attf-id="excused_#{sd['student'].id}" value="excused" t-att-checked="'checked' if sd['status'] == 'excused' else None"/>
-                                            <label t-attf-for="excused_#{sd['student'].id}">Excused</label>
                                         </div>
                                     </td>
-                                    <td class="text-center"><input type="checkbox" t-attf-name="billable_#{sd['student'].id}" class="form-check-input" t-att-checked="'checked' if sd['billable'] else None"/></td>
                                     <td><input type="text" t-attf-name="remarks_#{sd['student'].id}" class="form-control form-control-sm" style="border-radius:6px;font-size:12px;" t-att-value="sd['remarks'] or ''"/></td>
                                 </tr>
                             </t>
@@ -889,6 +972,7 @@
                     </table>
                 </t>
             </div>
+
             <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:24px;">
                 <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline"><i class="fa fa-times"/> Cancel</a>
                 <button type="submit" class="tm-btn tm-btn-primary"><i class="fa fa-save"/> Save Attendance</button>

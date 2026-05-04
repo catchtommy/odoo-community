@@ -27,10 +27,66 @@ class MarkAttendanceWizard(models.TransientModel):
     occurrence_id = fields.Many2one('class.schedule.occurrence', string='Lesson', required=True)
     line_ids = fields.One2many('mark.attendance.wizard.line', 'wizard_id', string='Students')
 
+    # Academic Traceability
+    topic_covered = fields.Text(string='What Was Taught')
+    class_rating = fields.Selection([
+        ('excellent', 'Excellent – Class went very well, full engagement, objectives exceeded'),
+        ('good', 'Good – Smooth session, objectives met'),
+        ('satisfactory', 'Satisfactory – Session completed, minor gaps'),
+    ], string='How the Class Went')
+    next_steps = fields.Text(string='What Students Need Next')
+    homework = fields.Text(string='Homework')
+    tutor_comments = fields.Text(string='Tutor Comments')
+    has_technical_issues = fields.Boolean(string='Technical Issues Encountered?', default=False)
+    technical_issue_type = fields.Selection([
+        ('tutor_issue', 'Tutor\'s Issue'),
+        ('student_issue', 'Student\'s Issue'),
+        ('platform_issue', 'Shiningace Platform Issue'),
+    ], string='Technical Issue Type')
+    technical_issue_details = fields.Text(string='Technical Issue Details')
+    any_student_present = fields.Boolean(
+        string='Any Student Present', compute='_compute_any_student_present', store=False)
+
+    @api.depends('line_ids', 'line_ids.status')
+    def _compute_any_student_present(self):
+        for rec in self:
+            rec.any_student_present = any(l.status == 'present' for l in rec.line_ids)
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for rec in records:
+            occ = rec.occurrence_id
+            if occ:
+                rec.write({
+                    'topic_covered': occ.topic_covered or False,
+                    'class_rating': occ.class_rating or False,
+                    'next_steps': occ.next_steps or False,
+                    'homework': occ.homework or False,
+                    'tutor_comments': occ.tutor_comments or False,
+                    'has_technical_issues': occ.has_technical_issues,
+                    'technical_issue_type': occ.technical_issue_type or False,
+                    'technical_issue_details': occ.technical_issue_details or False,
+                })
+        return records
+
     def action_confirm(self):
         self.ensure_one()
         occurrence = self.occurrence_id
         is_admin = self.env.user.has_group('base.group_system') or self.env.user.has_group('base.group_erp_manager')
+
+        # Validate mandatory academic fields (only required if at least one student is present)
+        all_absent = self.line_ids and all(l.status == 'absent' for l in self.line_ids)
+        if not all_absent:
+            if not self.topic_covered:
+                raise UserError('Please fill in "What Was Taught" before confirming attendance.')
+            if not self.class_rating:
+                raise UserError('Please select "How the Class Went" before confirming attendance.')
+        if self.has_technical_issues and not self.technical_issue_type:
+            raise UserError('Please select the type of technical issue encountered.')
+        if self.has_technical_issues and not self.technical_issue_details:
+            raise UserError('Please describe the technical issues encountered.')
+
         existing_records = self.env['attendance.record'].search([('class_schedule_occurrence_id', '=', occurrence.id)])
         wizard_student_ids = self.line_ids.mapped('student_id').ids
         to_delete = existing_records.filtered(lambda r: r.student_id.id not in wizard_student_ids)
@@ -41,8 +97,6 @@ class MarkAttendanceWizard(models.TransientModel):
                 occurrence.write({'lesson_status': 'scheduled'})
             return {'type': 'ir.actions.act_window_close'}
         for line in self.line_ids:
-            if line.status == 'cancelled' and not is_admin:
-                raise UserError("Only administrators can mark attendance as 'Cancelled'.")
             existing = self.env['attendance.record'].search([
                 ('class_schedule_occurrence_id', '=', occurrence.id),
                 ('student_id', '=', line.student_id.id),
@@ -51,7 +105,7 @@ class MarkAttendanceWizard(models.TransientModel):
                 'class_schedule_occurrence_id': occurrence.id,
                 'student_id': line.student_id.id,
                 'attendance_date': occurrence.start_datetime.date(),
-                'status': line.status, 'billable': line.billable, 'remarks': line.remarks,
+                'status': line.status, 'remarks': line.remarks,
             }
             if existing:
                 existing.write(vals)
@@ -60,8 +114,21 @@ class MarkAttendanceWizard(models.TransientModel):
         all_statuses = [line.status for line in self.line_ids]
         if all_statuses and all(s == 'cancelled' for s in all_statuses):
             occurrence.write({'lesson_status': 'cancelled'})
+        elif all_statuses and all(s == 'absent' for s in all_statuses):
+            occurrence.write({'lesson_status': 'under_review'})
         elif occurrence.lesson_status in ('scheduled', 'rescheduled'):
             occurrence.write({'lesson_status': 'completed'})
+        # Save academic traceability fields to occurrence
+        occurrence.write({
+            'topic_covered': self.topic_covered,
+            'class_rating': self.class_rating,
+            'next_steps': self.next_steps,
+            'homework': self.homework,
+            'tutor_comments': self.tutor_comments,
+            'has_technical_issues': self.has_technical_issues,
+            'technical_issue_type': self.technical_issue_type if self.has_technical_issues else False,
+            'technical_issue_details': self.technical_issue_details if self.has_technical_issues else False,
+        })
         return {'type': 'ir.actions.act_window_close'}
 
 
@@ -72,9 +139,8 @@ class MarkAttendanceWizardLine(models.TransientModel):
     wizard_id = fields.Many2one('mark.attendance.wizard', string='Wizard', required=True, ondelete='cascade')
     student_id = fields.Many2one('student.profile', string='Student', required=True)
     status = fields.Selection([
-        ('present', 'Present'), ('absent', 'Absent'), ('cancelled', 'Cancelled'),
+        ('present', 'Present'), ('absent', 'Absent'),
     ], string='Status', default='present', required=True)
-    billable = fields.Boolean(string='Billable', default=True)
     remarks = fields.Text(string='Remarks')
 
 

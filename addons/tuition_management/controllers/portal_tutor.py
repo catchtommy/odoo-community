@@ -265,18 +265,25 @@ class TutorPortal(http.Controller, PortalMixin):
             return request.redirect('/my/tutor/courses')
         if occurrence.tutor_id and occurrence.tutor_id != tutor:
             return request.redirect('/my/tutor/courses')
+        if occurrence.lesson_status == 'cancelled':
+            return request.redirect(f'/my/tutor/courses/{occurrence.course_id.id}')
 
         enrolled = occurrence.course_id.enrollment_ids.filtered(lambda e: e.status == 'active')
-        students = enrolled.mapped('student_id')
+        active_student_ids = set(enrolled.mapped('student_id').ids)
         existing_att = {att.student_id.id: att for att in occurrence.attendance_ids}
 
+        # Include cancelled students only if attendance was already recorded for this occurrence
+        cancelled_student_ids = set(existing_att.keys()) - active_student_ids
+        all_student_ids = list(active_student_ids | cancelled_student_ids)
+        all_students = request.env['student.profile'].sudo().browse(all_student_ids)
+
+        valid_statuses = {'present', 'absent'}
         student_data = []
-        for s in students:
+        for s in all_students:
             att = existing_att.get(s.id)
             student_data.append({
                 'student': s,
-                'status': att.status if att else 'present',
-                'billable': att.billable if att else True,
+                'status': att.status if att and att.status in valid_statuses else 'present',
                 'remarks': att.remarks if att else '',
             })
 
@@ -290,6 +297,11 @@ class TutorPortal(http.Controller, PortalMixin):
             'back_url': f'/my/tutor/courses/{occurrence.course_id.id}',
             'page_name': 'tutor_attendance',
             'csrf_token': request.csrf_token(),
+            'technical_issue_types': [
+                ('tutor_issue', "Tutor's Issue"),
+                ('student_issue', "Student's Issue"),
+                ('platform_issue', 'Shiningace Platform Issue'),
+            ],
         })
 
     @http.route(['/my/tutor/lesson/<int:occurrence_id>/attendance/save'], type='http',
@@ -311,9 +323,12 @@ class TutorPortal(http.Controller, PortalMixin):
         enrolled = occurrence.course_id.enrollment_ids.filtered(lambda e: e.status == 'active')
         students = enrolled.mapped('student_id')
 
+        all_statuses = []
         for s in students:
             status = kw.get(f'status_{s.id}', 'present')
-            billable = kw.get(f'billable_{s.id}', '') == 'on'
+            if status not in ('present', 'absent'):
+                status = 'present'
+            all_statuses.append(status)
             remarks = kw.get(f'remarks_{s.id}', '')
 
             existing = request.env['attendance.record'].sudo().search([
@@ -325,7 +340,6 @@ class TutorPortal(http.Controller, PortalMixin):
                 'student_id': s.id,
                 'attendance_date': occurrence.start_datetime.date(),
                 'status': status,
-                'billable': billable,
                 'remarks': remarks,
             }
             if existing:
@@ -333,7 +347,27 @@ class TutorPortal(http.Controller, PortalMixin):
             else:
                 request.env['attendance.record'].sudo().create(vals)
 
-        occurrence.sudo().write({'lesson_status': lesson_status})
+        # Determine lesson status automatically
+        if students and all(s == 'absent' for s in all_statuses):
+            new_lesson_status = 'under_review'
+        elif occurrence.lesson_status in ('scheduled', 'rescheduled'):
+            new_lesson_status = 'completed'
+        else:
+            new_lesson_status = occurrence.lesson_status
+
+        # Save academic traceability fields
+        has_technical = kw.get('has_technical_issues') == 'on'
+        occurrence.sudo().write({
+            'lesson_status': new_lesson_status,
+            'topic_covered': kw.get('topic_covered', '').strip() or False,
+            'class_rating': kw.get('class_rating') or False,
+            'next_steps': kw.get('next_steps', '').strip() or False,
+            'homework': kw.get('homework', '').strip() or False,
+            'tutor_comments': kw.get('tutor_comments', '').strip() or False,
+            'has_technical_issues': has_technical,
+            'technical_issue_type': kw.get('technical_issue_type') if has_technical else False,
+            'technical_issue_details': kw.get('technical_issue_details', '').strip() if has_technical else False,
+        })
         return request.redirect(f'/my/tutor/courses/{occurrence.course_id.id}')
 
     # ──────────────────────────────────────────────

@@ -7,11 +7,42 @@
         <field name="arch" type="xml">
             <form string="Mark Attendance">
                 <group><field name="occurrence_id" readonly="1"/></group>
+                <field name="any_student_present" invisible="1"/>
+
+                <separator string="Lesson Summary"/>
+                <group>
+                    <group>
+                        <field name="topic_covered"
+                               required="any_student_present"
+                               placeholder="Describe what was covered in today's class..." colspan="2"/>
+                        <field name="class_rating"
+                               required="any_student_present"
+                               widget="radio"/>
+                    </group>
+                    <group>
+                        <field name="next_steps" placeholder="What do students need to focus on next?"/>
+                        <field name="homework" placeholder="Any homework assigned?"/>
+                        <field name="tutor_comments" placeholder="Any additional comments..."/>
+                    </group>
+                </group>
+
+                <separator string="Technical Issues"/>
+                <group>
+                    <field name="has_technical_issues" widget="boolean_toggle"/>
+                    <field name="technical_issue_type"
+                           invisible="not has_technical_issues"
+                           required="has_technical_issues"/>
+                    <field name="technical_issue_details"
+                           invisible="not has_technical_issues"
+                           required="has_technical_issues"
+                           placeholder="Describe the technical issues encountered..."/>
+                </group>
+
                 <separator string="Student Attendance"/>
                 <field name="line_ids">
                     <list string="Students" editable="bottom" delete="true" create="false">
                         <field name="student_id" readonly="1"/>
-                        <field name="status"/><field name="billable"/><field name="remarks"/>
+                        <field name="status"/><field name="remarks"/>
                     </list>
                 </field>
                 <footer>

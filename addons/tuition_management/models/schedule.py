@@ -353,7 +353,7 @@ class ClassScheduleOccurrence(models.Model):
     attendance_marked = fields.Boolean(string='Attendance Marked', compute='_compute_attendance_marked', store=True)
     lesson_status = fields.Selection([
         ('scheduled', 'Scheduled'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),
-        ('no_show', 'No Show'), ('rescheduled', 'Rescheduled'),
+        ('no_show', 'No Show'), ('rescheduled', 'Rescheduled'), ('under_review', 'Under Review'),
     ], string='Lesson Status', default='scheduled')
     cancellation_reason = fields.Selection([
         ('platform_issue', 'Platform Issue'), ('tutor_issue', 'Tutor Issue'),
@@ -363,6 +363,24 @@ class ClassScheduleOccurrence(models.Model):
     is_rescheduled = fields.Boolean(string='Rescheduled', default=False)
     rescheduled_from_id = fields.Many2one('class.schedule.occurrence', string='Rescheduled From')
     is_demo = fields.Boolean(string='Is Demo Session', default=False)
+
+    # Academic Traceability
+    topic_covered = fields.Text(string='What Was Taught')
+    class_rating = fields.Selection([
+        ('excellent', 'Excellent – Class went very well, full engagement, objectives exceeded'),
+        ('good', 'Good – Smooth session, objectives met'),
+        ('satisfactory', 'Satisfactory – Session completed, minor gaps'),
+    ], string='How the Class Went')
+    next_steps = fields.Text(string='What Students Need Next')
+    homework = fields.Text(string='Homework')
+    tutor_comments = fields.Text(string='Tutor Comments')
+    has_technical_issues = fields.Boolean(string='Technical Issues Encountered?', default=False)
+    technical_issue_type = fields.Selection([
+        ('tutor_issue', 'Tutor\'s Issue'),
+        ('student_issue', 'Student\'s Issue'),
+        ('platform_issue', 'Shiningace Platform Issue'),
+    ], string='Technical Issue Type')
+    technical_issue_details = fields.Text(string='Technical Issue Details')
     # Provider is NOT stored on the occurrence. It is always resolved dynamically from
     # the parent course so that changing the course provider affects all future sessions.
     virtual_provider = fields.Selection([
@@ -414,14 +432,24 @@ class ClassScheduleOccurrence(models.Model):
 
     def action_mark_attendance(self):
         self.ensure_one()
-        enrollments = self.env['course.enrollment'].search([('course_id', '=', self.course_id.id), ('status', '=', 'active')])
-        wizard = self.env['mark.attendance.wizard'].create({'occurrence_id': self.id})
+        # Active enrollments always shown
+        active_enrollments = self.env['course.enrollment'].search([
+            ('course_id', '=', self.course_id.id), ('status', '=', 'active')
+        ])
+        active_student_ids = set(active_enrollments.mapped('student_id').ids)
+
+        # Cancelled students only shown if attendance already recorded for this occurrence
         existing_attendance = {att.student_id.id: att for att in self.attendance_ids}
+        cancelled_student_ids = set(existing_attendance.keys()) - active_student_ids
+
+        all_student_ids = list(active_student_ids | cancelled_student_ids)
+
+        wizard = self.env['mark.attendance.wizard'].create({'occurrence_id': self.id})
+        valid_statuses = {'present', 'absent'}
         lines = [(0, 0, {'wizard_id': wizard.id, 'student_id': sid,
-                         'status': existing_attendance[sid].status if sid in existing_attendance else 'present',
-                         'billable': existing_attendance[sid].billable if sid in existing_attendance else True,
+                         'status': (existing_attendance[sid].status if sid in existing_attendance and existing_attendance[sid].status in valid_statuses else 'present'),
                          'remarks': existing_attendance[sid].remarks if sid in existing_attendance else ''})
-                 for sid in enrollments.mapped('student_id').ids]
+                 for sid in all_student_ids]
         if lines: wizard.write({'line_ids': lines})
         return {'type': 'ir.actions.act_window', 'name': f'Mark Attendance - {self.name}',
                 'res_model': 'mark.attendance.wizard', 'view_mode': 'form', 'res_id': wizard.id, 'target': 'new'}

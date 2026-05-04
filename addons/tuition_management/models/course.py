@@ -418,14 +418,15 @@ class CourseMaster(models.Model):
         for schedule in self.schedule_ids:
             schedule.write({'end_date': tomorrow, 'status': 'cancelled'})
 
-        future_occurrences = self.env['class.schedule.occurrence'].search([
+        # Delete all future occurrences regardless of status
+        future_occurrences = self.env['class.schedule.occurrence'].with_context(force_delete_lesson=True).sudo().search([
             ('course_id', '=', self.id),
             ('start_datetime', '>=', now),
-            ('lesson_status', '=', 'scheduled'),
         ])
         if future_occurrences:
-            future_occurrences.sudo().write({'lesson_status': 'cancelled'})
+            future_occurrences.unlink()
 
+        # Mark past unmarked/scheduled occurrences as cancelled
         past_unmarked = self.env['class.schedule.occurrence'].search([
             ('course_id', '=', self.id),
             ('start_datetime', '<', now),
