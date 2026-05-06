@@ -130,7 +130,8 @@
                         </group>
                         <group string="Teaching Information">
                             <field name="category_ids" widget="many2many_tags"/>
-                            <field name="subject_ids" widget="many2many_tags"/>
+                            <field name="subject_ids" widget="many2many_tags"
+                                  domain="[('category_id', 'in', category_ids)] if category_ids else []"/>
                             <field name="grade_ids" widget="many2many_tags"/>
                         </group>
                     </group>
@@ -149,7 +150,7 @@
                                 <list editable="bottom">
                                     <field name="active_flag" widget="boolean_toggle"/>
                                     <field name="category_id"/>
-                                    <field name="subject_id" domain="[('category_id', '=', category_id)]"/>
+                                    <field name="subject_id" domain="[('category_id', '=', category_id)] if category_id else []"/>
                                     <field name="standard_hourly_rate"/>
                                     <field name="demo_rate_type"/>
                                     <field name="demo_percentage" invisible="demo_rate_type != 'percentage'"/>

@@ -100,17 +100,61 @@
                                     </select>
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label fw-bold" style="font-size:12px;">Subject <span class="text-danger">*</span></label>
-                                    <select name="subject_id" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
-                                        <option value="">Select subject...</option>
-                                        <t t-foreach="subjects" t-as="subject">
-                                            <option t-att-value="subject.id" t-att-selected="'selected' if form_data and str(subject.id) == str(form_data.get('subject_id', '')) else None">
-                                                <t t-esc="subject.name"/>
+                                    <label class="form-label fw-bold" style="font-size:12px;">Category</label>
+                                    <select name="category_id" id="field_category" class="form-select" style="border-radius:8px;font-size:13px;">
+                                        <option value="">All categories...</option>
+                                        <t t-foreach="categories" t-as="cat">
+                                            <option t-att-value="cat.id" t-att-selected="'selected' if form_data and str(cat.id) == str(form_data.get('category_id', '')) else None">
+                                                <t t-esc="cat.name"/>
                                             </option>
                                         </t>
                                     </select>
                                 </div>
                             </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-bold" style="font-size:12px;">Subject <span class="text-danger">*</span></label>
+                                <select name="subject_id" id="field_subject" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
+                                    <option value="">Select subject...</option>
+                                </select>
+                            </div>
+
+                            <!-- subjects-by-category map for JS filtering -->
+                            <t t-set="selected_subject_id" t-value="form_data.get('subject_id', '') if form_data else ''"/>
+                            <div id="enquiry_subject_data"
+                                 style="display:none"
+                                 t-att-data-subjects="subjects_by_category_json"
+                                 t-att-data-selected="selected_subject_id"/>
+                            <script>
+                                (function() {
+                                    var el = document.getElementById('enquiry_subject_data');
+                                    var subjectsByCategory = JSON.parse(el.getAttribute('data-subjects') || '{}');
+                                    var selectedSubject = el.getAttribute('data-selected') || '';
+                                    var catSel = document.getElementById('field_category');
+                                    var subSel = document.getElementById('field_subject');
+
+                                    function filterSubjects(resetValue) {
+                                        var catId = catSel.value;
+                                        var keepVal = resetValue ? '' : (subSel.value || selectedSubject);
+                                        while (subSel.options.length > 1) { subSel.remove(1); }
+                                        var list = catId
+                                            ? (subjectsByCategory[catId] || [])
+                                            : Object.values(subjectsByCategory).reduce(function(a, b) { return a.concat(b); }, []);
+                                        list.forEach(function(s) {
+                                            var opt = document.createElement('option');
+                                            opt.value = s.id;
+                                            opt.textContent = s.name;
+                                            if (String(s.id) === String(keepVal)) { opt.selected = true; }
+                                            subSel.appendChild(opt);
+                                        });
+                                    }
+
+                                    catSel.addEventListener('change', function() { filterSubjects(true); });
+
+                                    // Initial render: if category pre-selected (e.g. after validation error), filter now
+                                    filterSubjects(false);
+                                })();
+                            </script>
 
                             <hr style="margin:24px 0;border-color:#eee;"/>
 

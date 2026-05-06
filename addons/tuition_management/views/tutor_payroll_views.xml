@@ -30,7 +30,7 @@
                             <field name="active_flag"/>
                             <field name="tutor_id"/>
                             <field name="category_id"/>
-                            <field name="subject_id" domain="[('category_id', '=', category_id)]"/>
+                            <field name="subject_id" domain="[('category_id', '=', category_id)] if category_id else []"/>
                         </group>
                         <group string="Effective Dates">
                             <field name="effective_from"/>
