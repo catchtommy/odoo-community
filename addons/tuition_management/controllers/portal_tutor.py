@@ -84,7 +84,7 @@ class TutorPortal(http.Controller, PortalMixin):
         # occurrences may carry lesson_status 'pending' or False.
         next_session = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', '=', course.id),
-            ('lesson_status', 'not in', ['cancelled', 'completed', 'no_show']),
+            ('lesson_status', 'not in', ['cancelled', 'completed']),
             ('start_datetime', '>=', datetime.utcnow()),
         ], order='start_datetime asc', limit=1)
 
@@ -317,7 +317,7 @@ class TutorPortal(http.Controller, PortalMixin):
             return request.redirect('/my/tutor/courses')
 
         lesson_status = kw.get('lesson_status', 'completed')
-        if lesson_status not in ('completed', 'scheduled', 'no_show'):
+        if lesson_status not in ('completed', 'scheduled'):
             lesson_status = 'completed'
 
         enrolled = occurrence.course_id.enrollment_ids.filtered(lambda e: e.status == 'active')
@@ -350,7 +350,7 @@ class TutorPortal(http.Controller, PortalMixin):
         # Determine lesson status automatically
         if students and all(s == 'absent' for s in all_statuses):
             new_lesson_status = 'under_review'
-        elif occurrence.lesson_status in ('scheduled', 'rescheduled'):
+        elif occurrence.lesson_status == 'scheduled':
             new_lesson_status = 'completed'
         else:
             new_lesson_status = occurrence.lesson_status

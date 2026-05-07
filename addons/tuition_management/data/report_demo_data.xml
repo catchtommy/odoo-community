@@ -53,7 +53,7 @@
         <field name="tutor_id" ref="report_demo_tutor_ada"/>
         <field name="start_datetime">2026-04-27 15:00:00</field>
         <field name="stop_datetime">2026-04-27 16:00:00</field>
-        <field name="lesson_status">rescheduled</field>
+        <field name="lesson_status">scheduled</field>
         <field name="is_rescheduled">1</field>
         <field name="is_demo">0</field>
     </record>

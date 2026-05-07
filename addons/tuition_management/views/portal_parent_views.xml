@@ -213,7 +213,7 @@
                                 <td><t t-esc="od['occ'].course_id.name or '—'"/></td>
                                 <td><t t-esc="od['occ'].tutor_id.name or '—'"/></td>
                                 <td>
-                                    <span t-attf-class="tm-badge #{od['occ'].lesson_status == 'completed' and 'tm-badge-green' or od['occ'].lesson_status == 'cancelled' and 'tm-badge-red' or od['occ'].lesson_status == 'no_show' and 'tm-badge-orange' or 'tm-badge-blue'}">
+                                    <span t-attf-class="tm-badge #{od['occ'].lesson_status == 'completed' and 'tm-badge-green' or od['occ'].lesson_status == 'cancelled' and 'tm-badge-red' or od['occ'].lesson_status == 'under_review' and 'tm-badge-orange' or 'tm-badge-blue'}">
                                         <t t-esc="od['occ'].lesson_status.capitalize()"/>
                                     </span>
                                 </td>

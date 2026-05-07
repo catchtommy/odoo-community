@@ -353,7 +353,7 @@ class ClassScheduleOccurrence(models.Model):
     attendance_marked = fields.Boolean(string='Attendance Marked', compute='_compute_attendance_marked', store=True)
     lesson_status = fields.Selection([
         ('scheduled', 'Scheduled'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),
-        ('no_show', 'No Show'), ('rescheduled', 'Rescheduled'), ('under_review', 'Under Review'),
+        ('under_review', 'Under Review'),
     ], string='Lesson Status', default='scheduled')
     cancellation_reason = fields.Selection([
         ('platform_issue', 'Platform Issue'), ('tutor_issue', 'Tutor Issue'),

@@ -555,7 +555,6 @@ class ClassScheduleOccurrence(models.Model):
         ('pending', 'Pending'),
         ('completed', 'Completed'),
         ('cancelled', 'Cancelled'),
-        ('no_show', 'No Show'),
     ], string='Lesson Status', default='pending')
 
     @api.model
