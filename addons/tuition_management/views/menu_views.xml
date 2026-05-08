@@ -20,7 +20,7 @@
     <menuitem id="menu_tuition_attendance" name="Attendance" parent="menu_tuition_scheduling" action="action_attendance_records"/>
     <menuitem id="menu_tuition_progress_reports" name="Progress Reports" parent="menu_tuition_scheduling" action="action_progress_reports"/>
     <menuitem id="menu_tuition_assignments" name="Assignments" parent="menu_tuition_scheduling" action="action_course_assignments"/>
-    <menuitem id="menu_tuition_tutor_availability" name="Tutor Availability" parent="menu_tuition_scheduling" action="action_tutor_availability"/>
+    <menuitem id="menu_tuition_tutor_availability" name="Tutor Availability" parent="menu_tuition_scheduling" action="action_tutor_availability_server"/>
 
     <!-- Enquiries -->
     <menuitem id="menu_tuition_enquiries" name="Enquiries" parent="menu_tuition_root" sequence="20" action="action_enquiry"/>

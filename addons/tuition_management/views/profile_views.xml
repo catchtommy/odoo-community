@@ -166,17 +166,38 @@
         </field>
     </record>
 
-    <record id="view_tutor_availability_list" model="ir.ui.view">
-        <field name="name">tutor.availability.list</field>
-        <field name="model">tutor.availability</field>
+    <record id="view_tutor_availability_overview_form" model="ir.ui.view">
+        <field name="name">tutor.availability.overview.form</field>
+        <field name="model">tutor.availability.overview</field>
         <field name="arch" type="xml">
-            <list string="Tutor Availability">
-                <field name="tutor_id"/>
-                <field name="day_of_week"/>
-                <field name="start_time" widget="float_time"/>
-                <field name="end_time" widget="float_time"/>
-            </list>
+            <form string="Tutor Availability Schedule" create="false" delete="false">
+                <header>
+                    <button name="action_search" type="object"
+                            string="Search" class="btn-primary"/>
+                    <button name="action_show_all" type="object"
+                            string="Show All Tutors" class="btn-secondary"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="tutor_id"
+                                   placeholder="Select a tutor to filter…"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                        </group>
+                    </group>
+                    <field name="show_all" invisible="1"/>
+                    <separator/>
+                    <field name="result_html" widget="html" readonly="1" nolabel="1"/>
+                </sheet>
+            </form>
         </field>
+    </record>
+
+    <record id="action_tutor_availability_server" model="ir.actions.server">
+        <field name="name">Tutor Availability</field>
+        <field name="model_id" ref="tuition_management.model_tutor_availability_overview"/>
+        <field name="state">code</field>
+        <field name="code">action = env['tutor.availability.overview'].action_open()</field>
     </record>
 
     <record id="view_tutor_availability_matrix_wizard_form" model="ir.ui.view">
@@ -221,11 +242,6 @@
         ]"/>
     </record>
 
-    <record id="action_tutor_availability" model="ir.actions.act_window">
-        <field name="name">Tutor Availability</field>
-        <field name="res_model">tutor.availability</field>
-        <field name="view_mode">list,form</field>
-    </record>
 
     <!-- ==================== PARENT PROFILE ==================== -->
     <record id="view_parent_profile_list" model="ir.ui.view">

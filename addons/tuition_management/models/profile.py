@@ -150,6 +150,130 @@ class TutorAvailabilityMatrixWizard(models.TransientModel):
         return {'type': 'ir.actions.act_window_close'}
 
 
+class TutorAvailabilityOverview(models.TransientModel):
+    _name = 'tutor.availability.overview'
+    _description = 'Tutor Availability Overview'
+
+    tutor_id = fields.Many2one('tutor.profile', string='Filter by Tutor',
+                               help='Leave blank and click "Show All" to view all tutors')
+    show_all = fields.Boolean(default=False)
+    result_html = fields.Html(
+        string='Availability Schedule',
+        compute='_compute_result_html',
+        sanitize=False,
+        store=False,
+    )
+
+    @api.depends('tutor_id', 'show_all')
+    def _compute_result_html(self):
+        days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        day_labels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+        def fmt_time(t):
+            h = int(t)
+            m = int(round((t - h) * 60))
+            return '%02d:%02d' % (h, m)
+
+        for rec in self:
+            if not rec.tutor_id and not rec.show_all:
+                rec.result_html = (
+                    '<div class="alert alert-info" role="alert" style="margin-top:16px;">'
+                    'Select a tutor above and click <strong>Search</strong>, '
+                    'or click <strong>Show All Tutors</strong> to view the full schedule.'
+                    '</div>'
+                )
+                continue
+
+            tutors = rec.tutor_id if rec.tutor_id else self.env['tutor.profile'].search([('active', '=', True)], order='name')
+
+            if not tutors:
+                rec.result_html = '<p class="text-muted">No tutors found.</p>'
+                continue
+
+            th_day  = 'padding:8px 10px;background:#2E86AB;color:#fff;text-align:center;font-weight:bold;border:1px solid #ccc;min-width:120px;'
+            th_name = 'padding:8px 12px;background:#1a5276;color:#fff;text-align:left;font-weight:bold;border:1px solid #ccc;min-width:160px;'
+            td_slot = 'padding:5px 8px;text-align:center;border:1px solid #ddd;vertical-align:middle;white-space:nowrap;'
+            td_name = 'padding:5px 10px;text-align:left;border:1px solid #ddd;font-weight:600;vertical-align:middle;background:#f0f4f8;'
+            td_none = 'padding:5px 8px;text-align:center;border:1px solid #ddd;color:#bbb;'
+
+            html = [
+                '<div style="overflow-x:auto;">',
+                '<table style="border-collapse:collapse;width:100%;font-size:13px;">',
+                '<thead><tr>',
+                '<th style="%s">Tutor</th>' % th_name,
+            ]
+            for label in day_labels:
+                html.append('<th style="%s">%s</th>' % (th_day, label))
+            html.append('</tr></thead><tbody>')
+
+            for tutor in tutors:
+                slots = {d: [] for d in days}
+                for av in tutor.availability_ids:
+                    if av.day_of_week in slots:
+                        slots[av.day_of_week].append((av.start_time, av.end_time))
+                for d in days:
+                    slots[d].sort()
+
+                max_rows = max((len(slots[d]) for d in days), default=0)
+
+                if max_rows == 0:
+                    html.append('<tr>')
+                    html.append('<td style="%s">%s</td>' % (td_name, tutor.name))
+                    for d in days:
+                        html.append('<td style="%s">—</td>' % td_none)
+                    html.append('</tr>')
+                else:
+                    for i in range(max_rows):
+                        html.append('<tr>')
+                        if i == 0:
+                            html.append('<td style="%s" rowspan="%d">%s</td>' % (td_name, max_rows, tutor.name))
+                        for d in days:
+                            day_slots = slots[d]
+                            if i < len(day_slots):
+                                s, e = day_slots[i]
+                                html.append('<td style="%s">%s – %s</td>' % (td_slot, fmt_time(s), fmt_time(e)))
+                            else:
+                                html.append('<td style="%s">—</td>' % td_none)
+                        html.append('</tr>')
+
+            html.append('</tbody></table></div>')
+            rec.result_html = ''.join(html)
+
+    @api.model
+    def action_open(self):
+        """Pre-create a transient record so buttons always work, then open the form."""
+        rec = self.create({})
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Tutor Availability',
+            'res_model': self._name,
+            'view_mode': 'form',
+            'res_id': rec.id,
+            'target': 'current',
+            'flags': {'mode': 'readonly'},
+        }
+
+    def _return_self(self):
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Tutor Availability',
+            'res_model': self._name,
+            'view_mode': 'form',
+            'res_id': self.id,
+            'target': 'current',
+        }
+
+    def action_search(self):
+        self.ensure_one()
+        self.write({'show_all': False})
+        return self._return_self()
+
+    def action_show_all(self):
+        self.ensure_one()
+        self.write({'show_all': True, 'tutor_id': False})
+        return self._return_self()
+
+
 class TutorProfile(models.Model):
     _name = 'tutor.profile'
     _description = 'Tutor Profile'
