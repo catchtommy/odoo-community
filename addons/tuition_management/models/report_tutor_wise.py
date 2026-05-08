@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import base64
+import calendar
 import io
 from datetime import datetime, time, timedelta
 
@@ -100,7 +101,13 @@ class TuitionTutorWiseWizard(models.TransientModel):
 
     from_date = fields.Date(
         string='From Date',
-        default=lambda self: fields.Date.context_today(self) - timedelta(days=7),
+        default=lambda self: fields.Date.context_today(self).replace(day=1),
+    )
+    to_date = fields.Date(
+        string='To Date',
+        default=lambda self: fields.Date.context_today(self).replace(
+            day=calendar.monthrange(fields.Date.context_today(self).year, fields.Date.context_today(self).month)[1]
+        ),
     )
     filter_tutor_id = fields.Many2one('tutor.profile', string='Tutor')
     filter_category_id = fields.Many2one('subject.category', string='Category')
@@ -115,8 +122,8 @@ class TuitionTutorWiseWizard(models.TransientModel):
     @api.model
     def default_get(self, fields_list):
         vals = super().default_get(fields_list)
-        from_date = fields.Date.to_date(vals.get('from_date')) or fields.Date.context_today(self) - timedelta(days=7)
-        to_date = fields.Date.to_date(vals.get('to_date')) or fields.Date.context_today(self)
+        from_date = fields.Date.to_date(vals.get('from_date')) or fields.Date.context_today(self).replace(day=1)
+        to_date = fields.Date.to_date(vals.get('to_date')) or fields.Date.context_today(self).replace(day=calendar.monthrange(fields.Date.context_today(self).year, fields.Date.context_today(self).month)[1])
         if 'line_ids' in fields_list:
             vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(from_date, to_date)]
         return vals
@@ -241,8 +248,8 @@ class TuitionTutorWiseWizard(models.TransientModel):
         self.ensure_one()
         today = fields.Date.context_today(self)
         self.write({
-            'from_date': today - timedelta(days=7),
-            'to_date': today,
+            'from_date': today.replace(day=1),
+            'to_date': today.replace(day=calendar.monthrange(today.year, today.month)[1]),
             'filter_tutor_id': False,
             'filter_category_id': False,
             'filter_subject_id': False,

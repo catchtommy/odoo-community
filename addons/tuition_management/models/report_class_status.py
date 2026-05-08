@@ -81,11 +81,16 @@ class TuitionClassStatusWizard(models.TransientModel):
 
     from_date = fields.Date(
         string='From Date',
-        default=lambda self: (fields.Date.context_today(self).replace(day=1) - timedelta(days=1)).replace(day=1),
+        default=lambda self: fields.Date.context_today(self).replace(day=1),
     )
     to_date = fields.Date(
         string='To Date',
-        default=lambda self: fields.Date.context_today(self).replace(day=1) - timedelta(days=1),
+        default=lambda self: fields.Date.context_today(self).replace(
+            day=calendar.monthrange(
+                fields.Date.context_today(self).year,
+                fields.Date.context_today(self).month,
+            )[1]
+        ),
     )
     group_by = fields.Selection(
         [('day', 'Day'), ('week', 'Week'), ('month', 'Month')],
@@ -98,8 +103,8 @@ class TuitionClassStatusWizard(models.TransientModel):
     def default_get(self, fields_list):
         vals = super().default_get(fields_list)
         today = fields.Date.context_today(self)
-        from_date = fields.Date.to_date(vals.get('from_date')) or (today.replace(day=1) - timedelta(days=1)).replace(day=1)
-        to_date = fields.Date.to_date(vals.get('to_date')) or today.replace(day=1) - timedelta(days=1)
+        from_date = fields.Date.to_date(vals.get('from_date')) or today.replace(day=1)
+        to_date = fields.Date.to_date(vals.get('to_date')) or today.replace(day=calendar.monthrange(today.year, today.month)[1])
         if 'line_ids' in fields_list:
             vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(from_date, to_date, vals.get('group_by', 'day'))]
         return vals
@@ -201,8 +206,8 @@ class TuitionClassStatusWizard(models.TransientModel):
         self.ensure_one()
         today = fields.Date.context_today(self)
         self.write({
-            'from_date': (today.replace(day=1) - timedelta(days=1)).replace(day=1),
-            'to_date': today.replace(day=1) - timedelta(days=1),
+            'from_date': today.replace(day=1),
+            'to_date': today.replace(day=calendar.monthrange(today.year, today.month)[1]),
             'group_by': 'day',
         })
         return {

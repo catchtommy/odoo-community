@@ -37,7 +37,7 @@ class ClassSchedule(models.Model):
     friday = fields.Boolean(string='Friday')
     saturday = fields.Boolean(string='Saturday')
     sunday = fields.Boolean(string='Sunday')
-    start_date = fields.Date(string='Start Date')
+    start_date = fields.Date(string='Start Date', default=fields.Date.today)
     end_date = fields.Date(string='End Date')
     schedule_date = fields.Date(string='Date')  # used for one_time schedules only
     is_reschedule = fields.Boolean(string='Is a Reschedule?', default=False)
@@ -419,7 +419,7 @@ class ClassScheduleOccurrence(models.Model):
         if reschedule_fields & set(vals.keys()) and 'lesson_status' not in vals:
             for rec in self:
                 if rec.lesson_status == 'scheduled':
-                    vals = dict(vals, lesson_status='rescheduled')
+                    vals = dict(vals, is_rescheduled=True)
                     break
         return super().write(vals)
 
@@ -432,6 +432,8 @@ class ClassScheduleOccurrence(models.Model):
 
     def action_mark_attendance(self):
         self.ensure_one()
+        if self.start_datetime and self.start_datetime > fields.Datetime.now():
+            raise UserError("Attendance cannot be marked for a future class. Please wait until the class has started.")
         # Active enrollments always shown
         active_enrollments = self.env['course.enrollment'].search([
             ('course_id', '=', self.course_id.id), ('status', '=', 'active')
