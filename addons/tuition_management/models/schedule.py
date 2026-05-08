@@ -146,8 +146,13 @@ class ClassSchedule(models.Model):
             rec.name = ' - '.join(parts) if parts else 'New Schedule'
 
     def _generate_occurrences(self):
+        today = fields.Date.today()
+        now = fields.Datetime.now()
         for record in self:
-            record.occurrence_ids.filtered(lambda o: o.lesson_status == 'scheduled').sudo().unlink()
+            # Only remove future unstarted scheduled occurrences; never touch past ones
+            record.occurrence_ids.filtered(
+                lambda o: o.lesson_status == 'scheduled' and o.start_datetime and o.start_datetime >= now
+            ).sudo().unlink()
             if record.schedule_type == 'one_time':
                 if not record.schedule_date:
                     continue
@@ -174,7 +179,9 @@ class ClassSchedule(models.Model):
             day_map = {'monday': 0, 'tuesday': 1, 'wednesday': 2, 'thursday': 3, 'friday': 4, 'saturday': 5, 'sunday': 6}
             selected_days = [day_map[d] for d in day_map if getattr(record, d)]
             tz = pytz.timezone(record.timezone or 'UTC')
-            occurrences, current_date = [], record.start_date
+            # For existing records, generate only from today onwards to avoid recreating past occurrences
+            generate_from = max(record.start_date, today)
+            occurrences, current_date = [], generate_from
             while current_date <= record.end_date:
                 if current_date.weekday() in selected_days:
                     local_dt = tz.localize(fields.Datetime.to_datetime(current_date).replace(
@@ -267,10 +274,16 @@ class ClassSchedule(models.Model):
             )
 
     def write(self, vals):
-        res = super().write(vals)
         trigger_fields = ['start_date', 'end_date', 'schedule_date', 'schedule_hour', 'schedule_minute', 'schedule_duration',
                           'timezone', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
                           'schedule_type', 'course_id', 'is_reschedule', 'rescheduled_from_id']
+        # When editing a recurring schedule, advance start_date to today so only
+        # future occurrences are (re)generated; past occurrences are left untouched.
+        if any(f in vals for f in trigger_fields) and 'start_date' not in vals:
+            today = fields.Date.today()
+            if any(r.schedule_type == 'recurring' and r.start_date and r.start_date < today for r in self):
+                vals = dict(vals, start_date=today)
+        res = super().write(vals)
         if any(f in vals for f in trigger_fields):
             for record in self:
                 record._generate_occurrences()
