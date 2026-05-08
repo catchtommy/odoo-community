@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_tuition_subject_wise_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.subject.wise.wizard.form</field>
+        <field name="model">tuition.subject.wise.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Subject-wise Report">
+                <header>
+                    <button name="action_refresh" type="object" string="Apply" class="btn-primary" icon="fa-filter"/>
+                    <button name="action_clear_filters" type="object" string="Clear Filters" class="btn-secondary" icon="fa-times"/>
+                    <button name="action_export_excel" type="object" string="Export to Excel" class="btn-secondary" icon="fa-file-excel-o"/>
+                    <button name="action_close_report" type="object" string="Close" class="btn-secondary" icon="fa-sign-out"/>
+                </header>
+                <sheet>
+                    <group string="Filters">
+                        <group>
+                            <field name="from_date"/>
+                            <field name="to_date"/>
+                        </group>
+                        <group>
+                            <field name="filter_category_id"/>
+                            <field name="filter_subject_id" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
+                        </group>
+                    </group>
+                    <field name="line_ids" nolabel="1">
+                        <list string="Subject-wise Report" create="false" edit="false" delete="false">
+                            <field name="category_id"/>
+                            <field name="subject_id"/>
+                            <field name="total_classes" sum="Classes"/>
+                            <button name="action_open_classes" type="object" icon="fa-external-link" string="Details"/>
+                            <field name="total_demos" sum="Demos"/>
+                            <button name="action_open_demos" type="object" icon="fa-external-link" string="Details"/>
+                            <field name="total_sessions" sum="Total"/>
+                            <button name="action_open_total" type="object" icon="fa-external-link" string="Details"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Legacy act_window kept for backward compatibility -->
+    <record id="action_tuition_subject_wise_report" model="ir.actions.act_window">
+        <field name="name">Subject-wise Report</field>
+        <field name="res_model">tuition.subject.wise.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">current</field>
+    </record>
+</odoo>

@@ -1,167 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Report Menu and Server Actions
+    ==============================
+    Views for each report live in their own dedicated files:
+      - report_class_status_views.xml
+      - report_subject_wise_views.xml
+      - report_tutor_wise_views.xml
+
+    Server actions pre-create the wizard record before the form opens so the
+    form always loads an existing saved record, preventing the dirty-state
+    "save first" error on Details drill-down buttons.
+-->
 <odoo>
-    <!-- Class Status Report -->
-    <record id="view_tuition_class_status_wizard_form" model="ir.ui.view">
-        <field name="name">tuition.class.status.wizard.form</field>
-        <field name="model">tuition.class.status.wizard</field>
-        <field name="arch" type="xml">
-            <form string="Class Status Report">
-                <header>
-                    <button name="action_refresh" type="object" string="Apply" class="btn-primary" icon="fa-filter"/>
-                    <button name="action_clear_filters" type="object" string="Clear Filters" class="btn-secondary" icon="fa-times"/>
-                    <button name="action_export_excel" type="object" string="Export to Excel" class="btn-secondary" icon="fa-file-excel-o"/>
-                    <button name="action_close_report" type="object" string="Close" class="btn-secondary" icon="fa-sign-out"/>
-                </header>
-                <sheet>
-                    <group string="Filters">
-                        <group>
-                            <field name="from_date"/>
-                            <field name="to_date"/>
-                        </group>
-                        <group>
-                            <field name="group_by"/>
-                        </group>
-                    </group>
-                    <field name="line_ids" nolabel="1">
-                        <list string="Class Status Report" create="false" edit="false" delete="false">
-                            <field name="report_date" string="Date"/>
-                            <field name="total_scheduled_classes" string="Scheduled" sum="Total Scheduled"/>
-                            <button name="action_view_scheduled" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="pending_classes" string="Pending" sum="Total Pending"/>
-                            <button name="action_view_pending" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="under_review_classes" string="Under Review" sum="Total Under Review"/>
-                            <button name="action_view_under_review" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="total_demos" string="Demos" sum="Total Demos"/>
-                            <button name="action_view_demos" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="attendance_pending_classes" string="Attendance Pending" sum="Total Attendance Pending"/>
-                            <button name="action_view_attendance_pending" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="completed_classes" string="Completed" sum="Total Completed"/>
-                            <button name="action_view_completed" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="cancelled_classes" string="Cancelled" sum="Total Cancelled"/>
-                            <button name="action_view_cancelled" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="rescheduled_classes" string="Rescheduled" sum="Total Rescheduled"/>
-                            <button name="action_view_rescheduled" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="billable_actual_classes" string="Billable" sum="Total Billable"/>
-                            <button name="action_view_billable" type="object" icon="fa-external-link" string="Details"/>
-                        </list>
-                    </field>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <record id="action_tuition_class_status_report" model="ir.actions.act_window">
-        <field name="name">Class Status Report</field>
-        <field name="res_model">tuition.class.status.wizard</field>
-        <field name="view_mode">form</field>
-        <field name="target">current</field>
-    </record>
-
-    <!-- Subject-wise Report -->
-    <record id="view_tuition_subject_wise_wizard_form" model="ir.ui.view">
-        <field name="name">tuition.subject.wise.wizard.form</field>
-        <field name="model">tuition.subject.wise.wizard</field>
-        <field name="arch" type="xml">
-            <form string="Subject-wise Report">
-                <header>
-                    <button name="action_refresh" type="object" string="Apply" class="btn-primary" icon="fa-filter"/>
-                    <button name="action_clear_filters" type="object" string="Clear Filters" class="btn-secondary" icon="fa-times"/>
-                    <button name="action_export_excel" type="object" string="Export to Excel" class="btn-secondary" icon="fa-file-excel-o"/>
-                    <button name="action_close_report" type="object" string="Close" class="btn-secondary" icon="fa-sign-out"/>
-                </header>
-                <sheet>
-                    <group string="Filters">
-                        <group>
-                            <field name="from_date"/>
-                            <field name="to_date"/>
-                        </group>
-                        <group>
-                            <field name="filter_category_id"/>
-                            <field name="filter_subject_id" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
-                        </group>
-                    </group>
-                    <field name="line_ids" nolabel="1">
-                        <list string="Subject-wise Report" create="false" edit="false" delete="false">
-                            <field name="category_id"/>
-                            <field name="subject_id"/>
-                            <field name="total_classes" sum="Classes"/>
-                            <button name="action_open_classes" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="total_demos" sum="Demos"/>
-                            <button name="action_open_demos" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="total_sessions" sum="Total"/>
-                            <button name="action_open_total" type="object" icon="fa-external-link" string="Details"/>
-                        </list>
-                    </field>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <record id="action_tuition_subject_wise_report" model="ir.actions.act_window">
-        <field name="name">Subject-wise Report</field>
-        <field name="res_model">tuition.subject.wise.wizard</field>
-        <field name="view_mode">form</field>
-        <field name="target">current</field>
-    </record>
-
-    <!-- Tutor-wise Report -->
-    <record id="view_tuition_tutor_wise_wizard_form" model="ir.ui.view">
-        <field name="name">tuition.tutor.wise.wizard.form</field>
-        <field name="model">tuition.tutor.wise.wizard</field>
-        <field name="arch" type="xml">
-            <form string="Tutor-wise Report">
-                <header>
-                    <button name="action_refresh" type="object" string="Apply" class="btn-primary" icon="fa-filter"/>
-                    <button name="action_clear_filters" type="object" string="Clear Filters" class="btn-secondary" icon="fa-times"/>
-                    <button name="action_export_excel" type="object" string="Export to Excel" class="btn-secondary" icon="fa-file-excel-o"/>
-                    <button name="action_close_report" type="object" string="Close" class="btn-secondary" icon="fa-sign-out"/>
-                </header>
-                <sheet>
-                    <group string="Filters">
-                        <group>
-                            <field name="from_date"/>
-                            <field name="to_date"/>
-                            <field name="filter_tutor_id"/>
-                        </group>
-                        <group>
-                            <field name="filter_category_id"/>
-                            <field name="filter_subject_id" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
-                            <field name="group_by"/>
-                        </group>
-                    </group>
-                    <field name="line_ids" nolabel="1">
-                        <list string="Tutor-wise Report" create="false" edit="false" delete="false">
-                            <field name="tutor_id"/>
-                            <field name="category_subject"/>
-                            <field name="category_id" optional="hide"/>
-                            <field name="subject_id" optional="hide"/>
-                            <field name="total_classes" sum="Classes"/>
-                            <button name="action_open_classes" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="total_demos" sum="Demos"/>
-                            <button name="action_open_demos" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="completed_classes" sum="Completed"/>
-                            <button name="action_open_completed" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="cancelled_classes" sum="Cancelled"/>
-                            <button name="action_open_cancelled" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="effective_classes" sum="Effective"/>
-                            <button name="action_open_effective" type="object" icon="fa-external-link" string="Details"/>
-                        </list>
-                    </field>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
-    <record id="action_tuition_tutor_wise_report" model="ir.actions.act_window">
-        <field name="name">Tutor-wise Report</field>
-        <field name="res_model">tuition.tutor.wise.wizard</field>
-        <field name="view_mode">form</field>
-        <field name="target">current</field>
-    </record>
-
-    <!-- Reporting Menu -->
-    <!-- Server actions pre-create the wizard record so the form opens with a real res_id,
-         avoiding the "new record" state that prevents clicking Details buttons. -->
+    <!-- Class Status: pre-create wizard so form opens with a real res_id -->
     <record id="action_open_class_status_report" model="ir.actions.server">
         <field name="name">Open Class Status Report</field>
         <field name="model_id" ref="model_tuition_class_status_wizard"/>
@@ -175,11 +26,11 @@ action = {
     'view_mode': 'form',
     'res_id': rec.id,
     'target': 'current',
-    'context': {'form_view_initial_mode': 'readonly'},
 }
         </field>
     </record>
 
+    <!-- Subject-wise: pre-create wizard so form opens with a real res_id -->
     <record id="action_open_subject_wise_report" model="ir.actions.server">
         <field name="name">Open Subject-wise Report</field>
         <field name="model_id" ref="model_tuition_subject_wise_wizard"/>
@@ -193,11 +44,11 @@ action = {
     'view_mode': 'form',
     'res_id': rec.id,
     'target': 'current',
-    'context': {'form_view_initial_mode': 'readonly'},
 }
         </field>
     </record>
 
+    <!-- Tutor-wise: pre-create wizard so form opens with a real res_id -->
     <record id="action_open_tutor_wise_report" model="ir.actions.server">
         <field name="name">Open Tutor-wise Report</field>
         <field name="model_id" ref="model_tuition_tutor_wise_wizard"/>
@@ -211,13 +62,13 @@ action = {
     'view_mode': 'form',
     'res_id': rec.id,
     'target': 'current',
-    'context': {'form_view_initial_mode': 'readonly'},
 }
         </field>
     </record>
 
-    <menuitem id="menu_tuition_reports" name="Reports" parent="menu_tuition_root" sequence="35"/>
+    <!-- Reports menu -->
+    <menuitem id="menu_tuition_reports"           name="Reports"             parent="menu_tuition_root"    sequence="35"/>
     <menuitem id="menu_tuition_class_status_report" name="Class Status Report" parent="menu_tuition_reports" action="action_open_class_status_report" sequence="10"/>
     <menuitem id="menu_tuition_subject_wise_report" name="Subject-wise Report" parent="menu_tuition_reports" action="action_open_subject_wise_report" sequence="20"/>
-    <menuitem id="menu_tuition_tutor_wise_report" name="Tutor-wise Report" parent="menu_tuition_reports" action="action_open_tutor_wise_report" sequence="30"/>
+    <menuitem id="menu_tuition_tutor_wise_report"   name="Tutor-wise Report"   parent="menu_tuition_reports" action="action_open_tutor_wise_report"   sequence="30"/>
 </odoo>
