@@ -119,8 +119,7 @@ class TuitionClassStatusWizard(models.TransientModel):
                 {group_expr} AS report_date,
                 COUNT(*) FILTER (WHERE NOT COALESCE(occ.is_demo, FALSE))::integer AS total_scheduled_classes,
                 COUNT(*) FILTER (
-                    WHERE NOT COALESCE(occ.is_demo, FALSE)
-                      AND occ.lesson_status = 'scheduled'
+                    WHERE occ.lesson_status IN ('scheduled', 'under_review')
                 )::integer AS pending_classes,
                 COUNT(*) FILTER (
                     WHERE NOT COALESCE(occ.is_demo, FALSE)
@@ -326,7 +325,10 @@ class TuitionClassStatusWizardLine(models.TransientModel):
         return self._occurrence_action('Scheduled Classes', [('is_demo', '=', False)])
 
     def action_view_pending(self):
-        return self._occurrence_action('Pending Classes', [('is_demo', '=', False), ('lesson_status', '=', 'scheduled')])
+        return self._occurrence_action(
+            'Pending Classes',
+            [('lesson_status', 'in', ['scheduled', 'under_review'])],
+        )
 
     def action_view_under_review(self):
         return self._occurrence_action('Under Review Classes', [('is_demo', '=', False), ('lesson_status', '=', 'under_review')])

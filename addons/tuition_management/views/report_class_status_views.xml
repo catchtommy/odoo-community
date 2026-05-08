@@ -26,7 +26,7 @@
                             <field name="report_date" string="Date"/>
                             <field name="total_scheduled_classes" string="Scheduled" sum="Total Scheduled"/>
                             <button name="action_view_scheduled" type="object" icon="fa-external-link" string="Details"/>
-                            <field name="pending_classes" string="Pending" sum="Total Pending"/>
+                            <field name="pending_classes" string="Pending (All)" sum="Total Pending"/>
                             <button name="action_view_pending" type="object" icon="fa-external-link" string="Details"/>
                             <field name="under_review_classes" string="Under Review" sum="Total Under Review"/>
                             <button name="action_view_under_review" type="object" icon="fa-external-link" string="Details"/>
