@@ -67,6 +67,7 @@ class ParentPortal(http.Controller, PortalMixin):
         ])
         progress_reports = request.env['progress.report'].sudo().search([
             ('student_id', '=', child.id),
+            ('state', '=', 'approved'),
         ], order='report_date desc', limit=20)
         attendance_records = request.env['attendance.record'].sudo().search([
             ('student_id', '=', child.id),
@@ -257,6 +258,10 @@ class ParentPortal(http.Controller, PortalMixin):
             allowed_student_ids = [student.id] if student else []
 
         if report.student_id.id not in allowed_student_ids:
+            return request.redirect('/my')
+
+        # Parents can only view approved reports
+        if parent and report.state != 'approved':
             return request.redirect('/my')
 
         return request.render('tuition_management.portal_progress_report_detail', {

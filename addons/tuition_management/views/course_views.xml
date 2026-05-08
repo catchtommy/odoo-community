@@ -94,6 +94,11 @@
                         <list string="Progress Reports" create="false">
                             <field name="report_date"/><field name="student_id"/><field name="overall_rating"/>
                             <field name="score"/><field name="max_score"/><field name="tutor_id"/>
+                            <field name="state" widget="badge"
+                                decoration-success="state == 'approved'"
+                                decoration-warning="state == 'submitted'"
+                                decoration-danger="state == 'rejected'"
+                                decoration-muted="state == 'draft'"/>
                         </list>
                     </field>
                     </page>

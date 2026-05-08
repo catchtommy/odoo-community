@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
+from odoo.exceptions import UserError
 
 
 class ProgressReport(models.Model):
     _name = 'progress.report'
     _description = 'Student Progress Report'
     _order = 'report_date desc'
+    _inherit = ['mail.thread', 'mail.activity.mixin']
 
     name = fields.Char(string='Title', required=True)
     course_id = fields.Many2one('course.master', string='Course', required=True, ondelete='cascade')
@@ -23,6 +25,49 @@ class ProgressReport(models.Model):
     homework_notes = fields.Text(string='Homework / Next Steps')
     score = fields.Float(string='Score')
     max_score = fields.Float(string='Max Score', default=100)
+    state = fields.Selection([
+        ('draft', 'Draft'),
+        ('submitted', 'Submitted (Under Review)'),
+        ('approved', 'Approved'),
+        ('rejected', 'Rejected'),
+    ], string='Status', default='draft', tracking=True, copy=False)
+    rejection_reason = fields.Text(string='Rejection Reason')
+
+    @api.model_create_multi
+    def create(self, vals_list):
+        # When a portal user (tutor) creates a progress report, auto-submit it
+        # so it goes straight to "Under Review" without needing a manual Submit step.
+        if self.env.user.share:  # share=True means portal/public user
+            for vals in vals_list:
+                if vals.get('state', 'draft') == 'draft':
+                    vals['state'] = 'submitted'
+        return super().create(vals_list)
+
+    def action_submit(self):
+        for rec in self:
+            if rec.state != 'draft':
+                raise UserError('Only draft reports can be submitted.')
+            rec.write({'state': 'submitted'})
+            rec.message_post(body='Progress report submitted for admin approval.', subtype_xmlid='mail.mt_note')
+
+    def action_approve(self):
+        for rec in self:
+            if rec.state != 'submitted':
+                raise UserError('Only submitted reports can be approved.')
+            rec.write({'state': 'approved', 'rejection_reason': False})
+            rec.message_post(body='Progress report approved and is now visible in the parent portal.', subtype_xmlid='mail.mt_note')
+
+    def action_reject(self):
+        for rec in self:
+            if rec.state != 'submitted':
+                raise UserError('Only submitted reports can be rejected.')
+            rec.write({'state': 'rejected'})
+            rec.message_post(body='Progress report rejected and returned to the tutor.', subtype_xmlid='mail.mt_note')
+
+    def action_reset_to_draft(self):
+        for rec in self:
+            rec.write({'state': 'draft'})
+            rec.message_post(body='Progress report reset to draft.', subtype_xmlid='mail.mt_note')
 
 
 class CourseAssignment(models.Model):

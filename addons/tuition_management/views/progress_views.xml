@@ -7,7 +7,12 @@
         <field name="arch" type="xml">
             <list string="Progress Reports">
                 <field name="report_date"/><field name="course_id"/><field name="student_id"/>
-                <field name="overall_rating"/><field name="score"/><field name="max_score"/><field name="tutor_id"/>
+                <field name="overall_rating"/><field name="score"/><field name="max_score"/>
+                <field name="tutor_id"/><field name="state" widget="badge"
+                    decoration-success="state == 'approved'"
+                    decoration-warning="state == 'submitted'"
+                    decoration-danger="state == 'rejected'"
+                    decoration-muted="state == 'draft'"/>
             </list>
         </field>
     </record>
@@ -16,12 +21,29 @@
         <field name="model">progress.report</field>
         <field name="arch" type="xml">
             <form string="Progress Report">
+                <header>
+                    <button name="action_submit" string="Submit for Approval" type="object"
+                        class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_approve" string="Approve" type="object"
+                        class="btn-success"
+                        groups="base.group_erp_manager"
+                        invisible="state != 'submitted'"/>
+                    <button name="action_reject" string="Reject" type="object"
+                        class="btn-danger"
+                        groups="base.group_erp_manager"
+                        invisible="state != 'submitted'"/>
+                    <button name="action_reset_to_draft" string="Reset to Draft" type="object"
+                        invisible="state not in ('rejected', 'approved')"/>
+                    <field name="state" widget="statusbar"
+                        statusbar_visible="draft,submitted,approved"/>
+                </header>
                 <sheet>
                     <group>
                         <group string="Session Details">
                             <field name="name"/><field name="course_id"/>
                             <field name="class_schedule_occurrence_id" domain="[('course_id', '=', course_id)]"/>
-                            <field name="student_id"/><field name="tutor_id"/><field name="report_date"/>
+                            <field name="student_id" domain="[('enrollment_ids.course_id', '=', course_id), ('enrollment_ids.status', '=', 'active')]"/>
+                            <field name="tutor_id"/><field name="report_date"/>
                         </group>
                         <group string="Evaluation">
                             <field name="overall_rating"/><field name="score"/><field name="max_score"/>
@@ -36,8 +58,12 @@
                                 <field name="homework_notes" placeholder="Homework or next steps..."/>
                             </group>
                         </page>
+                        <page string="Rejection Reason" invisible="state != 'rejected'">
+                            <field name="rejection_reason" placeholder="Reason for rejection..."/>
+                        </page>
                     </notebook>
                 </sheet>
+                <chatter/>
             </form>
         </field>
     </record>
@@ -65,7 +91,7 @@
                             <field name="name"/><field name="course_id"/><field name="assignment_type"/>
                         </group>
                         <group>
-                            <field name="assigned_date"/><field name="due_date"/><field name="status"/>
+                            <field name="assigned_date"/><field name="due_date"/>
                         </group>
                     </group>
                     <notebook>

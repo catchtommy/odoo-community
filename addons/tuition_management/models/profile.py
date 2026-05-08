@@ -16,6 +16,140 @@ class TutorAvailability(models.Model):
     end_time = fields.Float(string='End Time')
 
 
+class TutorAvailabilityMatrixLine(models.TransientModel):
+    _name = 'tutor.availability.matrix.line'
+    _description = 'Availability Matrix Line'
+
+    wizard_id = fields.Many2one('tutor.availability.matrix.wizard', ondelete='cascade')
+    mon = fields.Char('Monday', help='Format: HH:MM-HH:MM  e.g. 09:00-17:00')
+    tue = fields.Char('Tuesday', help='Format: HH:MM-HH:MM')
+    wed = fields.Char('Wednesday', help='Format: HH:MM-HH:MM')
+    thu = fields.Char('Thursday', help='Format: HH:MM-HH:MM')
+    fri = fields.Char('Friday', help='Format: HH:MM-HH:MM')
+    sat = fields.Char('Saturday', help='Format: HH:MM-HH:MM')
+    sun = fields.Char('Sunday', help='Format: HH:MM-HH:MM')
+
+
+class TutorAvailabilityMatrixWizard(models.TransientModel):
+    _name = 'tutor.availability.matrix.wizard'
+    _description = 'Tutor Availability Matrix Wizard'
+
+    tutor_id = fields.Many2one('tutor.profile', string='Tutor', required=True)
+    line_ids = fields.One2many('tutor.availability.matrix.line', 'wizard_id', string='Slots')
+
+    # ------------------------------------------------------------------ helpers
+    @staticmethod
+    def _fmt_time(t):
+        h = int(t)
+        m = int(round((t - h) * 60))
+        return '%02d:%02d' % (h, m)
+
+    @staticmethod
+    def _parse_time(s):
+        """'09:30' → 9.5"""
+        parts = s.strip().split(':')
+        if len(parts) != 2:
+            raise ValidationError("Invalid time '%s'. Use HH:MM format." % s)
+        return int(parts[0]) + int(parts[1]) / 60.0
+
+    @classmethod
+    def _parse_slot(cls, val, day_label):
+        """'09:00-17:00' → (9.0, 17.0) or None if blank."""
+        if not val or not val.strip():
+            return None
+        raw = val.strip()
+        # support both '-' and '–' as separator
+        sep = '–' if '–' in raw else '-'
+        parts = raw.split(sep)
+        if len(parts) != 2:
+            raise ValidationError(
+                "Invalid format '%s' for %s. Use HH:MM-HH:MM (e.g. 09:00-17:00)." % (val, day_label)
+            )
+        start = cls._parse_time(parts[0])
+        end = cls._parse_time(parts[1])
+        if end <= start:
+            raise ValidationError(
+                "End time must be after start time for %s (got '%s')." % (day_label, val)
+            )
+        return (start, end)
+
+    # ------------------------------------------------------------------ default_get
+    @api.model
+    def default_get(self, fields_list):
+        res = super().default_get(fields_list)
+        tutor_id = self.env.context.get('default_tutor_id')
+        if tutor_id:
+            tutor = self.env['tutor.profile'].browse(tutor_id)
+            days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+            day_keys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+            slots = {d: [] for d in days}
+            for av in tutor.availability_ids:
+                if av.day_of_week in slots:
+                    slots[av.day_of_week].append((av.start_time, av.end_time))
+            for d in days:
+                slots[d].sort()
+            max_rows = max((len(slots[d]) for d in days), default=0)
+            lines = []
+            for i in range(max(max_rows, 3)):
+                line_vals = {}
+                for d, key in zip(days, day_keys):
+                    day_slots = slots[d]
+                    if i < len(day_slots):
+                        s, e = day_slots[i]
+                        line_vals[key] = '%s-%s' % (self._fmt_time(s), self._fmt_time(e))
+                    else:
+                        line_vals[key] = ''
+                lines.append((0, 0, line_vals))
+            res['line_ids'] = lines
+        return res
+
+    # ------------------------------------------------------------------ action_save
+    def action_save(self):
+        self.ensure_one()
+        days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        day_keys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
+        day_labels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+        # Collect all slots per day
+        all_slots = {d: [] for d in days}
+        for line in self.line_ids:
+            for d, key, label in zip(days, day_keys, day_labels):
+                val = getattr(line, key)
+                slot = self._parse_slot(val, label)
+                if slot:
+                    all_slots[d].append(slot)
+
+        # Validate: no overlapping slots within the same day
+        for d, label in zip(days, day_labels):
+            sorted_slots = sorted(all_slots[d])
+            for i in range(len(sorted_slots) - 1):
+                _, end_a = sorted_slots[i]
+                start_b, _ = sorted_slots[i + 1]
+                if end_a > start_b:
+                    raise ValidationError(
+                        "Overlapping availability on %s: %s-%s overlaps with %s-%s." % (
+                            label,
+                            self._fmt_time(sorted_slots[i][0]), self._fmt_time(end_a),
+                            self._fmt_time(start_b), self._fmt_time(sorted_slots[i + 1][1]),
+                        )
+                    )
+
+        # Persist: remove old, create new
+        self.tutor_id.availability_ids.unlink()
+        new_vals = []
+        for d, label in zip(days, day_labels):
+            for start, end in sorted(all_slots[d]):
+                new_vals.append({
+                    'tutor_id': self.tutor_id.id,
+                    'day_of_week': d,
+                    'start_time': start,
+                    'end_time': end,
+                })
+        if new_vals:
+            self.env['tutor.availability'].create(new_vals)
+        return {'type': 'ir.actions.act_window_close'}
+
+
 class TutorProfile(models.Model):
     _name = 'tutor.profile'
     _description = 'Tutor Profile'
@@ -40,6 +174,12 @@ class TutorProfile(models.Model):
     )
     grade_ids = fields.Many2many('grade.master', string='Grades')
     availability_ids = fields.One2many('tutor.availability', 'tutor_id', string='Availability')
+    availability_matrix_html = fields.Html(
+        string='Availability Matrix',
+        compute='_compute_availability_matrix',
+        sanitize=False,
+        store=False,
+    )
     partner_id = fields.Many2one('res.partner', string='Contact')
     active = fields.Boolean(default=True)
     portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
@@ -63,6 +203,58 @@ class TutorProfile(models.Model):
     def _inverse_category_ids(self):
         """Allow manual category tagging while the detailed matrix remains authoritative."""
         return True
+
+    @api.depends('availability_ids', 'availability_ids.day_of_week',
+                 'availability_ids.start_time', 'availability_ids.end_time')
+    def _compute_availability_matrix(self):
+        days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        day_labels = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+        def fmt_time(t):
+            h = int(t)
+            m = int(round((t - h) * 60))
+            return '%02d:%02d' % (h, m)
+
+        for rec in self:
+            # Build dict: day -> sorted list of (start, end)
+            slots = {d: [] for d in days}
+            for av in rec.availability_ids:
+                if av.day_of_week in slots:
+                    slots[av.day_of_week].append((av.start_time, av.end_time))
+            for d in days:
+                slots[d].sort()
+
+            max_rows = max((len(slots[d]) for d in days), default=0)
+
+            if max_rows == 0:
+                rec.availability_matrix_html = '<p class="text-muted">No availability defined.</p>'
+                continue
+
+            # Build HTML table
+            th_style = 'padding:8px 12px;background:#2E86AB;color:#fff;text-align:center;font-weight:bold;border:1px solid #ccc;min-width:110px;'
+            td_style = 'padding:6px 10px;text-align:center;border:1px solid #ddd;vertical-align:middle;'
+            td_empty = 'padding:6px 10px;text-align:center;border:1px solid #ddd;color:#bbb;'
+
+            html = ['<div style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;font-size:13px;">']
+            # Header row
+            html.append('<thead><tr>')
+            for label in day_labels:
+                html.append('<th style="%s">%s</th>' % (th_style, label))
+            html.append('</tr></thead>')
+            # Data rows
+            html.append('<tbody>')
+            for i in range(max_rows):
+                html.append('<tr>')
+                for d in days:
+                    day_slots = slots[d]
+                    if i < len(day_slots):
+                        start, end = day_slots[i]
+                        html.append('<td style="%s">%s – %s</td>' % (td_style, fmt_time(start), fmt_time(end)))
+                    else:
+                        html.append('<td style="%s">—</td>' % td_empty)
+                html.append('</tr>')
+            html.append('</tbody></table></div>')
+            rec.availability_matrix_html = ''.join(html)
 
     @api.model
     def get_eligible_tutors(self, category, subject, lesson_date=None):
@@ -92,6 +284,17 @@ class TutorProfile(models.Model):
             rec.portal_user_id = user.id if user else False
             rec.portal_login = user.login if user else ''
             rec.has_portal_access = bool(user)
+
+    def action_open_availability_matrix(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Edit Availability Matrix',
+            'res_model': 'tutor.availability.matrix.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_tutor_id': self.id},
+        }
 
     def action_invite_to_portal(self):
         self.ensure_one()
