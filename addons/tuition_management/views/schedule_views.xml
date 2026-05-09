@@ -74,17 +74,25 @@
                         <field name="no_tutor_available" invisible="1"/>
                         <field name="available_tutor_ids" invisible="1"/>
                         <field name="fallback_tutor_ids" invisible="1"/>
-                        <div colspan="2" invisible="no_tutor_available">
+                        <field name="all_eligible_tutor_ids" invisible="1"/>
+                        <!-- No days selected yet: show all course-eligible tutors for reference -->
+                        <div colspan="2" invisible="no_tutor_available or available_tutor_ids or not all_eligible_tutor_ids">
+                            <p class="text-muted mb-1"><i class="fa fa-info-circle text-info"/> Tutors available for this course's subject and grade (select day(s) and time to filter by availability):</p>
+                            <field name="all_eligible_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
+                        </div>
+                        <!-- Days selected and some tutors are available at that time -->
+                        <div colspan="2" invisible="no_tutor_available or not available_tutor_ids">
                             <p class="text-muted mb-1"><i class="fa fa-check-circle text-success"/> Tutors available for the selected day(s) and time:</p>
                             <field name="available_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
                         </div>
+                        <!-- Days selected but NO tutors are available at that time -->
                         <div colspan="2" invisible="not no_tutor_available">
                             <div class="alert alert-warning mb-2" role="alert">
                                 <i class="fa fa-exclamation-triangle"/> <strong>No tutors available</strong> for the selected schedule.
                             </div>
                             <field name="fallback_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
                         </div>
-                        <field name="tutor_id" string="Assign Tutor"/>
+                        <field name="tutor_id" string="Assign Tutor" domain="[('id', 'in', all_eligible_tutor_ids)]"/>
                     </group>
                     <group string="Tutor Selection" invisible="course_id">
                         <field name="tutor_id" string="Assign Tutor"/>
@@ -147,7 +155,8 @@
         <field name="arch" type="xml">
             <list string="Schedule Occurrences" create="false" edit="false">
                 <field name="name"/><field name="course_id"/><field name="tutor_id"/>
-                <field name="start_datetime"/><field name="stop_datetime"/>
+                <field name="start_datetime" string="Start (UTC)"/><field name="stop_datetime" string="Stop (UTC)"/>
+                <field name="start_local_display" string="Local Time" optional="show"/>
                 <field name="lesson_status"/><field name="is_demo" string="Demo"/><field name="is_rescheduled" string="Rescheduled"/><field name="virtual_provider"/><field name="attendance_marked"/>
                 <field name="payable_hours" optional="hide"/>
                 <field name="tutor_rate_used" optional="hide"/>

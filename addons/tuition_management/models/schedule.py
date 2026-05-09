@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
-from odoo.exceptions import UserError
-from datetime import timedelta
+from odoo.exceptions import UserError, ValidationError
+from datetime import datetime, time, timedelta
 import pytz
 
 
@@ -26,7 +26,7 @@ class ClassSchedule(models.Model):
         ('US/Eastern', 'US/Eastern'), ('US/Central', 'US/Central'), ('US/Mountain', 'US/Mountain'),
         ('US/Pacific', 'US/Pacific'), ('Europe/London', 'Europe/London'), ('Europe/Paris', 'Europe/Paris'),
         ('Asia/Kolkata', 'Asia/Kolkata'), ('Asia/Tokyo', 'Asia/Tokyo'), ('Australia/Sydney', 'Australia/Sydney'), ('UTC', 'UTC'),
-    ], string='Timezone', default='UTC')
+    ], string='Timezone', default=lambda self: self.env.user.tz or 'UTC')
     status = fields.Selection([
         ('draft', 'Draft'), ('active', 'Active'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),
     ], string='Status', default='active')
@@ -57,6 +57,7 @@ class ClassSchedule(models.Model):
 
     available_tutor_ids = fields.Many2many('tutor.profile', string='Available Tutors', compute='_compute_available_tutors', store=False)
     fallback_tutor_ids = fields.Many2many('tutor.profile', string='Subject/Grade Tutors', compute='_compute_available_tutors', store=False)
+    all_eligible_tutor_ids = fields.Many2many('tutor.profile', string='Course-Eligible Tutors', compute='_compute_available_tutors', store=False)
     no_tutor_available = fields.Boolean(string='No Tutor Available', compute='_compute_available_tutors', store=False)
 
     @api.depends('schedule_hour', 'schedule_minute')
@@ -73,12 +74,125 @@ class ClassSchedule(models.Model):
         for rec in self:
             rec.schedule_minute = int(rec.schedule_minute_sel or 0)
 
-    @api.onchange('available_tutor_ids', 'fallback_tutor_ids', 'no_tutor_available')
-    def _onchange_tutor_list(self):
-        tutor_ids = (self.fallback_tutor_ids if self.no_tutor_available else self.available_tutor_ids).ids
-        return {'domain': {'tutor_id': [('id', 'in', tutor_ids)] if tutor_ids else []}}
+    @api.onchange('course_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
+                  'saturday', 'sunday', 'schedule_hour', 'schedule_minute',
+                  'start_date', 'schedule_date', 'schedule_type')
+    def _onchange_schedule_for_tutor_domain(self):
+        """Restrict the tutor dropdown to tutors eligible for this course (category + subject + grade)."""
+        eligible_ids = self.all_eligible_tutor_ids.ids
+        return {
+            'domain': {
+                'tutor_id': [('id', 'in', eligible_ids)] if eligible_ids else [],
+            }
+        }
 
-    @api.onchange('tutor_id')
+    @api.onchange('tutor_id', 'schedule_date', 'schedule_hour', 'schedule_minute',
+                  'schedule_duration', 'monday', 'tuesday', 'wednesday', 'thursday',
+                  'friday', 'saturday', 'sunday', 'start_date', 'end_date',
+                  'timezone', 'schedule_type')
+    def _onchange_check_overbooking(self):
+        """Warn if the selected tutor already has a lesson overlapping the proposed schedule."""
+        if not self.tutor_id:
+            return
+        conflicts = self._find_tutor_schedule_conflicts()
+        if not conflicts:
+            return
+        lines = []
+        for occ in conflicts[:5]:
+            start_str = occ.start_datetime.strftime('%a %d %b %Y %H:%M') if occ.start_datetime else '?'
+            lines.append('• %s  (%s)  —  Course: %s' % (
+                occ.name or '?', start_str, occ.course_id.name or '—'))
+        if len(conflicts) > 5:
+            lines.append('… and %d more conflict(s).' % (len(conflicts) - 5))
+        return {
+            'warning': {
+                'title': 'Tutor Overbooking — %s' % self.tutor_id.name,
+                'message': (
+                    'The following existing lesson(s) overlap with this schedule:\n\n%s\n\n'
+                    'Please choose a different tutor or adjust the schedule time.'
+                ) % '\n'.join(lines),
+            }
+        }
+
+    def _find_tutor_schedule_conflicts(self):
+        """Return existing non-cancelled occurrences that overlap the proposed time slots."""
+        if not self.tutor_id:
+            return self.env['class.schedule.occurrence']
+        tz = pytz.timezone(self.timezone or 'UTC')
+        duration = self.schedule_duration or 60
+        day_fields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        slots = []
+
+        if self.schedule_type == 'one_time':
+            if not self.schedule_date:
+                return self.env['class.schedule.occurrence']
+            local_dt = tz.localize(datetime.combine(
+                self.schedule_date, time(self.schedule_hour, self.schedule_minute)))
+            utc_start = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
+            slots.append((utc_start, utc_start + timedelta(minutes=duration)))
+        else:
+            if not self.start_date or not self.end_date:
+                return self.env['class.schedule.occurrence']
+            day_map = {d: i for i, d in enumerate(day_fields)}
+            selected = [day_map[d] for d in day_fields if getattr(self, d, False)]
+            if not selected:
+                return self.env['class.schedule.occurrence']
+            today = fields.Date.today()
+            check_end = min(self.end_date, today + timedelta(days=90))
+            current = max(self.start_date, today)
+            while current <= check_end:
+                if current.weekday() in selected:
+                    local_dt = tz.localize(datetime.combine(
+                        current, time(self.schedule_hour, self.schedule_minute)))
+                    utc_start = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
+                    slots.append((utc_start, utc_start + timedelta(minutes=duration)))
+                current += timedelta(days=1)
+
+        if not slots:
+            return self.env['class.schedule.occurrence']
+
+        min_start = min(s[0] for s in slots)
+        max_end = max(s[1] for s in slots)
+        domain = [
+            ('tutor_id', '=', self.tutor_id.id),
+            ('lesson_status', 'not in', ['cancelled']),
+            ('start_datetime', '<', max_end),
+            ('stop_datetime', '>', min_start),
+        ]
+        if self.id:
+            domain.append(('schedule_id', '!=', self.id))
+        candidates = self.env['class.schedule.occurrence'].search(domain)
+        conflicts = self.env['class.schedule.occurrence']
+        for occ in candidates:
+            if not occ.start_datetime or not occ.stop_datetime:
+                continue
+            for s_start, s_end in slots:
+                if occ.start_datetime < s_end and occ.stop_datetime > s_start:
+                    conflicts |= occ
+                    break
+        return conflicts
+
+    @api.constrains(
+        'tutor_id', 'schedule_hour', 'schedule_minute', 'schedule_duration',
+        'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
+        'start_date', 'end_date', 'schedule_date', 'schedule_type', 'timezone', 'status',
+    )
+    def _check_no_tutor_overbooking(self):
+        for rec in self:
+            if not rec.tutor_id or rec.status == 'cancelled':
+                continue
+            conflicts = rec._find_tutor_schedule_conflicts()
+            if conflicts:
+                lines = []
+                for c in conflicts[:5]:
+                    dt_str = (c.start_datetime.strftime('%a %d %b %Y %H:%M UTC')
+                              if c.start_datetime else '?')
+                    lines.append('  • %s  (%s)  —  %s' % (c.name or '?', dt_str, c.course_id.name or '—'))
+                raise ValidationError(
+                    'Cannot save: tutor "%s" already has a lesson at the same time:\n\n%s\n\n'
+                    'Please choose a different tutor or adjust the schedule time.'
+                    % (rec.tutor_id.name, '\n'.join(lines))
+                )
     def _onchange_tutor_id_warn(self):
         """Inform the user when the selected tutor is different from existing course tutors."""
         if not self.tutor_id or not self.course_id:
@@ -101,34 +215,49 @@ class ClassSchedule(models.Model):
             }
 
     @api.depends('schedule_hour', 'schedule_minute', 'monday', 'tuesday', 'wednesday',
-                 'thursday', 'friday', 'saturday', 'sunday', 'course_id')
+                 'thursday', 'friday', 'saturday', 'sunday', 'course_id',
+                 'start_date', 'schedule_type', 'schedule_date')
     def _compute_available_tutors(self):
         day_fields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
         for rec in self:
             if not rec.course_id:
-                rec.available_tutor_ids = rec.fallback_tutor_ids = self.env['tutor.profile']
+                rec.available_tutor_ids = rec.fallback_tutor_ids = rec.all_eligible_tutor_ids = self.env['tutor.profile']
                 rec.no_tutor_available = False
                 continue
-            category, subject, grade = rec.course_id.category_id, rec.course_id.subject_id, rec.course_id.grade_id
+            category = rec.course_id.category_id
+            subject = rec.course_id.subject_id
+            grade = rec.course_id.grade_id
             selected_days = [d for d in day_fields if getattr(rec, d, False)]
             schedule_time = rec.schedule_hour + rec.schedule_minute / 60.0
+            target_date = (
+                rec.schedule_date if rec.schedule_type == 'one_time' and rec.schedule_date
+                else rec.start_date or fields.Date.today()
+            )
+            # Build domain filtering by course category + subject + grade
             tutor_domain = []
             if category and subject:
-                target_date = rec.start_date or fields.Date.today()
-                tutor_domain.append(('tutor_subject_rate_ids.category_id', '=', category.id))
-                tutor_domain.append(('tutor_subject_rate_ids.subject_id', '=', subject.id))
-                tutor_domain.append(('tutor_subject_rate_ids.active_flag', '=', True))
-                tutor_domain.append(('tutor_subject_rate_ids.effective_from', '<=', target_date))
-                tutor_domain.extend(['|', ('tutor_subject_rate_ids.effective_to', '=', False), ('tutor_subject_rate_ids.effective_to', '>=', target_date)])
+                tutor_domain = [
+                    ('tutor_subject_rate_ids.category_id', '=', category.id),
+                    ('tutor_subject_rate_ids.subject_id', '=', subject.id),
+                    ('tutor_subject_rate_ids.active_flag', '=', True),
+                    '|', ('tutor_subject_rate_ids.effective_from', '=', False),
+                         ('tutor_subject_rate_ids.effective_from', '<=', target_date),
+                    '|', ('tutor_subject_rate_ids.effective_to', '=', False),
+                         ('tutor_subject_rate_ids.effective_to', '>=', target_date),
+                ]
             elif subject:
-                tutor_domain.append(('subject_ids', 'in', [subject.id]))
-            if grade: tutor_domain.append(('grade_ids', 'in', [grade.id]))
+                tutor_domain = [('subject_ids', 'in', [subject.id])]
+            if grade:
+                tutor_domain.append(('grade_ids', 'in', [grade.id]))
             all_tutors = self.env['tutor.profile'].search(tutor_domain if tutor_domain else [])
             available = self.env['tutor.profile']
-            if selected_days and schedule_time:
+            if selected_days:
                 for tutor in all_tutors:
-                    if all(tutor.availability_ids.filtered(lambda a, d=day: a.day_of_week == d and a.start_time <= schedule_time < a.end_time) for day in selected_days):
+                    if all(tutor.availability_ids.filtered(
+                        lambda a, d=day: a.day_of_week == d and a.start_time <= schedule_time < a.end_time
+                    ) for day in selected_days):
                         available |= tutor
+            rec.all_eligible_tutor_ids = all_tutors
             if available:
                 rec.available_tutor_ids = available
                 rec.fallback_tutor_ids = self.env['tutor.profile']
@@ -136,7 +265,7 @@ class ClassSchedule(models.Model):
             else:
                 rec.available_tutor_ids = self.env['tutor.profile']
                 rec.fallback_tutor_ids = all_tutors
-                rec.no_tutor_available = bool(selected_days and schedule_time)
+                rec.no_tutor_available = bool(selected_days)
 
     @api.depends('course_id', 'tutor_id', 'schedule_type')
     def _compute_name(self):
@@ -358,8 +487,13 @@ class ClassScheduleOccurrence(models.Model):
 
     name = fields.Char(string='Name', required=True)
     schedule_id = fields.Many2one('class.schedule', string='Schedule', ondelete='set null')
-    start_datetime = fields.Datetime(string='Start', required=True)
-    stop_datetime = fields.Datetime(string='Stop', required=True)
+    start_datetime = fields.Datetime(string='Start (UTC)', required=True)
+    stop_datetime = fields.Datetime(string='Stop (UTC)', required=True)
+    start_local_display = fields.Char(
+        string='Local Time',
+        compute='_compute_start_local_display',
+        store=False,
+    )
     course_id = fields.Many2one('course.master', string='Course', store=True)
     tutor_id = fields.Many2one('tutor.profile', string='Tutor', store=True)
     attendance_ids = fields.One2many('attendance.record', 'class_schedule_occurrence_id', string='Attendance')
@@ -417,6 +551,20 @@ class ClassScheduleOccurrence(models.Model):
     def _compute_attendance_marked(self):
         for rec in self:
             rec.attendance_marked = bool(rec.attendance_ids)
+
+    @api.depends('start_datetime', 'schedule_id', 'schedule_id.timezone')
+    def _compute_start_local_display(self):
+        for rec in self:
+            if not rec.start_datetime:
+                rec.start_local_display = ''
+                continue
+            tz_name = (rec.schedule_id.timezone if rec.schedule_id else None) or 'UTC'
+            try:
+                tz = pytz.timezone(tz_name)
+            except pytz.UnknownTimeZoneError:
+                tz = pytz.utc
+            local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
+            rec.start_local_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
 
     @api.depends('course_id', 'course_id.virtual_provider_default')
     def _compute_virtual_provider(self):

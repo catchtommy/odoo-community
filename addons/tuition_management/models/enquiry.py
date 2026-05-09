@@ -1,4 +1,6 @@
 from odoo import models, fields, api
+from odoo.exceptions import ValidationError
+from datetime import timedelta
 import logging
 
 _logger = logging.getLogger(__name__)
@@ -582,7 +584,7 @@ class DemoSession(models.Model):
         ('Asia/Tokyo', 'Asia/Tokyo'),
         ('Australia/Sydney', 'Australia/Sydney'),
         ('UTC', 'UTC'),
-    ], string='Timezone', default='UTC')
+    ], string='Timezone', default=lambda self: self.env.user.tz or 'UTC')
     duration_minutes = fields.Integer(string='Duration (Minutes)', default=30)
     available_tutor_ids = fields.Many2many('tutor.profile', compute='_compute_available_tutors', store=False)
     no_tutor_available = fields.Boolean(compute='_compute_available_tutors', store=False)
@@ -611,6 +613,64 @@ class DemoSession(models.Model):
             available = self.env['tutor.profile'].search(domain)
             rec.available_tutor_ids = available
             rec.no_tutor_available = not bool(available)
+
+    def _find_demo_conflicts(self):
+        """Return existing non-cancelled occurrences that overlap this demo session."""
+        self.ensure_one()
+        if not self.tutor_id or not self.scheduled_datetime:
+            return self.env['class.schedule.occurrence']
+        duration = self.duration_minutes or 30
+        end_dt = self.scheduled_datetime + timedelta(minutes=duration)
+        domain = [
+            ('tutor_id', '=', self.tutor_id.id),
+            ('lesson_status', 'not in', ['cancelled']),
+            ('start_datetime', '<', end_dt),
+            ('stop_datetime', '>', self.scheduled_datetime),
+        ]
+        if self.schedule_occurrence_id:
+            domain.append(('id', '!=', self.schedule_occurrence_id.id))
+        return self.env['class.schedule.occurrence'].search(domain)
+
+    @api.onchange('tutor_id', 'scheduled_datetime', 'duration_minutes')
+    def _onchange_check_demo_overbooking(self):
+        """Warn if the selected tutor is already booked at the same time."""
+        if not self.tutor_id or not self.scheduled_datetime:
+            return
+        conflicts = self._find_demo_conflicts()
+        if not conflicts:
+            return
+        lines = []
+        for occ in conflicts[:5]:
+            dt_str = occ.start_datetime.strftime('%a %d %b %Y %H:%M UTC') if occ.start_datetime else '?'
+            lines.append('• %s  (%s)  —  Course: %s' % (occ.name or '?', dt_str, occ.course_id.name or '—'))
+        if len(conflicts) > 5:
+            lines.append('… and %d more conflict(s).' % (len(conflicts) - 5))
+        return {
+            'warning': {
+                'title': 'Tutor Overbooking — %s' % self.tutor_id.name,
+                'message': (
+                    'This tutor already has a scheduled lesson at the same time:\n\n%s\n\n'
+                    'Please choose a different tutor or time.'
+                ) % '\n'.join(lines),
+            }
+        }
+
+    @api.constrains('tutor_id', 'scheduled_datetime', 'duration_minutes', 'status')
+    def _check_no_demo_overbooking(self):
+        for rec in self:
+            if not rec.tutor_id or not rec.scheduled_datetime or rec.status == 'cancelled':
+                continue
+            conflicts = rec._find_demo_conflicts()
+            if conflicts:
+                lines = []
+                for c in conflicts[:5]:
+                    dt_str = c.start_datetime.strftime('%a %d %b %Y %H:%M UTC') if c.start_datetime else '?'
+                    lines.append('  • %s  (%s)  —  %s' % (c.name or '?', dt_str, c.course_id.name or '—'))
+                raise ValidationError(
+                    'Cannot save: tutor "%s" already has a lesson at the same time:\n\n%s\n\n'
+                    'Please choose a different tutor or time.'
+                    % (rec.tutor_id.name, '\n'.join(lines))
+                )
 
     status = fields.Selection([
         ('scheduled', 'Scheduled'),
