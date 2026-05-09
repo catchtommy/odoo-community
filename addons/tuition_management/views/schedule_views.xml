@@ -148,7 +148,7 @@
             <list string="Schedule Occurrences" create="false" edit="false">
                 <field name="name"/><field name="course_id"/><field name="tutor_id"/>
                 <field name="start_datetime"/><field name="stop_datetime"/>
-                <field name="lesson_status"/><field name="virtual_provider"/><field name="virtual_meeting_state"/><field name="attendance_marked"/>
+                <field name="lesson_status"/><field name="is_demo" string="Demo"/><field name="is_rescheduled" string="Rescheduled"/><field name="virtual_provider"/><field name="attendance_marked"/>
                 <field name="payable_hours" optional="hide"/>
                 <field name="tutor_rate_used" optional="hide"/>
                 <field name="tutor_calculated_amount" optional="hide"/>
