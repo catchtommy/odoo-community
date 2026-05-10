@@ -1,6 +1,6 @@
 {
     'name': 'Shiningace Website',
-    'version': '19.0.1.0.0',
+    'version': '19.0.1.0.1',
     'summary': 'Public-facing landing page for Shiningace tutoring platform',
     'category': 'Website',
     'author': 'Shiningace',
