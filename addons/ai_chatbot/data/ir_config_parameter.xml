@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Default system parameters — override these from Settings → AI Chatbot -->
+    <record id="param_hf_endpoint" model="ir.config_parameter">
+        <field name="key">ai_chatbot.hf_endpoint_url</field>
+        <field name="value">https://catchtommy-shiningace-ai-chat-backend.hf.space/webhook</field>
+    </record>
+    <record id="param_enabled" model="ir.config_parameter">
+        <field name="key">ai_chatbot.enabled</field>
+        <field name="value">True</field>
+    </record>
+    <record id="param_title" model="ir.config_parameter">
+        <field name="key">ai_chatbot.title</field>
+        <field name="value">AI Assistant</field>
+    </record>
+    <record id="param_placeholder" model="ir.config_parameter">
+        <field name="key">ai_chatbot.placeholder</field>
+        <field name="value">Type your question…</field>
+    </record>
+</odoo>

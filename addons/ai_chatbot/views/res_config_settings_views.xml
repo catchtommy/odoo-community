@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="res_config_settings_ai_chatbot_view" model="ir.ui.view">
+        <field name="name">res.config.settings.ai.chatbot</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="AI Chatbot" string="AI Chatbot" name="ai_chatbot">
+                    <block title="AI Chatbot Settings" name="ai_chatbot_settings_container">
+                        <setting id="ai_chatbot_enabled_setting" string="Enable AI Chatbot"
+                                 help="Show a floating AI assistant widget on all website and portal pages.">
+                            <field name="ai_chatbot_enabled"/>
+                        </setting>
+                        <setting id="ai_chatbot_hf_endpoint_setting" string="Hugging Face Endpoint URL"
+                                 help="Full URL to the LangChain API deployed on Hugging Face Spaces.">
+                            <field name="ai_chatbot_hf_endpoint"
+                                   placeholder="https://your-space.hf.space/webhook"/>
+                        </setting>
+                        <setting id="ai_chatbot_title_setting" string="Chat Window Title">
+                            <field name="ai_chatbot_title"/>
+                        </setting>
+                        <setting id="ai_chatbot_placeholder_setting" string="Input Placeholder">
+                            <field name="ai_chatbot_placeholder"/>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+</odoo>

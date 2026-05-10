@@ -1,0 +1,146 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+
+<!-- ═══════════════════════════════════════════════════════════════
+     AIChatbot — main Owl component template
+     ═══════════════════════════════════════════════════════════════ -->
+<t t-name="ai_chatbot.AIChatbot">
+    <!-- ── Floating launcher button ────────────────────────────── -->
+    <button class="sa-chat-launcher"
+            t-att-class="{'sa-chat-launcher--open': state.isOpen}"
+            t-on-click="toggleChat"
+            aria-label="AI Assistant">
+        <!-- Closed state: robot/chat icon -->
+        <span class="sa-chat-launcher__icon sa-chat-launcher__icon--chat"
+              t-att-class="{'d-none': state.isOpen}">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M12 2C6.477 2 2 6.253 2 11.5c0 2.304.875 4.408 2.31 6.026L3 21l3.677-1.433A10.12 10.12 0 0012 21c5.523 0 10-4.253 10-9.5S17.523 2 12 2z"
+                      fill="currentColor"/>
+                <circle cx="8" cy="11.5" r="1.2" fill="white"/>
+                <circle cx="12" cy="11.5" r="1.2" fill="white"/>
+                <circle cx="16" cy="11.5" r="1.2" fill="white"/>
+            </svg>
+        </span>
+        <!-- Open state: X icon -->
+        <span class="sa-chat-launcher__icon sa-chat-launcher__icon--close"
+              t-att-class="{'d-none': !state.isOpen}">
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2.5"
+                      stroke-linecap="round"/>
+            </svg>
+        </span>
+    </button>
+
+    <!-- ── Chat window ──────────────────────────────────────────── -->
+    <div class="sa-chat-window"
+         t-att-class="{'sa-chat-window--open': state.isOpen}">
+
+        <!-- Header -->
+        <div class="sa-chat-header">
+            <div class="sa-chat-header__avatar">
+                <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="18" cy="18" r="18" fill="rgba(255,255,255,0.2)"/>
+                    <path d="M18 8C12.477 8 8 12.253 8 17.5c0 1.904.572 3.677 1.555 5.16L8 26l3.51-1.147A9.96 9.96 0 0018 27c5.523 0 10-4.253 10-9.5S23.523 8 18 8z"
+                          fill="white"/>
+                    <circle cx="14" cy="17.5" r="1.1" fill="#6366f1"/>
+                    <circle cx="18" cy="17.5" r="1.1" fill="#6366f1"/>
+                    <circle cx="22" cy="17.5" r="1.1" fill="#6366f1"/>
+                </svg>
+            </div>
+            <div class="sa-chat-header__info">
+                <span class="sa-chat-header__title" t-esc="state.title"/>
+                <span class="sa-chat-header__status">
+                    <span class="sa-chat-header__dot"/>
+                    Online
+                </span>
+            </div>
+            <button class="sa-chat-header__close" t-on-click="toggleChat" aria-label="Close">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2"
+                          stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Messages -->
+        <div class="sa-chat-messages" t-ref="messagesContainer">
+            <!-- Welcome message (only when no history) -->
+            <t t-if="state.messages.length === 0">
+                <div class="sa-chat-welcome">
+                    <div class="sa-chat-welcome__icon">🤖</div>
+                    <p class="sa-chat-welcome__text">
+                        Hi there! I'm your AI assistant. How can I help you today?
+                    </p>
+                    <!-- Quick-start suggestion pills -->
+                    <div class="sa-chat-suggestions">
+                        <t t-foreach="state.suggestions" t-as="s" t-key="s_index">
+                            <button class="sa-chat-suggestion" t-on-click="() => this.sendSuggestion(s)">
+                                <t t-esc="s"/>
+                            </button>
+                        </t>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Message bubbles -->
+            <t t-foreach="state.messages" t-as="msg" t-key="msg.id">
+                <div class="sa-chat-msg"
+                     t-att-class="'sa-chat-msg--' + msg.role">
+                    <div class="sa-chat-msg__avatar">
+                        <t t-if="msg.role === 'assistant'">🤖</t>
+                        <t t-else="">👤</t>
+                    </div>
+                    <div class="sa-chat-msg__body">
+                        <div class="sa-chat-msg__bubble"
+                             t-att-class="{'sa-chat-msg__bubble--error': msg.isError}"
+                             t-out="msg.htmlContent"/>
+                        <span class="sa-chat-msg__time" t-esc="msg.time"/>
+                    </div>
+                </div>
+            </t>
+
+            <!-- Typing animation -->
+            <t t-if="state.isLoading">
+                <div class="sa-chat-msg sa-chat-msg--assistant sa-chat-msg--typing">
+                    <div class="sa-chat-msg__avatar">🤖</div>
+                    <div class="sa-chat-msg__body">
+                        <div class="sa-chat-msg__bubble">
+                            <span class="sa-typing-dot"/>
+                            <span class="sa-typing-dot"/>
+                            <span class="sa-typing-dot"/>
+                        </div>
+                    </div>
+                </div>
+            </t>
+        </div>
+
+        <!-- Input area -->
+        <div class="sa-chat-input-area">
+            <textarea
+                class="sa-chat-input"
+                t-ref="inputField"
+                t-att-placeholder="state.placeholder"
+                t-att-disabled="state.isLoading"
+                t-model="state.inputText"
+                t-on-keydown="onKeyDown"
+                rows="1"
+                aria-label="Message input"/>
+            <button class="sa-chat-send"
+                    t-att-disabled="state.isLoading or !state.inputText.trim()"
+                    t-on-click="sendMessage"
+                    aria-label="Send">
+                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z" stroke="currentColor"
+                          stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Footer branding -->
+        <div class="sa-chat-footer">
+            Powered by <strong>LangChain + Groq Llama3</strong>
+        </div>
+    </div>
+</t>
+
+</templates>

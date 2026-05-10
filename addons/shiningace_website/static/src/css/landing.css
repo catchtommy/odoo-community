@@ -909,12 +909,66 @@ body {
     color: var(--sa-muted);
 }
 
+/* ── Hero Info Card (replaces old static chat widget) ──────────────────────── */
+.sa-hero-card {
+    background: #fff;
+    border-radius: 20px;
+    box-shadow: 0 8px 40px rgba(79,70,229,.13);
+    padding: 32px 28px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    border: 1px solid rgba(79,70,229,.10);
+}
+.sa-hero-card__header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+.sa-hero-card__icon { font-size: 36px; line-height: 1; }
+.sa-hero-card__title { font-size: 17px; font-weight: 700; color: var(--sa-dark); }
+.sa-hero-card__sub { font-size: 13px; color: var(--sa-muted); margin-top: 2px; }
+.sa-hero-card__stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    background: #f5f3ff;
+    border-radius: 12px;
+    padding: 16px 12px;
+}
+.sa-hero-stat { text-align: center; }
+.sa-hero-stat__num { font-size: 24px; font-weight: 800; color: var(--sa-purple); line-height: 1.1; }
+.sa-hero-stat__label { font-size: 11px; color: var(--sa-muted); margin-top: 4px; line-height: 1.3; }
+.sa-hero-card__features {
+    list-style: none; padding: 0; margin: 0;
+    display: flex; flex-direction: column; gap: 10px;
+}
+.sa-hero-card__features li {
+    display: flex; align-items: flex-start; gap: 10px;
+    font-size: 14px; color: var(--sa-dark); line-height: 1.4;
+}
+.sa-hero-card__check {
+    flex-shrink: 0; width: 20px; height: 20px;
+    background: var(--sa-purple); color: #fff;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 11px; font-weight: 700; margin-top: 1px;
+}
+.sa-hero-card__cta {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    background: var(--sa-purple); color: #fff;
+    font-weight: 700; font-size: 15px; padding: 14px 20px;
+    border-radius: 12px; text-decoration: none;
+    transition: background .2s, transform .2s;
+}
+.sa-hero-card__cta:hover { background: #3730b3; transform: translateY(-1px); color: #fff; text-decoration: none; }
+.sa-hero-card__note { text-align: center; font-size: 12px; color: var(--sa-muted); margin-top: -12px; }
+
 /* ── Responsive ────────────────────────────────────────────────────────────── */
 @media (max-width: 900px) {
     .sa-navbar__links, .sa-navbar__actions { display: none; }
     .sa-navbar__hamburger { display: flex; }
     .sa-hero__inner { grid-template-columns: 1fr; }
-    .sa-chat { margin: 0 auto; }
+    .sa-hero-card { margin: 0 auto; max-width: 480px; }
     .sa-how__steps { grid-template-columns: 1fr; }
     .sa-how__connector { display: none; }
     .sa-slots__grid { grid-template-columns: 1fr 1fr; }

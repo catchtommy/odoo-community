@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!--
+        Inject the AI chatbot widget into every website page.
+        Passes Odoo system parameters down to JS via data attributes
+        so the frontend never needs a separate config request.
+    -->
+    <template id="ai_chatbot_widget" name="AI Chatbot Widget">
+        <t t-if="ai_chatbot_enabled">
+            <div id="sa-ai-chatbot-root"
+                 data-title="SAit-itle"
+                 data-placeholder="SAit-placeholder"
+                 t-att-data-title="ai_chatbot_title"
+                 t-att-data-placeholder="ai_chatbot_placeholder"/>
+        </t>
+    </template>
+
+    <!-- Inject into the website layout (footer area, before </body>) -->
+    <template id="ai_chatbot_inject" inherit_id="website.layout" name="AI Chatbot Inject">
+        <xpath expr="//body" position="inside">
+            <t t-call="ai_chatbot.ai_chatbot_widget">
+                <t t-set="ai_chatbot_enabled"     t-value="request.env['ir.config_parameter'].sudo().get_param('ai_chatbot.enabled', 'True') in ('True', '1', 'true')"/>
+                <t t-set="ai_chatbot_title"        t-value="request.env['ir.config_parameter'].sudo().get_param('ai_chatbot.title', 'AI Assistant')"/>
+                <t t-set="ai_chatbot_placeholder"  t-value="request.env['ir.config_parameter'].sudo().get_param('ai_chatbot.placeholder', 'Type your question…')"/>
+            </t>
+        </xpath>
+    </template>
+</odoo>
