@@ -2,6 +2,23 @@
 
 document.addEventListener('DOMContentLoaded', function () {
 
+    // ── Mobile hamburger menu ─────────────────────────────────────────────
+    var hamburger  = document.getElementById('sa-hamburger');
+    var mobileMenu = document.getElementById('sa-mobile-menu');
+    if (hamburger && mobileMenu) {
+        hamburger.addEventListener('click', function () {
+            mobileMenu.classList.toggle('is-open');
+            hamburger.classList.toggle('is-open');
+        });
+        // Close menu when a link inside it is clicked
+        mobileMenu.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                mobileMenu.classList.remove('is-open');
+                hamburger.classList.remove('is-open');
+            });
+        });
+    }
+
     // ── Pill selection via event delegation ───────────────────────────────
     document.querySelectorAll('.sa-chat__pills').forEach(function (group) {
         group.addEventListener('click', function (e) {

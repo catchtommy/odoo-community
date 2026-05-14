@@ -19,6 +19,12 @@
 }
 
 /* ── Odoo Website Navbar overrides ─────────────────────────────────────────── */
+/* Hide Odoo's default website header on the landing page — we use our own navbar */
+.homepage #wrapwrap > header,
+.homepage #wrapwrap > .o_top_fixed_element {
+    display: none !important;
+}
+
 /* Logo text shown in Odoo's default navbar */
 #oe_main_menu_navbar .navbar-brand,
 .o_main_navbar .navbar-brand {
@@ -96,6 +102,83 @@
     border-radius: 10px;
 }
 .sa-btn--outline-yellow:hover { background: var(--sa-yellow); color: var(--sa-navy) !important; }
+
+/* Login button */
+.sa-btn--login {
+    background: transparent;
+    color: var(--sa-navy) !important;
+    border: 2px solid var(--sa-border);
+    padding: 13px 24px;
+    font-size: 16px;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color .15s, background .15s;
+}
+.sa-btn--login:hover {
+    border-color: var(--sa-navy);
+    background: rgba(28,28,46,.05);
+    color: var(--sa-navy) !important;
+    text-decoration: none;
+}
+
+/* CTA row — holds the main CTA + login side by side */
+.sa-hero__cta-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+/* ── Navbar action buttons ──────────────────────────────────────────────────── */
+/* "Book a Demo" — yellow filled pill */
+.sa-btn--book-demo {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--sa-yellow);
+    color: var(--sa-navy) !important;
+    border: 2px solid var(--sa-yellow);
+    padding: 9px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background .15s, border-color .15s;
+    white-space: nowrap;
+}
+.sa-btn--book-demo:hover {
+    background: var(--sa-yellow-d);
+    border-color: var(--sa-yellow-d);
+    color: var(--sa-navy) !important;
+    text-decoration: none;
+}
+
+/* "Log In" — ghost outlined pill */
+.sa-btn--nav-login {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: transparent;
+    color: var(--sa-navy) !important;
+    border: 2px solid #d1d5db;
+    padding: 9px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: border-color .15s, background .15s;
+    white-space: nowrap;
+}
+.sa-btn--nav-login:hover {
+    border-color: var(--sa-navy);
+    background: rgba(28,28,46,.05);
+    color: var(--sa-navy) !important;
+    text-decoration: none;
+}
 
 /* ── Hero ──────────────────────────────────────────────────────────────────── */
 .sa-hero {

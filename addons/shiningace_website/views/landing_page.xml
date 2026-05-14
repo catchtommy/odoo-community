@@ -11,6 +11,51 @@
             <!-- Page content -->
             <div id="wrap" class="sa-page">
 
+                <!-- ── CUSTOM NAVBAR ─────────────────────────────────────── -->
+                <nav class="sa-navbar">
+                    <div class="sa-container sa-navbar__inner">
+
+                        <!-- Logo -->
+                        <a href="/" class="sa-navbar__logo">
+                            <img src="/shiningace_website/static/src/img/penguin.svg"
+                                 alt="ShiningACE" class="sa-navbar__penguin"/>
+                            <span class="sa-navbar__brand">ShiningACE</span>
+                        </a>
+
+                        <!-- Desktop nav links -->
+                        <div class="sa-navbar__links">
+                            <a href="#how-it-works">How it Works</a>
+                            <a href="#success">Success Stories</a>
+                            <a href="#book-demo">Demo Slots</a>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="sa-navbar__actions">
+                            <a href="/enquiry" class="sa-btn sa-btn--book-demo">
+                                Book a Demo
+                            </a>
+                            <a href="/odoo/login" class="sa-btn sa-btn--nav-login">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                                Log In
+                            </a>
+                        </div>
+
+                        <!-- Hamburger (mobile) -->
+                        <button class="sa-navbar__hamburger" id="sa-hamburger" aria-label="Menu">
+                            <span></span><span></span><span></span>
+                        </button>
+
+                    </div>
+                    <!-- Mobile menu -->
+                    <div class="sa-navbar__mobile" id="sa-mobile-menu">
+                        <a href="#how-it-works">How it Works</a>
+                        <a href="#success">Success Stories</a>
+                        <a href="#book-demo">Demo Slots</a>
+                        <a href="/enquiry" class="sa-btn sa-btn--book-demo" style="text-align:center;">Book a Demo</a>
+                        <a href="/odoo/login" class="sa-btn sa-btn--nav-login" style="text-align:center;justify-content:center;">Log In</a>
+                    </div>
+                </nav>
+
                 <!-- ── HERO ─────────────────────────────────────────────── -->
                 <section class="sa-hero">
                     <div class="sa-container sa-hero__inner">
@@ -29,10 +74,13 @@
                                 AI-powered 1-to-1 tutoring for<br/>
                                 GCSE, A-Level &amp; beyond
                             </p>
-                            <a href="#start" class="sa-btn sa-btn--cta">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                                Start with AI Assistant
-                            </a>
+                            <div class="sa-hero__cta-row">
+                                <a href="#start" class="sa-btn sa-btn--cta">
+                                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                                    Start with AI Assistant
+                                </a>
+                                <a href="/enquiry" class="sa-btn sa-btn--outline-yellow">Book Free Demo</a>
+                            </div>
                             <div class="sa-hero__trust">
                                 <span class="sa-star">★</span>
                                 <strong>4.6</strong>
