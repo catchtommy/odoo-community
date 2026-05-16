@@ -216,10 +216,13 @@ class TutorAvailabilityOverview(models.TransientModel):
                     slots[d].sort()
 
                 max_rows = max((len(slots[d]) for d in days), default=0)
+                tutor_label = '%s<br/><span style="font-size:11px;color:#666;">%s</span>' % (
+                    tutor.name, tutor.timezone or 'UTC'
+                )
 
                 if max_rows == 0:
                     html.append('<tr>')
-                    html.append('<td style="%s">%s</td>' % (td_name, tutor.name))
+                    html.append('<td style="%s">%s</td>' % (td_name, tutor_label))
                     for d in days:
                         html.append('<td style="%s">—</td>' % td_none)
                     html.append('</tr>')
@@ -227,7 +230,7 @@ class TutorAvailabilityOverview(models.TransientModel):
                     for i in range(max_rows):
                         html.append('<tr>')
                         if i == 0:
-                            html.append('<td style="%s" rowspan="%d">%s</td>' % (td_name, max_rows, tutor.name))
+                            html.append('<td style="%s" rowspan="%d">%s</td>' % (td_name, max_rows, tutor_label))
                         for d in days:
                             day_slots = slots[d]
                             if i < len(day_slots):
@@ -355,12 +358,18 @@ class TutorProfile(models.Model):
                 rec.availability_matrix_html = '<p class="text-muted">No availability defined.</p>'
                 continue
 
+            tz_label = rec.timezone or 'UTC'
+
             # Build HTML table
             th_style = 'padding:8px 12px;background:#2E86AB;color:#fff;text-align:center;font-weight:bold;border:1px solid #ccc;min-width:110px;'
             td_style = 'padding:6px 10px;text-align:center;border:1px solid #ddd;vertical-align:middle;'
             td_empty = 'padding:6px 10px;text-align:center;border:1px solid #ddd;color:#bbb;'
 
-            html = ['<div style="overflow-x:auto;"><table style="border-collapse:collapse;width:100%;font-size:13px;">']
+            html = [
+                '<div style="overflow-x:auto;">',
+                '<p style="font-size:12px;color:#666;margin-bottom:6px;">Times shown in tutor\'s local timezone: <strong>%s</strong></p>' % tz_label,
+                '<table style="border-collapse:collapse;width:100%;font-size:13px;">',
+            ]
             # Header row
             html.append('<thead><tr>')
             for label in day_labels:

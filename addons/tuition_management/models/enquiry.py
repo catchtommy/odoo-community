@@ -583,28 +583,60 @@ class DemoSession(models.Model):
     available_tutor_ids = fields.Many2many('tutor.profile', compute='_compute_available_tutors', store=False)
     no_tutor_available = fields.Boolean(compute='_compute_available_tutors', store=False)
     
-    @api.depends('scheduled_datetime', 'duration_minutes', 'subject_id')
+    @api.depends('scheduled_datetime', 'duration_minutes', 'subject_id', 'timezone')
     def _compute_available_tutors(self):
         for rec in self:
             if not rec.scheduled_datetime:
                 rec.available_tutor_ids = self.env['tutor.profile'].search([])
                 rec.no_tutor_available = False
                 continue
-            
-            day_name = rec.scheduled_datetime.strftime('%A').lower()
-            start_float = rec.scheduled_datetime.hour + (rec.scheduled_datetime.minute / 60.0)
+
+            # scheduled_datetime is stored in UTC — convert to the enquiry's local timezone
+            # before extracting hour/minute, so the comparison is in local time (matching
+            # the tutor's stored availability which is in the tutor's local time).
+            import pytz as _pytz
+            enq_tz = _pytz.timezone(rec.timezone or 'UTC')
+            local_dt = rec.scheduled_datetime.replace(tzinfo=_pytz.utc).astimezone(enq_tz)
+
+            day_name = local_dt.strftime('%A').lower()
+            start_float = local_dt.hour + (local_dt.minute / 60.0)
             end_float = start_float + (rec.duration_minutes / 60.0)
-            
-            # Find tutors who are available on this day and time
-            # and (optionally) teach the selected subject
+
+            # Initial domain filter: find tutors available on this day+time
+            # (comparison against stored times which are in the tutor's local timezone)
             domain = [('availability_ids.day_of_week', '=', day_name),
                       ('availability_ids.start_time', '<=', start_float),
                       ('availability_ids.end_time', '>=', end_float),
                       ('active', '=', True)]
             if rec.subject_id:
                 domain.append(('subject_ids', 'in', rec.subject_id.id))
-                
-            available = self.env['tutor.profile'].search(domain)
+
+            candidates = self.env['tutor.profile'].search(domain)
+
+            # Secondary per-tutor filter: adjust for tutors whose timezone differs
+            # from the enquiry timezone (convert start_float to each tutor's local time).
+            available = self.env['tutor.profile']
+            for tutor in candidates:
+                tutor_tz_name = tutor.timezone or 'UTC'
+                enq_tz_name = rec.timezone or 'UTC'
+                if tutor_tz_name == enq_tz_name:
+                    available |= tutor
+                    continue
+                # Convert enquiry local time to tutor's local time
+                try:
+                    tutor_tz = _pytz.timezone(tutor_tz_name)
+                    tutor_dt = local_dt.astimezone(tutor_tz)
+                    t_start = tutor_dt.hour + tutor_dt.minute / 60.0
+                    t_end = t_start + (rec.duration_minutes / 60.0)
+                    covers = tutor.availability_ids.filtered(
+                        lambda a, d=day_name, st=t_start, et=t_end: a.day_of_week == d
+                        and a.start_time <= st and a.end_time >= et
+                    )
+                    if covers:
+                        available |= tutor
+                except Exception:
+                    available |= tutor  # include on error rather than silently exclude
+
             rec.available_tutor_ids = available
             rec.no_tutor_available = not bool(available)
 

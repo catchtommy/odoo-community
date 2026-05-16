@@ -258,22 +258,45 @@ class ClassSchedule(models.Model):
             available = self.env['tutor.profile']
             partial = self.env['tutor.profile']
 
+            sched_tz_name = rec.timezone or DEFAULT_TIMEZONE
+
+            def _convert_to_tutor_tz(time_float, tutor_tz_name):
+                """Convert a time float from schedule TZ to tutor's local TZ."""
+                if not tutor_tz_name or tutor_tz_name == sched_tz_name:
+                    return time_float
+                try:
+                    from datetime import datetime as _dt, date as _date
+                    sched_tz = pytz.timezone(sched_tz_name)
+                    tutor_tz = pytz.timezone(tutor_tz_name)
+                    h = int(time_float)
+                    m = int(round((time_float - h) * 60))
+                    today = _date.today()
+                    naive = _dt(today.year, today.month, today.day, min(h, 23), min(m, 59))
+                    aware = sched_tz.localize(naive)
+                    converted = aware.astimezone(tutor_tz)
+                    return converted.hour + converted.minute / 60.0
+                except Exception:
+                    return time_float
+
             if selected_days:
                 for tutor in all_tutors:
+                    tutor_tz_name = tutor.timezone or DEFAULT_TIMEZONE
+                    t_start = _convert_to_tutor_tz(schedule_time, tutor_tz_name)
+                    t_end = _convert_to_tutor_tz(schedule_end_time, tutor_tz_name)
                     avail_days_ok = []
                     avail_days_partial = []
                     for day in selected_days:
                         # Check if tutor has availability covering the full slot on this day
                         full_cover = tutor.availability_ids.filtered(
-                            lambda a, d=day: a.day_of_week == d
-                            and a.start_time <= schedule_time
-                            and a.end_time >= schedule_end_time
+                            lambda a, d=day, st=t_start, et=t_end: a.day_of_week == d
+                            and a.start_time <= st
+                            and a.end_time >= et
                         )
                         # Check partial coverage (starts in window but doesn't cover end)
                         partial_cover = tutor.availability_ids.filtered(
-                            lambda a, d=day: a.day_of_week == d
-                            and a.start_time <= schedule_time
-                            and a.end_time > schedule_time
+                            lambda a, d=day, st=t_start: a.day_of_week == d
+                            and a.start_time <= st
+                            and a.end_time > st
                         )
                         avail_days_ok.append(bool(full_cover))
                         avail_days_partial.append(bool(partial_cover))
