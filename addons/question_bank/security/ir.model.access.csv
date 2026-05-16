@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_qb_subject_user,qb.subject user,model_qb_subject,group_qb_user,1,1,1,0
+access_qb_subject_manager,qb.subject manager,model_qb_subject,group_qb_manager,1,1,1,1
+access_qb_topic_user,qb.topic user,model_qb_topic,group_qb_user,1,1,1,0
+access_qb_topic_manager,qb.topic manager,model_qb_topic,group_qb_manager,1,1,1,1
+access_qb_tag_user,qb.tag user,model_qb_tag,group_qb_user,1,1,1,0
+access_qb_tag_manager,qb.tag manager,model_qb_tag,group_qb_manager,1,1,1,1
+access_qb_question_user,qb.question user,model_qb_question,group_qb_user,1,1,1,0
+access_qb_question_manager,qb.question manager,model_qb_question,group_qb_manager,1,1,1,1
+access_qb_question_option_user,qb.question.option user,model_qb_question_option,group_qb_user,1,1,1,0
+access_qb_question_option_manager,qb.question.option manager,model_qb_question_option,group_qb_manager,1,1,1,1

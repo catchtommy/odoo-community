@@ -1,0 +1,322 @@
+/* ==========================================================================
+   Question Bank — Main Stylesheet
+   ========================================================================== */
+
+/* ── CSS Variables ──────────────────────────────────────────────────────── */
+.qb-question-form {
+    --qb-panel-bg:      #f8f9fc;
+    --qb-panel-border:  #e2e6ea;
+    --qb-accent:        #4F46E5;
+    --qb-success:       #16a34a;
+    --qb-warning:       #d97706;
+    --qb-danger:        #dc2626;
+    --qb-radius:        10px;
+    --qb-shadow:        0 2px 8px rgba(0,0,0,0.07);
+}
+
+/* ── Three-column editor layout ─────────────────────────────────────────── */
+.qb-editor-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr 300px;
+    gap: 16px;
+    align-items: start;
+    min-height: 600px;
+}
+
+@media (max-width: 1400px) {
+    .qb-editor-layout { grid-template-columns: 220px 1fr 260px; }
+}
+
+@media (max-width: 1100px) {
+    .qb-editor-layout {
+        grid-template-columns: 1fr;
+    }
+    .qb-panel-right { order: -1; }
+}
+
+/* ── Panels ─────────────────────────────────────────────────────────────── */
+.qb-panel {
+    background:    var(--qb-panel-bg);
+    border:        1px solid var(--qb-panel-border);
+    border-radius: var(--qb-radius);
+    padding:       16px;
+    box-shadow:    var(--qb-shadow);
+}
+
+.qb-panel-title {
+    font-size:     13px;
+    font-weight:   700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color:         var(--qb-accent);
+    border-bottom: 2px solid var(--qb-panel-border);
+    padding-bottom: 8px;
+    margin-bottom: 14px;
+}
+
+/* ── Left panel: metadata fields ────────────────────────────────────────── */
+.qb-field-row {
+    margin-bottom: 12px;
+}
+.qb-field-row label {
+    display:     block;
+    font-size:   11px;
+    font-weight: 600;
+    color:       #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 4px;
+}
+.qb-input { width: 100%; }
+
+.qb-radio-group .o_radio_item { margin-bottom: 4px; }
+
+/* ── Center panel: editor sections ─────────────────────────────────────── */
+.qb-editor-section {
+    margin-bottom: 20px;
+    padding-bottom: 20px;
+    border-bottom: 1px dashed var(--qb-panel-border);
+}
+.qb-editor-section:last-child {
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.qb-section-label {
+    display:     block;
+    font-size:   12px;
+    font-weight: 700;
+    color:       #374151;
+    margin-bottom: 8px;
+}
+
+.qb-hint {
+    color:     #9ca3af;
+    font-size: 11px;
+    font-weight: 400;
+}
+
+/* HTML editor */
+.qb-html-editor .odoo-editor-editable,
+.qb-html-editor .note-editable {
+    min-height:  180px;
+    border:      1px solid var(--qb-panel-border);
+    border-radius: 8px;
+    padding:     12px;
+    background:  #fff;
+}
+.qb-html-editor--sm .odoo-editor-editable,
+.qb-html-editor--sm .note-editable {
+    min-height: 100px;
+}
+
+/* ── LaTeX widget ────────────────────────────────────────────────────────── */
+.qb-latex-widget { display: flex; flex-direction: column; gap: 8px; }
+
+.qb-latex-input,
+.qb-latex-widget textarea {
+    width:         100%;
+    font-family:   "JetBrains Mono", "Fira Code", monospace;
+    font-size:     13px;
+    padding:       10px;
+    border:        1px solid var(--qb-panel-border);
+    border-radius: 8px;
+    background:    #fff;
+    resize:        vertical;
+}
+
+.qb-latex-preview-box {
+    background:    #f0f4ff;
+    border:        1px solid #c7d2fe;
+    border-radius: 8px;
+    padding:       12px;
+}
+
+.qb-latex-render {
+    font-size:  18px;
+    text-align: center;
+    padding:    8px 0;
+    color:      #1e1b4b;
+}
+
+/* ── Graph widget ────────────────────────────────────────────────────────── */
+.qb-graph-widget { display: flex; flex-direction: column; gap: 8px; }
+
+.qb-graph-input,
+.qb-graph-widget textarea {
+    width:         100%;
+    font-family:   "JetBrains Mono", "Fira Code", monospace;
+    font-size:     12px;
+    padding:       10px;
+    border:        1px solid var(--qb-panel-border);
+    border-radius: 8px;
+    background:    #fff;
+    resize:        vertical;
+}
+
+.qb-graph-preview-box {
+    background:    #f0fdf4;
+    border:        1px solid #bbf7d0;
+    border-radius: 8px;
+    padding:       12px;
+}
+
+.qb-graph-json-display,
+.qb-graph-json {
+    font-size:    11px;
+    background:   #f9fafb;
+    border:       1px solid #e5e7eb;
+    border-radius: 6px;
+    padding:      8px;
+    margin:       4px 0 0;
+    white-space:  pre-wrap;
+    word-break:   break-all;
+}
+
+.qb-graph-placeholder-visual {
+    text-align: center;
+    padding:    20px;
+    background: #f9fafb;
+    border:     2px dashed #d1d5db;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+/* ── MCQ options list ────────────────────────────────────────────────────── */
+.qb-options-list .o_data_row { border-bottom: 1px solid var(--qb-panel-border); }
+.qb-options-list .o_data_row td { padding: 6px 8px; }
+
+/* ── True/False toggle ───────────────────────────────────────────────────── */
+.qb-tf-radio .o_radio_item {
+    display:        inline-flex;
+    align-items:    center;
+    gap:            8px;
+    padding:        10px 20px;
+    border:         2px solid var(--qb-panel-border);
+    border-radius:  8px;
+    margin-right:   12px;
+    cursor:         pointer;
+    transition:     border-color .15s, background .15s;
+    font-weight:    600;
+}
+.qb-tf-radio .o_radio_item:has(input:checked) {
+    border-color: var(--qb-accent);
+    background:   #eef2ff;
+    color:        var(--qb-accent);
+}
+
+/* ── Right panel: live preview ───────────────────────────────────────────── */
+.qb-preview-wrapper {
+    min-height: 300px;
+}
+
+.qb-preview-empty {
+    text-align: center;
+    padding:    40px 16px;
+}
+
+.qb-preview-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.qb-preview-title {
+    font-size:   16px;
+    font-weight: 700;
+    color:       #111827;
+    margin:      8px 0;
+    line-height: 1.4;
+}
+
+.qb-preview-html {
+    font-size:   14px;
+    line-height: 1.6;
+    color:       #374151;
+}
+.qb-preview-html--explanation {
+    background:  #fefce8;
+    border:      1px solid #fef08a;
+    border-radius: 8px;
+    padding:     10px;
+    font-size:   13px;
+}
+
+.qb-preview-section-label {
+    font-size:   11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color:       #9ca3af;
+    margin-bottom: 6px;
+}
+
+/* MCQ option rows */
+.qb-preview-options-list {
+    display:        flex;
+    flex-direction: column;
+    gap:            6px;
+}
+.qb-preview-option {
+    display:        flex;
+    align-items:    center;
+    gap:            10px;
+    padding:        8px 12px;
+    background:     #fff;
+    border:         1px solid var(--qb-panel-border);
+    border-radius:  8px;
+    font-size:      13px;
+}
+.qb-preview-option--correct {
+    background:    #f0fdf4;
+    border-color:  #86efac;
+}
+
+.qb-option-letter {
+    display:        inline-flex;
+    align-items:    center;
+    justify-content: center;
+    width:          26px;
+    height:         26px;
+    background:     #e5e7eb;
+    border-radius:  50%;
+    font-size:      12px;
+    font-weight:    700;
+    flex-shrink:    0;
+}
+.qb-preview-option--correct .qb-option-letter {
+    background:  #bbf7d0;
+    color:       #15803d;
+}
+
+.qb-option-text { flex: 1; }
+
+/* ── Type badges ─────────────────────────────────────────────────────────── */
+.qb-type-badge { font-size: 11px; }
+.qb-type-mcq        { background: #dbeafe; color: #1d4ed8; }
+.qb-type-true_false { background: #d1fae5; color: #065f46; }
+.qb-type-fill_blank { background: #fef9c3; color: #854d0e; }
+
+/* ── Difficulty badges ───────────────────────────────────────────────────── */
+.qb-diff-badge { font-size: 11px; }
+.qb-diff-easy   { background: #dcfce7; color: #15803d; }
+.qb-diff-medium { background: #ffedd5; color: #c2410c; }
+.qb-diff-hard   { background: #fee2e2; color: #b91c1c; }
+
+/* ── Kanban card ─────────────────────────────────────────────────────────── */
+.qb-kanban-card {
+    padding: 4px 0;
+}
+.qb-kanban-badges { display: flex; gap: 4px; flex-wrap: wrap; }
+.qb-kanban-title  { font-size: 13px; line-height: 1.4; }
+.qb-kanban-meta   { font-size: 12px; }
+.qb-kanban-footer { border-top: 1px solid #f3f4f6; padding-top: 8px; margin-top: 6px; }
+
+/* ── Image upload area ───────────────────────────────────────────────────── */
+.qb-image-upload .o_field_many2many_binary .o_upload_media_button {
+    border: 2px dashed var(--qb-panel-border);
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s;
+}
+.qb-image-upload .o_field_many2many_binary .o_upload_media_button:hover {
+    border-color: var(--qb-accent);
+}

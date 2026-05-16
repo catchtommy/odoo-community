@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ── List View ───────────────────────────────────────────────────── -->
+    <record id="view_qb_topic_list" model="ir.ui.view">
+        <field name="name">qb.topic.list</field>
+        <field name="model">qb.topic</field>
+        <field name="arch" type="xml">
+            <list string="Topics">
+                <field name="name"/>
+                <field name="subject_id"/>
+                <field name="question_count" string="Questions"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── Form View ───────────────────────────────────────────────────── -->
+    <record id="view_qb_topic_form" model="ir.ui.view">
+        <field name="name">qb.topic.form</field>
+        <field name="model">qb.topic</field>
+        <field name="arch" type="xml">
+            <form string="Topic">
+                <sheet>
+                    <group>
+                        <field name="name" placeholder="e.g. Quadratic Equations"/>
+                        <field name="subject_id"/>
+                        <field name="description" placeholder="Brief description…"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── Action ──────────────────────────────────────────────────────── -->
+    <record id="action_qb_topic" model="ir.actions.act_window">
+        <field name="name">Topics</field>
+        <field name="res_model">qb.topic</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+</odoo>
