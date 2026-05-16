@@ -75,24 +75,32 @@
                         <field name="available_tutor_ids" invisible="1"/>
                         <field name="fallback_tutor_ids" invisible="1"/>
                         <field name="all_eligible_tutor_ids" invisible="1"/>
+                        <field name="partial_tutor_ids" invisible="1"/>
                         <!-- No days selected yet: show all course-eligible tutors for reference -->
-                        <div colspan="2" invisible="no_tutor_available or available_tutor_ids or not all_eligible_tutor_ids">
+                        <div colspan="2" invisible="no_tutor_available or available_tutor_ids or partial_tutor_ids or not all_eligible_tutor_ids">
                             <p class="text-muted mb-1"><i class="fa fa-info-circle text-info"/> Tutors available for this course's subject and grade (select day(s) and time to filter by availability):</p>
                             <field name="all_eligible_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
                         </div>
-                        <!-- Days selected and some tutors are available at that time -->
-                        <div colspan="2" invisible="no_tutor_available or not available_tutor_ids">
-                            <p class="text-muted mb-1"><i class="fa fa-check-circle text-success"/> Tutors available for the selected day(s) and time:</p>
+                        <!-- Days selected and some tutors are fully available at that time -->
+                        <div colspan="2" invisible="not available_tutor_ids">
+                            <p class="text-muted mb-1"><i class="fa fa-check-circle text-success"/> <strong>Available</strong> — tutors fully available for the selected day(s) and time:</p>
                             <field name="available_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
+                        </div>
+                        <!-- Partially available tutors -->
+                        <div colspan="2" invisible="not partial_tutor_ids">
+                            <p class="text-muted mb-1"><i class="fa fa-clock-o text-warning"/> <strong>Partially Available</strong> — available for some but not all selected days/time:</p>
+                            <field name="partial_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
                         </div>
                         <!-- Days selected but NO tutors are available at that time -->
                         <div colspan="2" invisible="not no_tutor_available">
                             <div class="alert alert-warning mb-2" role="alert">
-                                <i class="fa fa-exclamation-triangle"/> <strong>No tutors available</strong> for the selected schedule.
+                                <i class="fa fa-exclamation-triangle"/> <strong>Not Available</strong> — no tutors available for the selected schedule.
                             </div>
+                            <p class="text-muted mb-1" invisible="not fallback_tutor_ids">All eligible tutors (for reference):</p>
                             <field name="fallback_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
                         </div>
-                        <field name="tutor_id" string="Assign Tutor" domain="[('id', 'in', all_eligible_tutor_ids)]"/>
+                        <field name="tutor_id" string="Assign Tutor" domain="[('id', 'in', all_eligible_tutor_ids)]"
+                               help="You may select any eligible tutor. Use the availability indicators above as a guide."/>
                     </group>
                     <group string="Tutor Selection" invisible="course_id">
                         <field name="tutor_id" string="Assign Tutor"/>
@@ -144,8 +152,13 @@
         <field name="name">class.schedule.occurrence.calendar</field>
         <field name="model">class.schedule.occurrence</field>
         <field name="arch" type="xml">
-            <calendar string="Class Schedules" date_start="start_datetime" date_stop="stop_datetime" color="course_id" mode="month" event_open_popup="false" quick_create="false">
-                <field name="name"/><field name="course_id"/><field name="tutor_id"/><field name="lesson_status"/>
+            <calendar string="Class Schedules" date_start="start_datetime" date_stop="stop_datetime"
+                      color="course_id" mode="month" event_open_popup="false" quick_create="false">
+                <field name="name"/>
+                <field name="course_id"/>
+                <field name="tutor_id"/>
+                <field name="start_local_display"/>
+                <field name="lesson_status"/>
             </calendar>
         </field>
     </record>
@@ -197,8 +210,16 @@
                         <group>
                             <field name="start_datetime" readonly="id"/>
                             <field name="stop_datetime" readonly="id"/>
+                            <field name="start_local_display" readonly="1" string="Local Time"/>
                             <field name="is_demo" string="Demo Session" readonly="id"/>
                         </group>
+                    </group>
+                    <!-- Cancellation details — visible to admins when cancelled or under review -->
+                    <group string="Cancellation Details"
+                           invisible="lesson_status not in ('cancelled', 'under_review')"
+                           groups="base.group_erp_manager">
+                        <field name="cancellation_reason" readonly="1"/>
+                        <field name="cancellation_note" readonly="1"/>
                     </group>
                     <group string="Virtual Classroom" invisible="not id">
                         <group>

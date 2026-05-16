@@ -2,6 +2,7 @@ from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 from datetime import timedelta
 import logging
+from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
 
 _logger = logging.getLogger(__name__)
 
@@ -573,18 +574,11 @@ class DemoSession(models.Model):
             )
 
     scheduled_datetime = fields.Datetime(string='Scheduled Date & Time')
-    timezone = fields.Selection([
-        ('US/Eastern', 'US/Eastern'),
-        ('US/Central', 'US/Central'),
-        ('US/Mountain', 'US/Mountain'),
-        ('US/Pacific', 'US/Pacific'),
-        ('Europe/London', 'Europe/London'),
-        ('Europe/Paris', 'Europe/Paris'),
-        ('Asia/Kolkata', 'Asia/Kolkata'),
-        ('Asia/Tokyo', 'Asia/Tokyo'),
-        ('Australia/Sydney', 'Australia/Sydney'),
-        ('UTC', 'UTC'),
-    ], string='Timezone', default=lambda self: self.env.user.tz or 'UTC')
+    timezone = fields.Selection(
+        selection=get_tz_selection,
+        string='Timezone',
+        default=lambda self: self.env.user.tz or DEFAULT_TIMEZONE,
+    )
     duration_minutes = fields.Integer(string='Duration (Minutes)', default=30)
     available_tutor_ids = fields.Many2many('tutor.profile', compute='_compute_available_tutors', store=False)
     no_tutor_available = fields.Boolean(compute='_compute_available_tutors', store=False)

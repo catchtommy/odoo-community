@@ -1,0 +1,212 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ─────────────────────────────────────────────────
+         Parent Billing Run — List View
+    ───────────────────────────────────────────────── -->
+    <record id="view_parent_billing_run_list" model="ir.ui.view">
+        <field name="name">parent.billing.run.list</field>
+        <field name="model">parent.billing.run</field>
+        <field name="arch" type="xml">
+            <list string="Parent Invoicing Runs"
+                  decoration-info="state == 'draft'"
+                  decoration-warning="state == 'preview'"
+                  decoration-success="state == 'approved'"
+                  decoration-muted="state == 'invoiced'">
+                <field name="name"/>
+                <field name="period_label"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'preview'"
+                       decoration-success="state == 'approved'"
+                       decoration-muted="state == 'invoiced'"/>
+                <field name="total_parents"/>
+                <field name="total_amount" sum="Total"/>
+                <field name="created_by"/>
+                <field name="approved_by"/>
+                <field name="invoiced_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ─────────────────────────────────────────────────
+         Parent Billing Run — Form View
+    ───────────────────────────────────────────────── -->
+    <record id="view_parent_billing_run_form" model="ir.ui.view">
+        <field name="name">parent.billing.run.form</field>
+        <field name="model">parent.billing.run</field>
+        <field name="arch" type="xml">
+            <form string="Parent Invoicing Run">
+                <header>
+                    <!-- Draft → Preview -->
+                    <button name="action_generate_preview" type="object"
+                            string="Generate Preview" class="btn-primary"
+                            invisible="state not in ['draft', 'preview']"/>
+                    <!-- Preview → Approved -->
+                    <button name="action_approve" type="object"
+                            string="Approve" class="btn-primary"
+                            invisible="state != 'preview'"
+                            groups="base.group_system"/>
+                    <!-- Approved → Invoiced -->
+                    <button name="action_generate_invoices" type="object"
+                            string="Generate Invoices" class="btn-primary"
+                            invisible="state != 'approved'"
+                            groups="base.group_system"
+                            confirm="This will create invoices for all included lines and cannot be undone. Continue?"/>
+                    <!-- View invoices after done -->
+                    <button name="action_view_invoices" type="object"
+                            string="View Invoices" class="btn-secondary"
+                            invisible="state != 'invoiced'"/>
+                    <!-- Reset to draft -->
+                    <button name="action_reset_to_draft" type="object"
+                            string="Reset to Draft" class="btn-secondary"
+                            invisible="state not in ['draft', 'preview']"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,preview,approved,invoiced"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Period">
+                            <field name="month"/>
+                            <field name="year"/>
+                            <field name="period_label" readonly="1"/>
+                        </group>
+                        <group string="Summary">
+                            <field name="total_parents" readonly="1"/>
+                            <field name="total_amount" readonly="1" widget="monetary"
+                                   options="{'currency_field': 'currency_id'}"/>
+                            <field name="currency_id" invisible="1"/>
+                        </group>
+                    </group>
+
+                    <group string="Audit Trail" invisible="state == 'draft'">
+                        <group>
+                            <field name="created_by" readonly="1"/>
+                            <field name="created_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="approved_by" readonly="1" invisible="not approved_by"/>
+                            <field name="approved_date" readonly="1" invisible="not approved_date"/>
+                            <field name="invoiced_by" readonly="1" invisible="not invoiced_by"/>
+                            <field name="invoiced_date" readonly="1" invisible="not invoiced_date"/>
+                        </group>
+                    </group>
+
+                    <field name="notes" placeholder="Internal notes..."/>
+
+                    <separator string="Billing Lines"/>
+                    <field name="line_ids"
+                           context="{'tree_view_ref': 'tuition_management.view_parent_billing_run_line_list'}">
+                        <list string="Billing Lines"
+                              decoration-muted="state == 'excluded'"
+                              decoration-warning="has_existing_invoice and state == 'included'">
+                            <field name="partner_id" readonly="1"/>
+                            <field name="state" widget="badge"
+                                   decoration-success="state == 'included'"
+                                   decoration-danger="state == 'excluded'"/>
+                            <field name="has_existing_invoice" column_invisible="True"/>
+                            <field name="total_amount" sum="Total" readonly="1"
+                                   widget="monetary" options="{'currency_field': 'currency_id'}"/>
+                            <field name="currency_id" column_invisible="True"/>
+                            <field name="invoice_id" readonly="1"/>
+                            <field name="notes"/>
+                            <button name="action_exclude" type="object"
+                                    icon="fa-times" title="Exclude this line"
+                                    invisible="state == 'excluded' or run_state in ['approved','invoiced']"
+                                    class="btn-sm btn-danger"/>
+                            <button name="action_include" type="object"
+                                    icon="fa-check" title="Re-include this line"
+                                    invisible="state == 'included' or run_state in ['approved','invoiced']"
+                                    class="btn-sm btn-success"/>
+                        </list>
+                    </field>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ─────────────────────────────────────────────────
+         Parent Billing Run Line — List (standalone)
+    ───────────────────────────────────────────────── -->
+    <record id="view_parent_billing_run_line_list" model="ir.ui.view">
+        <field name="name">parent.billing.run.line.list</field>
+        <field name="model">parent.billing.run.line</field>
+        <field name="arch" type="xml">
+            <list string="Billing Lines">
+                <field name="partner_id"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'included'"
+                       decoration-danger="state == 'excluded'"/>
+                <field name="total_amount" sum="Total" widget="monetary"
+                       options="{'currency_field': 'currency_id'}"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="invoice_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ─────────────────────────────────────────────────
+         Parent Billing Run Line — Form (drill-down)
+    ───────────────────────────────────────────────── -->
+    <record id="view_parent_billing_run_line_form" model="ir.ui.view">
+        <field name="name">parent.billing.run.line.form</field>
+        <field name="model">parent.billing.run.line</field>
+        <field name="arch" type="xml">
+            <form string="Billing Line">
+                <div class="alert alert-warning" role="alert"
+                     invisible="not has_existing_invoice">
+                    <strong>Warning:</strong> An invoice already exists for this parent in this billing period.
+                    Generating another may result in duplicate billing.
+                </div>
+                <sheet>
+                    <group>
+                        <field name="run_id" readonly="1"/>
+                        <field name="partner_id" readonly="1"/>
+                        <field name="state"/>
+                        <field name="total_amount" readonly="1" widget="monetary"
+                               options="{'currency_field': 'currency_id'}"/>
+                        <field name="currency_id" invisible="1"/>
+                        <field name="invoice_id" readonly="1"/>
+                        <field name="notes"/>
+                        <field name="has_existing_invoice" invisible="1"/>
+                    </group>
+                    <separator string="Subscription Line Details"/>
+                    <field name="detail_ids">
+                        <list create="false" delete="false">
+                            <field name="student_id"/>
+                            <field name="course_name"/>
+                            <field name="description"/>
+                            <field name="quantity"/>
+                            <field name="unit_price"/>
+                            <field name="subtotal" sum="Total"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ─────────────────────────────────────────────────
+         Action
+    ───────────────────────────────────────────────── -->
+    <record id="action_parent_billing_runs" model="ir.actions.act_window">
+        <field name="name">Parent Invoicing Runs</field>
+        <field name="res_model">parent.billing.run</field>
+        <field name="view_mode">list,form</field>
+        <field name="context">{}</field>
+    </record>
+
+    <!-- Action for wizard -->
+    <record id="action_parent_billing_run_wizard" model="ir.actions.act_window">
+        <field name="name">Generate Parent Invoices</field>
+        <field name="res_model">bulk.billing.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

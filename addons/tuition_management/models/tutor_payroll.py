@@ -267,7 +267,10 @@ class TutorPaymentRun(models.Model):
                 ('payment_period_to', '=', rec.payment_period_to),
             ], limit=1)
             if duplicate and not self.env.context.get('allow_duplicate_payroll_run'):
-                raise ValidationError("A payroll run already exists for this exact period.")
+                raise ValidationError(
+                    f"A tutor payroll run already exists for this period (Ref: {duplicate.name}). "
+                    f"Please open the existing run instead of creating a new one."
+                )
 
     @api.model_create_multi
     def create(self, vals_list):

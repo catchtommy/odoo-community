@@ -30,6 +30,7 @@
         "views/progress_views.xml",
         "views/tuition_views.xml",
         "views/billing_views.xml",
+        "views/parent_billing_run_views.xml",
         "views/menu_views.xml",
         "views/report_class_status_views.xml",
         "views/report_subject_wise_views.xml",

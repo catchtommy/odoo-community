@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from datetime import date
 from odoo import models, fields, api
 from odoo.exceptions import UserError
 from dateutil.relativedelta import relativedelta
@@ -13,114 +14,50 @@ class BulkBillingWizard(models.TransientModel):
         selection=lambda self: [(str(i), calendar.month_name[i]) for i in range(1, 13)],
         string='Billing Month',
         required=True,
-        default=lambda self: str((fields.Date.today() - relativedelta(months=1)).month)
     )
     year = fields.Integer(
         string='Billing Year',
         required=True,
-        default=lambda self: (fields.Date.today() - relativedelta(months=1)).year
     )
+
+    @api.model
+    def default_get(self, fields_list):
+        res = super().default_get(fields_list)
+        today = date.today()
+        last_month = today - relativedelta(months=1)
+        if 'month' in fields_list:
+            res['month'] = str(last_month.month)
+        if 'year' in fields_list:
+            res['year'] = today.year
+        return res
 
     def action_preview_invoices(self):
         self.ensure_one()
-        # Default to first of the month
-        billing_date = fields.Date.to_date(f'{self.year}-{self.month}-01')
-        last_day = calendar.monthrange(self.year, int(self.month))[1]
-        period_end = fields.Date.to_date(f'{self.year}-{self.month}-{last_day}')
-        
-        # Find active subscriptions billing this month OR strictly before period end
-        subs_to_bill = self.env['tuition.subscription'].search([
-            ('state', '=', 'active'),
-            ('next_billing_date', '<=', period_end)
-        ])
-
-        if not subs_to_bill:
-            raise UserError("No active subscriptions found for billing in the selected period (due on or before %s)." % period_end)
-
-        invoices_by_parent = {}
-        missing_contacts_students = []
-        
-        for sub in subs_to_bill:
-            # Determine billing partner:
-            # 1) Parent profile linked to the student
-            billing_partner = False
-            parent_profile = self.env['parent.profile'].sudo().search([('student_ids', 'in', [sub.student_id.id])], limit=1)
-            if parent_profile and parent_profile.partner_id:
-                billing_partner = parent_profile.partner_id
-            
-            # 2) Fallback: Contact linked directly to the student
-            if not billing_partner and sub.student_id.partner_id:
-                billing_partner = sub.student_id.partner_id
-
-            if not billing_partner:
-                missing_contacts_students.append(sub.student_id.name or 'Unknown Student')
-                continue # Cannot bill without a contact
-
-            if billing_partner.id not in invoices_by_parent:
-                invoices_by_parent[billing_partner.id] = {
-                    'partner_id': billing_partner.id,
-                    'subscription_ids': [],
-                    'total_amount': 0.0,
-                }
-            invoices_by_parent[billing_partner.id]['subscription_ids'].append(sub.id)
-
-        if not invoices_by_parent:
+        # Check for an existing run for this month/year
+        existing = self.env['parent.billing.run'].search([
+            ('month', '=', self.month),
+            ('year', '=', self.year),
+        ], limit=1)
+        if existing:
+            import calendar as _cal
+            period = f"{_cal.month_name[int(self.month)]} {self.year}"
             raise UserError(
-                "Could not determine a billing partner for any of the due subscriptions.\n\n"
-                "The following students are missing a linked Contact (or their Parent is missing a linked Contact):\n- " 
-                + "\n- ".join(set(missing_contacts_students))
+                f"A parent invoicing run already exists for {period} (Ref: {existing.name}, "
+                f"Status: {dict(existing._fields['state'].selection).get(existing.state, existing.state)}). "
+                f"Please open the existing run from the 'Parent Invoicing Runs' menu."
             )
-
-        # Create preview records
-        preview_lines = []
-        for partner_id, data in invoices_by_parent.items():
-            line_details = []
-            total_invoice_amount = 0
-            
-            subscriptions = self.env['tuition.subscription'].browse(data['subscription_ids'])
-            for sub in subscriptions:
-                try:
-                    # Use existing logic to get preview values for each subscription
-                    preview_vals = sub._build_preview_vals()
-                    total_invoice_amount += preview_vals.get('total_amount', 0.0)
-                    
-                    # Create detailed lines for this subscription
-                    for line in preview_vals.get('lines', []):
-                        line_details.append((0, 0, {
-                            'student_id': sub.student_id.id,
-                            'course_name': sub.enrollment_id.course_id.name or '',
-                            'description': line.get('description'),
-                            'unit_price': line.get('unit_price'),
-                            'subtotal': line.get('subtotal'),
-                        }))
-                except UserError:
-                    # Skip subs that can't be billed (e.g., no active plan)
-                    continue
-
-            if line_details:
-                preview_lines.append((0, 0, {
-                    'partner_id': partner_id,
-                    'total_amount': total_invoice_amount,
-                    'detail_ids': line_details,
-                    'subscription_ids': [(6, 0, subscriptions.ids)]
-                }))
-
-        if not preview_lines:
-            raise UserError("No billable lines could be generated for the selected period. Ensure subscriptions have active plans.")
-
-        # Create the parent preview record
-        preview = self.env['bulk.billing.preview'].create({
+        # Create a persistent billing run and redirect to it for admin review & approval.
+        run = self.env['parent.billing.run'].create({
             'month': self.month,
             'year': self.year,
-            'line_ids': preview_lines,
         })
-
+        run.action_generate_preview()
         return {
             'type': 'ir.actions.act_window',
-            'name': f'Invoice Preview - {calendar.month_name[int(self.month)]} {self.year}',
-            'res_model': 'bulk.billing.preview',
+            'name': f'Billing Run – {run.period_label}',
+            'res_model': 'parent.billing.run',
             'view_mode': 'form',
-            'res_id': preview.id,
+            'res_id': run.id,
             'target': 'current',
         }
 

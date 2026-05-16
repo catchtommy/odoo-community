@@ -83,7 +83,6 @@ class TuitionTutorWiseReport(models.Model):
                     (
                         COUNT(*) FILTER (WHERE NOT is_demo AND lesson_status = 'completed')
                         + COUNT(*) FILTER (WHERE is_demo)
-                        - COUNT(*) FILTER (WHERE NOT is_demo AND lesson_status = 'cancelled')
                     )::integer AS effective_classes
                 FROM base
                 GROUP BY report_date, tutor_id, category_id, subject_id, category_subject
@@ -183,10 +182,6 @@ class TuitionTutorWiseWizard(models.TransientModel):
                           AND occ.lesson_status = 'completed'
                     )
                     + COUNT(*) FILTER (WHERE COALESCE(occ.is_demo, FALSE))
-                    - COUNT(*) FILTER (
-                        WHERE NOT COALESCE(occ.is_demo, FALSE)
-                          AND occ.lesson_status = 'cancelled'
-                    )
                 )::integer AS effective_classes
             FROM class_schedule_occurrence occ
             JOIN course_master course ON course.id = occ.course_id

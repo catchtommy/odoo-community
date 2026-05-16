@@ -19,5 +19,11 @@
             <field name="prefix">TPR/</field>
             <field name="padding">4</field>
         </record>
+        <record id="seq_parent_billing_run" model="ir.sequence">
+            <field name="name">Parent Billing Run Sequence</field>
+            <field name="code">parent.billing.run</field>
+            <field name="prefix">PBR/</field>
+            <field name="padding">4</field>
+        </record>
     </data>
 </odoo>

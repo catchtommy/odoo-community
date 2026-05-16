@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
+from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
 
 
 class TutorAvailability(models.Model):
@@ -282,7 +283,7 @@ class TutorProfile(models.Model):
     email = fields.Char(string='Email')
     country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
-    timezone = fields.Selection(string='Timezone', selection=lambda self: [(tz, tz) for tz in sorted(__import__('pytz').all_timezones)], default='UTC')
+    timezone = fields.Selection(selection=get_tz_selection, string='Timezone', default=DEFAULT_TIMEZONE)
     subject_ids = fields.Many2many('subject.master', string='Subjects')
     category_ids = fields.Many2many(
         'subject.category',
@@ -478,18 +479,7 @@ class StudentProfile(models.Model):
     enrollment_ids = fields.One2many('course.enrollment', 'student_id', string='Enrollments')
     subscription_ids = fields.One2many('tuition.subscription', 'student_id', string='Subscriptions')
     progress_report_ids = fields.One2many('progress.report', 'student_id', string='Progress Reports')
-    timezone = fields.Selection([
-        ('US/Eastern', 'US/Eastern'),
-        ('US/Central', 'US/Central'),
-        ('US/Mountain', 'US/Mountain'),
-        ('US/Pacific', 'US/Pacific'),
-        ('Europe/London', 'Europe/London'),
-        ('Europe/Paris', 'Europe/Paris'),
-        ('Asia/Kolkata', 'Asia/Kolkata'),
-        ('Asia/Tokyo', 'Asia/Tokyo'),
-        ('Australia/Sydney', 'Australia/Sydney'),
-        ('UTC', 'UTC'),
-    ], string='Timezone', required=True, default='US/Eastern')
+    timezone = fields.Selection(selection=get_tz_selection, string='Timezone', required=True, default=DEFAULT_TIMEZONE)
     address_line_1 = fields.Char(string='Address Line 1')
     address_line_2 = fields.Char(string='Address Line 2')
     address_line_3 = fields.Char(string='Address Line 3')
@@ -579,18 +569,7 @@ class ParentProfile(models.Model):
     phone = fields.Char(string='Phone')
     country_code = fields.Char(string='Country Code', default='+1')
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=True)
-    timezone = fields.Selection([
-        ('US/Eastern', 'US/Eastern'),
-        ('US/Central', 'US/Central'),
-        ('US/Mountain', 'US/Mountain'),
-        ('US/Pacific', 'US/Pacific'),
-        ('Europe/London', 'Europe/London'),
-        ('Europe/Paris', 'Europe/Paris'),
-        ('Asia/Kolkata', 'Asia/Kolkata'),
-        ('Asia/Tokyo', 'Asia/Tokyo'),
-        ('Australia/Sydney', 'Australia/Sydney'),
-        ('UTC', 'UTC'),
-    ], string='Timezone', required=True, default='US/Eastern')
+    timezone = fields.Selection(selection=get_tz_selection, string='Timezone', required=True, default=DEFAULT_TIMEZONE)
     address_line_1 = fields.Char(string='Address Line 1')
     address_line_2 = fields.Char(string='Address Line 2')
     address_line_3 = fields.Char(string='Address Line 3')

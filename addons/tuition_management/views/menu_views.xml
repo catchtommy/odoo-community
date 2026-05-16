@@ -29,6 +29,8 @@
     <menuitem id="menu_tuition_payroll" name="Payroll" parent="menu_tuition_root" sequence="25"/>
     <menuitem id="menu_tuition_tutor_payroll" name="Tutor Payroll Runs" parent="menu_tuition_payroll" action="action_tutor_payment_runs"/>
     <menuitem id="menu_tuition_tutor_payment_statements" name="Tutor Payment Statements" parent="menu_tuition_payroll" action="action_tutor_payment_summaries"/>
+    <menuitem id="menu_tuition_parent_billing_runs" name="Parent Invoicing Runs" parent="menu_tuition_payroll" action="action_parent_billing_runs"/>
+    <menuitem id="menu_tuition_generate_parent_invoices" name="Generate Parent Invoices" parent="menu_tuition_payroll" action="action_parent_billing_run_wizard"/>
 
     <!-- Users -->
     <menuitem id="menu_tuition_users" name="Users" parent="menu_tuition_root" sequence="30"/>
