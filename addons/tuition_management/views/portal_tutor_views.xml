@@ -993,6 +993,13 @@
             <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
         </div>
 
+        <!-- Deleted flash -->
+        <t t-if="request.params.get('deleted')">
+            <div style="background:#fff5f5; border:1px solid #fecaca; border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:#dc2626; font-size:13px;">
+                <i class="fa fa-trash"/> Assignment deleted successfully.
+            </div>
+        </t>
+
         <div class="tm-stat-grid" style="margin-bottom:18px;">
             <div class="tm-stat-card">
                 <div class="tm-stat-card-top">
@@ -1026,19 +1033,31 @@
             </div>
         </div>
 
-        <div class="tm-grid-2">
-            <div class="tm-card">
-                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-plus"/> New Assignment</div></div>
-                <div class="tm-card-body">
-                    <form t-attf-action="/my/tutor/courses/#{course.id}/assignments/create" method="POST" enctype="multipart/form-data">
-                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                        <div class="tm-form-group">
-                            <label class="tm-form-label">Title *</label>
-                            <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Chapter 5 Worksheet"/>
-                        </div>
-                        <div class="tm-form-group">
-                            <label class="tm-form-label">Type</label>
-                            <select name="assignment_type" class="form-select">
+        <!-- ── CREATE ASSIGNMENT FORM ── -->
+        <div class="tm-card mb-4">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-plus-circle me-2"/>New Assignment</div>
+            </div>
+            <div class="tm-card-body">
+                <form t-attf-action="/my/tutor/courses/#{course.id}/assignments/create" method="POST" enctype="multipart/form-data" id="asgn-create-form">
+                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                    <input type="hidden" name="draft" id="asgn_draft_flag" value="0"/>
+
+                    <!-- Row 1: Assignment Title -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:13px;">Assignment Title <span style="color:#dc2626;">*</span></label>
+                        <input type="text" name="name" class="form-control" required="required"
+                               style="border-radius:8px; border:1px solid #d0d7de; font-size:14px; padding:10px 14px;"
+                               placeholder=""/>
+                    </div>
+
+                    <!-- Row 2: Course + Subject -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold" style="font-size:13px;">Assignment Type <span style="color:#dc2626;">*</span></label>
+                            <select name="assignment_type" class="form-select" required="required"
+                                    style="border-radius:8px; border:1px solid #d0d7de; font-size:14px; padding:10px 14px;">
+                                <option value="">— Select Type —</option>
                                 <option value="homework">Homework</option>
                                 <option value="quiz">Quiz</option>
                                 <option value="test">Test</option>
@@ -1047,46 +1066,254 @@
                                 <option value="other">Other</option>
                             </select>
                         </div>
-                        <div class="tm-form-group">
-                            <label class="tm-form-label">Due Date</label>
-                            <input type="date" name="due_date" class="form-control"/>
-                        </div>
-                        <div class="tm-form-group">
-                            <label class="tm-form-label">Description</label>
-                            <textarea name="description" class="form-control" rows="3" placeholder="Instructions..."/>
-                        </div>
-                        <div class="tm-form-group">
-                            <label class="tm-form-label">Attachment</label>
-                            <input type="file" name="attachment" class="form-control"/>
-                        </div>
-                        <button type="submit" class="tm-btn tm-btn-primary" style="width:100%;justify-content:center;"><i class="fa fa-plus"/> Create Assignment</button>
-                    </form>
-                </div>
-            </div>
+                    </div>
 
-            <div class="tm-card">
-                <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> All Assignments</div></div>
-                <div class="tm-card-body p-0">
-                    <t t-if="not assignments"><div class="tm-empty"><i class="fa fa-tasks"/><p>No assignments yet.</p></div></t>
-                    <t t-if="assignments">
-                        <div class="table-responsive">
-                            <table class="tm-table">
-                                <thead><tr><th>Title</th><th>Type</th><th>Due</th><th>Submissions</th><th></th></tr></thead>
-                                <tbody>
-                                    <t t-foreach="assignments" t-as="asgn">
-                                        <tr>
-                                            <td class="fw-bold"><t t-esc="asgn.name"/></td>
-                                            <td><span class="tm-badge tm-badge-grey"><t t-esc="asgn.assignment_type or '—'"/></span></td>
-                                            <td style="white-space:nowrap;"><t t-if="asgn.due_date" t-esc="asgn.due_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
-                                            <td><span class="tm-badge tm-badge-purple"><t t-esc="len(asgn.submission_ids)"/></span></td>
-                                            <td><a t-attf-href="/my/tutor/assignment/#{asgn.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> Review</a></td>
-                                        </tr>
-                                    </t>
-                                </tbody>
-                            </table>
+                    <!-- Row 4: Due Date + Submission Type -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold" style="font-size:13px;">Due Date</label>
+                            <input type="date" name="due_date" class="form-control"
+                                   style="border-radius:8px; border:1px solid #d0d7de; font-size:14px; padding:10px 14px;"/>
                         </div>
-                    </t>
-                </div>
+                    </div>
+
+                    <!-- Row 5: Description / Instructions with simple toolbar -->
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:13px;">Description / Instructions <span style="color:#dc2626;">*</span></label>
+                        <div style="border:1px solid #d0d7de; border-radius:8px; overflow:hidden;">
+                            <!-- Toolbar -->
+                            <div style="background:#f8f9fa; border-bottom:1px solid #e0e0e0; padding:6px 10px; display:flex; flex-wrap:wrap; gap:2px; align-items:center;">
+                                <button type="button" onclick="document.execCommand('bold')" title="Bold"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-weight:700;font-size:13px;cursor:pointer;color:#333;">B</button>
+                                <button type="button" onclick="document.execCommand('italic')" title="Italic"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-style:italic;font-size:13px;cursor:pointer;color:#333;">I</button>
+                                <button type="button" onclick="document.execCommand('underline')" title="Underline"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;text-decoration:underline;font-size:13px;cursor:pointer;color:#333;">U</button>
+                                <button type="button" onclick="document.execCommand('strikeThrough')" title="Strikethrough"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;text-decoration:line-through;font-size:13px;cursor:pointer;color:#333;">S</button>
+                                <span style="width:1px;height:18px;background:#d0d7de;margin:0 4px;display:inline-block;"/>
+                                <button type="button" onclick="document.execCommand('insertUnorderedList')" title="Bullet List"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-list-ul"/></button>
+                                <button type="button" onclick="document.execCommand('insertOrderedList')" title="Numbered List"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-list-ol"/></button>
+                                <button type="button" onclick="document.execCommand('outdent')" title="Outdent"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-outdent"/></button>
+                                <button type="button" onclick="document.execCommand('indent')" title="Indent"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-indent"/></button>
+                                <button type="button" onclick="document.execCommand('formatBlock', false, 'blockquote')" title="Blockquote"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-quote-right"/></button>
+                                <button type="button" onclick="asgnInsertLink()" title="Link"
+                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-link"/></button>
+                            </div>
+                            <!-- Editable area -->
+                            <div id="asgn_description_editor" contenteditable="true"
+                                 style="min-height:160px; padding:14px; font-size:14px; color:#333; outline:none; background:#fff;"
+                                 data-placeholder="Add detailed assignment instructions here..."></div>
+                            <textarea name="description" id="asgn_description_hidden" style="display:none;"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Row 6: Attachment -->
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" style="font-size:13px;">Attachment</label>
+                        <!-- File list (shown after selection) -->
+                        <div id="asgn_file_list" class="mb-2"/>
+                        <!-- Drop zone -->
+                        <div id="asgn_drop_zone"
+                             style="border:2px dashed #d0d7de; border-radius:8px; padding:28px; text-align:center; background:#fafbfc; cursor:pointer; transition:border-color .2s;"
+                             onclick="document.getElementById('asgn_file_input').click()"
+                             ondragover="event.preventDefault(); this.style.borderColor='#667eea';"
+                             ondragleave="this.style.borderColor='#d0d7de';"
+                             ondrop="asgnHandleDrop(event)">
+                            <div style="font-size:24px; color:#aaa; margin-bottom:4px;">&#8679;</div>
+                            <div style="font-size:13px; color:#888;">Drag and drop here</div>
+                            <input type="file" id="asgn_file_input" name="attachment" class="d-none"
+                                   multiple="multiple" onchange="asgnHandleFiles(this.files)"/>
+                        </div>
+                    </div>
+
+                    <!-- Row 7: Buttons -->
+                    <div class="mb-2">
+                        <button type="submit" onclick="asgnPrepareSubmit(0)"
+                                style="width:100%; padding:13px; font-size:15px; font-weight:700; color:#fff; border:none; border-radius:8px; background:linear-gradient(90deg,#4a6cf7,#6a4cf7); cursor:pointer; letter-spacing:.3px;">
+                            Create Assignment
+                        </button>
+                    </div>
+                    <div class="d-flex gap-3">
+                        <button type="button" onclick="asgnPrepareSubmit(1)"
+                                style="flex:1; padding:10px; font-size:13px; font-weight:500; color:#555; border:1px solid #d0d7de; border-radius:8px; background:#fff; cursor:pointer;">
+                            Save as Draft
+                        </button>
+                        <a t-attf-href="/my/tutor/courses/#{course.id}"
+                           style="flex:1; padding:10px; font-size:13px; font-weight:500; color:#555; border:1px solid #d0d7de; border-radius:8px; background:#fff; cursor:pointer; text-align:center; text-decoration:none; display:inline-block;">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+
+                <script>
+                    <![CDATA[
+                    // ── Type toggle ──────────────────────────────────────────
+                    function setAssignmentMode(mode) {
+                        document.getElementById('asgn_mode_input').value = mode;
+                        var assigned = document.getElementById('type-assigned');
+                        var control  = document.getElementById('type-control');
+                        if (mode === 'assigned') {
+                            assigned.style.background = '#fff';
+                            assigned.style.color = '#333';
+                            assigned.style.fontWeight = '600';
+                            control.style.background = 'transparent';
+                            control.style.color = '#888';
+                            control.style.fontWeight = '500';
+                        } else {
+                            control.style.background = '#fff';
+                            control.style.color = '#333';
+                            control.style.fontWeight = '600';
+                            assigned.style.background = 'transparent';
+                            assigned.style.color = '#888';
+                            assigned.style.fontWeight = '500';
+                        }
+                    }
+
+                    // ── Placeholder for editor ────────────────────────────────
+                    var _editor = document.getElementById('asgn_description_editor');
+                    if (_editor) {
+                        _editor.addEventListener('focus', function() {
+                            if (this.innerHTML === '' || this.innerHTML === '<br>') this.innerHTML = '';
+                        });
+                        _editor.addEventListener('input', function() {
+                            document.getElementById('asgn_description_hidden').value = this.innerHTML;
+                        });
+                        // show placeholder via CSS
+                        var st = document.createElement('style');
+                        st.innerHTML = '#asgn_description_editor:empty:before{content:attr(data-placeholder);color:#aaa;}';
+                        document.head.appendChild(st);
+                    }
+
+                    // ── Link insert ──────────────────────────────────────────
+                    function asgnInsertLink() {
+                        var url = prompt('Enter URL:');
+                        if (url) document.execCommand('createLink', false, url);
+                    }
+
+                    // ── File handling ────────────────────────────────────────
+                    var _asgnFiles = [];
+                    function asgnHandleFiles(fileList) {
+                        Array.from(fileList).forEach(function(f) { _asgnFiles.push(f); });
+                        asgnRenderFileList();
+                    }
+                    function asgnHandleDrop(e) {
+                        e.preventDefault();
+                        document.getElementById('asgn_drop_zone').style.borderColor = '#d0d7de';
+                        asgnHandleFiles(e.dataTransfer.files);
+                    }
+                    function asgnRenderFileList() {
+                        var list = document.getElementById('asgn_file_list');
+                        list.innerHTML = '';
+                        if (_asgnFiles.length === 0) return;
+                        var grid = document.createElement('div');
+                        grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;';
+                        _asgnFiles.forEach(function(f) {
+                            var item = document.createElement('div');
+                            item.style.cssText = 'background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:8px 10px;';
+                            item.innerHTML =
+                                '<div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;">' +
+                                '<span>' + f.name + ' [100%]</span><span>100%</span></div>' +
+                                '<div style="height:4px;background:#e0e0e0;border-radius:4px;overflow:hidden;">' +
+                                '<div style="width:100%;height:100%;background:#4caf50;border-radius:4px;"></div></div>';
+                            grid.appendChild(item);
+                        });
+                        list.appendChild(grid);
+                    }
+
+                    // ── Submit handler ───────────────────────────────────────
+                    function asgnPrepareSubmit(isDraft) {
+                        var editor = document.getElementById('asgn_description_editor');
+                        var descVal = editor ? editor.innerText.trim() : '';
+                        var typeVal = document.querySelector('[name="assignment_type"]').value;
+                        var nameVal = document.querySelector('[name="name"]').value.trim();
+
+                        if (!nameVal) {
+                            alert('Assignment Title is required.');
+                            document.querySelector('[name="name"]').focus();
+                            return;
+                        }
+                        if (!typeVal) {
+                            alert('Assignment Type is required.');
+                            document.querySelector('[name="assignment_type"]').focus();
+                            return;
+                        }
+                        if (!descVal) {
+                            alert('Description / Instructions is required.');
+                            editor.focus();
+                            return;
+                        }
+
+                        document.getElementById('asgn_draft_flag').value = isDraft ? '1' : '0';
+                        if (editor) {
+                            document.getElementById('asgn_description_hidden').value = editor.innerHTML;
+                        }
+                        document.getElementById('asgn-create-form').submit();
+                    }
+                    ]]>
+                </script>
+            </div>
+        </div>
+
+        <!-- ── ASSIGNMENTS TABLE ── -->
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list me-2"/>Assignments</div></div>
+            <div class="tm-card-body p-0">
+                <t t-if="not assignments">
+                    <div class="tm-empty"><i class="fa fa-tasks"/><p>No assignments yet.</p></div>
+                </t>
+                <t t-if="assignments">
+                    <div class="table-responsive">
+                        <table class="tm-table">
+                            <thead>
+                                <tr>
+                                    <th>Title</th>
+                                    <th>Subject</th>
+                                    <th>Due Date</th>
+                                    <th>Status</th>
+                                    <th>Submissions</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <t t-foreach="assignments" t-as="asgn">
+                                    <tr>
+                                        <td class="fw-semibold" style="font-size:13px;"><t t-out="asgn.name"/></td>
+                                        <td><span class="tm-badge tm-badge-grey" style="text-transform:capitalize;"><t t-out="asgn.assignment_type or '—'"/></span></td>
+                                        <td style="font-size:12px; white-space:nowrap;">
+                                            <t t-if="asgn.due_date" t-out="asgn.due_date" t-options='{"widget":"date"}'/>
+                                            <t t-else="">—</t>
+                                        </td>
+                                        <td>
+                                            <span t-if="asgn.status == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
+                                            <span t-if="asgn.status == 'assigned'" class="tm-badge tm-badge-blue">Assigned</span>
+                                            <span t-if="asgn.status == 'pending_review'" class="tm-badge tm-badge-orange">Pending Review</span>
+                                            <span t-if="asgn.status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
+                                            <span t-if="asgn.status == 'cancelled'" class="tm-badge tm-badge-red">Cancelled</span>
+                                        </td>
+                                        <td><span class="tm-badge tm-badge-purple"><t t-out="len(asgn.submission_ids)"/></span></td>
+                                        <td>
+                                            <div class="d-flex gap-1">
+                                                <a t-attf-href="/my/tutor/assignment/#{asgn.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye me-1"/>Review</a>
+                                                <a t-attf-href="/my/tutor/assignment/#{asgn.id}?edit=1" class="tm-btn tm-btn-sm" style="background:#f0f4ff;color:#4a6cf7;border:1px solid #c7d7ff;" title="Edit"><i class="fa fa-pencil"/></a>
+                                                <form t-attf-action="/my/tutor/assignment/#{asgn.id}/delete" method="POST" style="display:inline;"
+                                                      onsubmit="return confirm('Delete this assignment?')">
+                                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                    <button type="submit" class="tm-btn tm-btn-sm" style="background:#fff5f5;color:#dc2626;border:1px solid #fecaca;"><i class="fa fa-trash"/></button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                </t>
+                            </tbody>
+                        </table>
+                    </div>
+                </t>
             </div>
         </div>
     </t>
@@ -1097,71 +1324,431 @@
 <!-- ═══════════════════════════════════════════════ -->
 <template id="portal_tutor_assignment_detail" name="Tutor: Assignment Detail">
     <t t-call="tuition_management.portal_sidebar_layout">
-        <div class="tm-page mt-3">
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
-                <h5 class="mb-0 fw-bold" style="color:var(--tm-teal);"><i class="fa fa-file-text me-2"/><t t-esc="assignment.name"/></h5>
-                <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Assignments</a>
+        <div class="tm-page" style="padding-top:8px;">
+
+            <!-- Page header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+                <div>
+                    <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px;">
+                        <a t-attf-href="/my/tutor/courses/#{course.id}/assignments"
+                           style="color:#888; text-decoration:none;">
+                            <i class="fa fa-arrow-left me-1"/>Assignments
+                        </a>
+                    </div>
+                    <h5 class="mb-0 fw-bold" style="color:#1a1a2e; font-size:18px;">
+                        <t t-out="assignment.name"/>
+                    </h5>
+                </div>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <span t-if="assignment.status == 'draft'"        class="tm-badge tm-badge-grey"   style="font-size:12px; padding:6px 12px;">Draft</span>
+                    <span t-if="assignment.status == 'assigned'"     class="tm-badge tm-badge-blue"   style="font-size:12px; padding:6px 12px;">Assigned</span>
+                    <span t-if="assignment.status == 'pending_review'" class="tm-badge tm-badge-orange" style="font-size:12px; padding:6px 12px;">Pending Review</span>
+                    <span t-if="assignment.status == 'completed'"    class="tm-badge tm-badge-green"  style="font-size:12px; padding:6px 12px;">Completed</span>
+                    <span t-if="assignment.status == 'cancelled'"    class="tm-badge tm-badge-red"    style="font-size:12px; padding:6px 12px;">Cancelled</span>
+                    <!-- Delete button -->
+                    <form t-attf-action="/my/tutor/assignment/#{assignment.id}/delete" method="POST" style="display:inline;"
+                          onsubmit="return confirm('Are you sure you want to delete this assignment? This cannot be undone.')">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <button type="submit"
+                                style="font-size:12px; font-weight:600; color:#dc2626; background:#fff5f5; border:1px solid #fecaca; border-radius:7px; padding:6px 14px; cursor:pointer;">
+                            <i class="fa fa-trash me-1"/>Delete
+                        </button>
+                    </form>
+                </div>
             </div>
+
+            <!-- Success flash -->
             <t t-if="request.params.get('graded')">
-                <div class="alert alert-success d-flex align-items-center gap-2" style="border-radius:10px; border:none; background:#EDF7ED; color:#4a8a4e;"><i class="fa fa-check-circle"/> Graded!</div>
+                <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:#16a34a; font-size:13px;">
+                    <i class="fa fa-check-circle"/> Submission graded successfully.
+                </div>
             </t>
-            <div class="row">
+            <t t-if="request.params.get('saved')">
+                <div style="background:#f0f4ff; border:1px solid #c7d7ff; border-radius:8px; padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:8px; color:#4a6cf7; font-size:13px;">
+                    <i class="fa fa-check-circle"/> Assignment updated successfully.
+                </div>
+            </t>
+
+            <div class="row g-3">
+                <!-- ── LEFT: Assignment info card ── -->
                 <div class="col-lg-4">
-                    <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-teal), var(--tm-teal-dark));"><span><i class="fa fa-info-circle me-2"/>Details</span></div>
-                        <div class="tm-card-body">
-                            <div class="tm-label">Course</div><div class="tm-value" t-esc="course.name"/>
-                            <div class="tm-label">Type</div><div class="tm-value" t-esc="dict(assignment._fields['assignment_type'].selection).get(assignment.assignment_type, '')"/>
-                            <div class="tm-label">Status</div><div class="tm-value">
-                                <span t-if="assignment.status == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
-                                <span t-if="assignment.status == 'assigned'" class="tm-badge tm-badge-blue">Assigned</span>
-                                <span t-if="assignment.status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
-                            </div>
-                            <t t-if="assignment.due_date"><div class="tm-label">Due Date</div><div class="tm-value fw-bold" style="color:var(--tm-red);" t-esc="assignment.due_date" t-options='{"widget": "date"}'/></t>
-                            <t t-if="assignment.description"><div class="tm-label">Description</div><div class="tm-value" t-raw="assignment.description"/></t>
-                            <t t-if="assignment.attachment_ids"><div class="tm-label">Attachments</div><t t-foreach="assignment.attachment_ids" t-as="att"><a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link"><i class="fa fa-download"/> <t t-esc="att.name"/></a></t></t>
+                    <div style="background:#fff; border:1px solid #e8eaed; border-radius:12px; overflow:hidden;">
+                        <div style="padding:16px 20px; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; justify-content:space-between;">
+                            <div style="font-size:13px; font-weight:700; color:#1a1a2e;">Assignment Details</div>
+                            <button type="button" onclick="toggleEditPanel()"
+                                    style="font-size:11px; color:#4a6cf7; background:#f0f4ff; border:1px solid #c7d7ff; border-radius:6px; padding:4px 10px; cursor:pointer;">
+                                <i class="fa fa-pencil me-1"/>Edit
+                            </button>
                         </div>
+
+                        <!-- ── View mode ── -->
+                        <div id="asgn_view_panel" style="padding:16px 20px;">
+                            <!-- Meta grid -->
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:16px;">
+                                <div style="background:#f8f9fa; border-radius:8px; padding:10px 12px;">
+                                    <div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px;">Course</div>
+                                    <div style="font-size:12px; font-weight:600; color:#333;" t-out="course.name"/>
+                                </div>
+                                <div style="background:#f8f9fa; border-radius:8px; padding:10px 12px;">
+                                    <div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px;">Subject</div>
+                                    <div style="font-size:12px; font-weight:600; color:#333; text-transform:capitalize;"
+                                         t-out="dict(assignment._fields['assignment_type'].selection).get(assignment.assignment_type, '—')"/>
+                                </div>
+                                <div t-if="assignment.due_date" style="background:#fff5f5; border-radius:8px; padding:10px 12px;">
+                                    <div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px;">Due Date</div>
+                                    <div style="font-size:12px; font-weight:700; color:#e53e3e;"
+                                         t-out="assignment.due_date" t-options='{"widget":"date"}'/>
+                                </div>
+                                <div style="background:#f8f9fa; border-radius:8px; padding:10px 12px;">
+                                    <div style="font-size:10px; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-bottom:3px;">Submissions</div>
+                                    <div style="font-size:18px; font-weight:700; color:#4a6cf7;" t-out="len(submissions)"/>
+                                </div>
+                            </div>
+
+                            <!-- Description -->
+                            <t t-if="assignment.description">
+                                <div style="margin-bottom:14px;">
+                                    <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; font-weight:600;">Instructions</div>
+                                    <div style="font-size:13px; color:#444; line-height:1.6; background:#f8f9fa; border-radius:8px; padding:12px;"
+                                         t-out="assignment.description"/>
+                                </div>
+                            </t>
+
+                            <!-- Attachments -->
+                            <t t-if="assignment.attachment_ids">
+                                <div>
+                                    <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; font-weight:600;">Resources</div>
+                                    <t t-foreach="assignment.attachment_ids" t-as="att">
+                                        <a t-attf-href="/web/content/#{att.id}?download=true"
+                                           style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:7px; margin-bottom:6px; font-size:12px; color:#4a6cf7; text-decoration:none;">
+                                            <i class="fa fa-file-o" style="color:#888;"/>
+                                            <span t-out="att.name"/>
+                                            <i class="fa fa-download ms-auto" style="color:#aaa; font-size:11px;"/>
+                                        </a>
+                                    </t>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- ── Edit mode ── -->
+                        <div id="asgn_edit_panel" style="display:none; padding:20px;">
+                            <form t-attf-action="/my/tutor/assignment/#{assignment.id}/edit" method="POST" enctype="multipart/form-data" id="asgn-edit-form">
+                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                                <!-- Title -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold" style="font-size:12px;">Assignment Title <span style="color:#dc2626;">*</span></label>
+                                    <input type="text" name="name" class="form-control" required="required"
+                                           t-att-value="assignment.name"
+                                           style="border-radius:8px; border:1px solid #d0d7de; font-size:13px; padding:9px 12px;"/>
+                                </div>
+
+                                <!-- Type + Due Date row -->
+                                <div class="row g-2 mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label fw-semibold" style="font-size:12px;">Type <span style="color:#dc2626;">*</span></label>
+                                        <select name="assignment_type" class="form-select" required="required"
+                                                style="border-radius:8px; border:1px solid #d0d7de; font-size:13px; padding:9px 10px;">
+                                            <option value="homework"  t-att-selected="assignment.assignment_type == 'homework'">Homework</option>
+                                            <option value="quiz"      t-att-selected="assignment.assignment_type == 'quiz'">Quiz</option>
+                                            <option value="test"      t-att-selected="assignment.assignment_type == 'test'">Test</option>
+                                            <option value="project"   t-att-selected="assignment.assignment_type == 'project'">Project</option>
+                                            <option value="worksheet" t-att-selected="assignment.assignment_type == 'worksheet'">Worksheet</option>
+                                            <option value="other"     t-att-selected="assignment.assignment_type == 'other'">Other</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-semibold" style="font-size:12px;">Due Date</label>
+                                        <input type="date" name="due_date" class="form-control"
+                                               t-att-value="assignment.due_date"
+                                               style="border-radius:8px; border:1px solid #d0d7de; font-size:13px; padding:9px 12px;"/>
+                                    </div>
+                                </div>
+
+                                <!-- Description with toolbar -->
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold" style="font-size:12px;">Description / Instructions <span style="color:#dc2626;">*</span></label>
+                                    <div style="border:1px solid #d0d7de; border-radius:8px; overflow:hidden;">
+                                        <!-- Toolbar -->
+                                        <div style="background:#f8f9fa; border-bottom:1px solid #e0e0e0; padding:5px 8px; display:flex; flex-wrap:wrap; gap:1px; align-items:center;">
+                                            <button type="button" onclick="document.execCommand('bold')" title="Bold"
+                                                    style="border:none;background:transparent;padding:3px 6px;border-radius:4px;font-size:12px;cursor:pointer;color:#333;font-weight:700;">B</button>
+                                            <button type="button" onclick="document.execCommand('italic')" title="Italic"
+                                                    style="border:none;background:transparent;padding:3px 6px;border-radius:4px;font-size:12px;cursor:pointer;color:#333;font-style:italic;">I</button>
+                                            <button type="button" onclick="document.execCommand('underline')" title="Underline"
+                                                    style="border:none;background:transparent;padding:3px 6px;border-radius:4px;font-size:12px;cursor:pointer;color:#333;text-decoration:underline;">U</button>
+                                            <span style="color:#ddd;padding:0 3px;">|</span>
+                                            <button type="button" onclick="document.execCommand('insertUnorderedList')" title="Bullet List"
+                                                    style="border:none;background:transparent;padding:3px 6px;border-radius:4px;font-size:12px;cursor:pointer;color:#333;"><i class="fa fa-list-ul"/></button>
+                                            <button type="button" onclick="document.execCommand('insertOrderedList')" title="Numbered List"
+                                                    style="border:none;background:transparent;padding:3px 6px;border-radius:4px;font-size:12px;cursor:pointer;color:#333;"><i class="fa fa-list-ol"/></button>
+                                            <button type="button" onclick="asgnEditInsertLink()" title="Link"
+                                                    style="border:none;background:transparent;padding:3px 6px;border-radius:4px;font-size:12px;cursor:pointer;color:#333;"><i class="fa fa-link"/></button>
+                                        </div>
+                                        <!-- Editor -->
+                                        <div id="asgn_edit_editor" contenteditable="true"
+                                             style="min-height:120px; padding:12px; font-size:13px; color:#333; outline:none; background:#fff;"
+                                             data-placeholder="Assignment instructions..."></div>
+                                        <textarea name="description" id="asgn_edit_hidden" style="display:none;"><t t-out="assignment.description or ''"/></textarea>
+                                    </div>
+                                </div>
+
+                                <!-- Attachment drop zone -->
+                                <div class="mb-4">
+                                    <label class="form-label fw-semibold" style="font-size:12px;">Add Attachment</label>
+                                    <!-- Existing attachments -->
+                                    <t t-if="assignment.attachment_ids">
+                                        <div style="margin-bottom:8px;">
+                                            <t t-foreach="assignment.attachment_ids" t-as="att">
+                                                <span style="display:inline-flex;align-items:center;gap:6px;background:#f8f9fa;border:1px solid #e8eaed;border-radius:6px;padding:4px 10px;font-size:11px;color:#555;margin-right:6px;margin-bottom:4px;">
+                                                    <i class="fa fa-paperclip" style="color:#4a6cf7;"/>
+                                                    <t t-out="att.name"/>
+                                                </span>
+                                            </t>
+                                        </div>
+                                    </t>
+                                    <!-- File list preview -->
+                                    <div id="asgn_edit_file_list" class="mb-2"/>
+                                    <!-- Drop zone -->
+                                    <div id="asgn_edit_drop_zone"
+                                         style="border:2px dashed #d0d7de; border-radius:8px; padding:18px; text-align:center; background:#fafbfc; cursor:pointer; transition:border-color .2s;"
+                                         onclick="document.getElementById('asgn_edit_file_input').click()"
+                                         ondragover="event.preventDefault(); this.style.borderColor='#667eea';"
+                                         ondragleave="this.style.borderColor='#d0d7de';"
+                                         ondrop="asgnEditHandleDrop(event)">
+                                        <div style="font-size:20px; color:#aaa; margin-bottom:2px;">&#8679;</div>
+                                        <div style="font-size:12px; color:#888;">Drag and drop or click to upload</div>
+                                        <input type="file" id="asgn_edit_file_input" name="attachment" class="d-none"
+                                               multiple="multiple" onchange="asgnEditHandleFiles(this.files)"/>
+                                    </div>
+                                </div>
+
+                                <!-- Buttons -->
+                                <div class="mb-2">
+                                    <button type="button" onclick="asgnEditSubmit()"
+                                            style="width:100%; padding:11px; font-size:14px; font-weight:700; color:#fff; border:none; border-radius:8px; background:linear-gradient(90deg,#4a6cf7,#6a4cf7); cursor:pointer; letter-spacing:.3px;">
+                                        <i class="fa fa-save me-1"/>Save Changes
+                                    </button>
+                                </div>
+                                <button type="button" onclick="toggleEditPanel()"
+                                        style="width:100%; padding:9px; font-size:13px; font-weight:500; color:#555; border:1px solid #d0d7de; border-radius:8px; background:#fff; cursor:pointer;">
+                                    Cancel
+                                </button>
+                            </form>
+                        </div>
+                        <script>
+                            <![CDATA[
+                            function toggleEditPanel() {
+                                var view = document.getElementById('asgn_view_panel');
+                                var edit = document.getElementById('asgn_edit_panel');
+                                if (edit.style.display === 'none') {
+                                    view.style.display = 'none';
+                                    edit.style.display = 'block';
+                                    // Seed editor with saved description
+                                    var hidden = document.getElementById('asgn_edit_hidden');
+                                    var editor = document.getElementById('asgn_edit_editor');
+                                    if (editor && hidden && !editor._seeded) {
+                                        editor.innerHTML = hidden.value;
+                                        editor._seeded = true;
+                                    }
+                                } else {
+                                    edit.style.display = 'none';
+                                    view.style.display = 'block';
+                                }
+                            }
+                            // Auto-open edit panel if ?edit=1 in URL
+                            if (window.location.search.indexOf('edit=1') !== -1) {
+                                document.addEventListener('DOMContentLoaded', function() { toggleEditPanel(); });
+                            }
+
+                            // ── Edit editor ────────────────────────────────
+                            (function() {
+                                var editor = document.getElementById('asgn_edit_editor');
+                                if (!editor) return;
+                                var hidden = document.getElementById('asgn_edit_hidden');
+                                // placeholder
+                                var st = document.createElement('style');
+                                st.innerHTML = '#asgn_edit_editor:empty:before{content:attr(data-placeholder);color:#aaa;}';
+                                document.head.appendChild(st);
+                                editor.addEventListener('input', function() {
+                                    hidden.value = this.innerHTML;
+                                });
+                            })();
+
+                            function asgnEditInsertLink() {
+                                var url = prompt('Enter URL:');
+                                if (url) document.execCommand('createLink', false, url);
+                            }
+
+                            // ── Edit file drop ──────────────────────────────
+                            var _editFiles = [];
+                            function asgnEditHandleFiles(fileList) {
+                                Array.from(fileList).forEach(function(f) { _editFiles.push(f); });
+                                asgnEditRenderFileList();
+                            }
+                            function asgnEditHandleDrop(e) {
+                                e.preventDefault();
+                                document.getElementById('asgn_edit_drop_zone').style.borderColor = '#d0d7de';
+                                asgnEditHandleFiles(e.dataTransfer.files);
+                            }
+                            function asgnEditRenderFileList() {
+                                var list = document.getElementById('asgn_edit_file_list');
+                                list.innerHTML = '';
+                                if (_editFiles.length === 0) return;
+                                var grid = document.createElement('div');
+                                grid.style.cssText = 'display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:8px;';
+                                _editFiles.forEach(function(f) {
+                                    var item = document.createElement('div');
+                                    item.style.cssText = 'background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:6px 10px;font-size:12px;color:#555;';
+                                    item.innerHTML = '<i class="fa fa-paperclip" style="color:#4a6cf7;margin-right:6px;"/>' + f.name;
+                                    grid.appendChild(item);
+                                });
+                                list.appendChild(grid);
+                            }
+
+                            // ── Edit submit ──────────────────────────────────
+                            function asgnEditSubmit() {
+                                var editor = document.getElementById('asgn_edit_editor');
+                                var hidden = document.getElementById('asgn_edit_hidden');
+                                var descVal = editor ? editor.innerText.trim() : '';
+                                var nameVal = document.querySelector('#asgn-edit-form [name="name"]').value.trim();
+                                var typeVal = document.querySelector('#asgn-edit-form [name="assignment_type"]').value;
+
+                                if (!nameVal) {
+                                    alert('Assignment Title is required.');
+                                    return;
+                                }
+                                if (!typeVal) {
+                                    alert('Assignment Type is required.');
+                                    return;
+                                }
+                                if (!descVal) {
+                                    alert('Description / Instructions is required.');
+                                    editor && editor.focus();
+                                    return;
+                                }
+                                if (editor) hidden.value = editor.innerHTML;
+                                document.getElementById('asgn-edit-form').submit();
+                            }
+                            ]]>
+                        </script>
                     </div>
                 </div>
+
+                <!-- ── RIGHT: Submissions list ── -->
                 <div class="col-lg-8">
-                    <div class="tm-card">
-                        <div class="tm-card-header" style="background: linear-gradient(135deg, var(--tm-green), var(--tm-green-dark));"><span><i class="fa fa-inbox me-2"/>Submissions (<t t-esc="len(submissions)"/>)</span></div>
-                        <t t-if="not submissions"><div class="tm-empty"><i class="fa fa-inbox"/><p>No submissions yet</p></div></t>
+                    <div style="background:#fff; border:1px solid #e8eaed; border-radius:12px; overflow:hidden;">
+                        <div style="padding:16px 20px; border-bottom:1px solid #f0f0f0; display:flex; align-items:center; justify-content:space-between;">
+                            <div style="font-size:13px; font-weight:700; color:#1a1a2e;">
+                                Student Submissions
+                            </div>
+                            <span style="background:#f0f0f8; color:#4a6cf7; font-size:12px; font-weight:600; padding:3px 10px; border-radius:20px;">
+                                <t t-out="len(submissions)"/> total
+                            </span>
+                        </div>
+
+                        <t t-if="not submissions">
+                            <div style="padding:48px; text-align:center; color:#aaa;">
+                                <i class="fa fa-inbox fa-2x" style="margin-bottom:10px; display:block;"/>
+                                <div style="font-size:13px;">No submissions yet</div>
+                            </div>
+                        </t>
+
                         <t t-if="submissions">
                             <t t-foreach="submissions" t-as="sub">
-                                <div class="px-3 py-3" style="border-bottom: 1px solid #f0f0f0;">
-                                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-2">
-                                        <div class="d-flex align-items-center gap-2">
-                                            <div class="tm-avatar tm-avatar-green" style="width:32px;height:32px;font-size:12px;"><t t-esc="sub.student_id.name[:1].upper()"/></div>
+                                <div style="padding:16px 20px; border-bottom:1px solid #f5f5f5;">
+
+                                    <!-- Student header row -->
+                                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                                        <div class="d-flex align-items-center gap-3">
+                                            <!-- Avatar -->
+                                            <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg,#4a6cf7,#6a4cf7); display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:700; flex-shrink:0;">
+                                                <t t-out="sub.student_id.name[:1].upper()"/>
+                                            </div>
                                             <div>
-                                                <div class="fw-bold" style="font-size:12px;" t-esc="sub.student_id.name"/>
-                                                <div style="font-size:10px; color:var(--tm-text-light);">
-                                                    <t t-esc="sub.submission_date" t-options='{"widget": "datetime", "format": "dd MMM yyyy hh:mm a"}'/>
-                                                </div>
+                                                <div style="font-size:13px; font-weight:600; color:#1a1a2e;" t-out="sub.student_id.name"/>
+                                                <div style="font-size:11px; color:#aaa;" t-out="sub.submission_date"
+                                                     t-options='{"widget":"datetime","format":"dd MMM yyyy, hh:mm a"}'/>
                                             </div>
                                         </div>
-                                        <span t-if="sub.status == 'submitted'" class="tm-badge tm-badge-green">Submitted</span>
-                                        <span t-if="sub.status == 'graded'" class="tm-badge tm-badge-green">Graded</span>
-                                        <span t-if="sub.status == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
+                                        <!-- Status badge -->
+                                        <span t-if="sub.status == 'pending'"        class="tm-badge tm-badge-grey">Not Submitted</span>
+                                        <span t-if="sub.status == 'submitted'"      class="tm-badge tm-badge-blue">Submitted</span>
+                                        <span t-if="sub.status == 'pending_review'" class="tm-badge tm-badge-orange">Pending Review</span>
+                                        <span t-if="sub.status == 'completed'"      class="tm-badge tm-badge-green">Completed</span>
+                                        <span t-if="sub.status == 'rework'"         class="tm-badge tm-badge-red">Rework Required</span>
                                     </div>
+
+                                    <!-- Submitted files -->
                                     <t t-if="sub.attachment_ids">
-                                        <div class="mb-2"><t t-foreach="sub.attachment_ids" t-as="att"><a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link"><i class="fa fa-paperclip"/> <t t-esc="att.name"/></a></t></div>
+                                        <div style="margin-bottom:12px;">
+                                            <t t-foreach="sub.attachment_ids" t-as="att">
+                                                <a t-attf-href="/web/content/#{att.id}?download=true"
+                                                   style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:6px; font-size:11px; color:#555; text-decoration:none; margin-right:6px; margin-bottom:4px;">
+                                                    <i class="fa fa-paperclip" style="color:#4a6cf7;"/>
+                                                    <t t-out="att.name"/>
+                                                </a>
+                                            </t>
+                                        </div>
                                     </t>
-                                    <t t-if="sub.status == 'graded' and sub.feedback">
-                                        <div class="p-2 mb-2" style="background:var(--tm-bg); border-radius:8px; font-size:11px;"><span class="fw-bold">Feedback:</span> <t t-esc="sub.feedback"/></div>
+
+                                    <!-- Student note -->
+                                    <t t-if="sub.notes">
+                                        <div style="background:#f0f4ff; border:1px solid #c7d7ff; border-radius:7px; padding:10px 12px; font-size:12px; color:#334; margin-bottom:12px;">
+                                            <strong style="color:#4a6cf7;"><i class="fa fa-comment-o me-1"/>Student Note:</strong>
+                                            <span style="margin-left:4px; white-space:pre-wrap;" t-out="sub.notes"/>
+                                        </div>
                                     </t>
-                                    <form t-attf-action="/my/tutor/submission/#{sub.id}/grade" method="POST" class="mt-2">
+
+                                    <!-- Existing feedback display -->
+                                    <t t-if="sub.status == 'completed' and sub.feedback">
+                                        <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:7px; padding:10px 12px; font-size:12px; color:#16a34a; margin-bottom:12px;">
+                                            <strong>Feedback:</strong> <t t-out="sub.feedback"/>
+                                        </div>
+                                    </t>
+                                    <t t-if="sub.status == 'rework' and sub.feedback">
+                                        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:7px; padding:10px 12px; font-size:12px; color:#92400e; margin-bottom:12px;">
+                                            <strong>Rework note:</strong> <t t-out="sub.feedback"/>
+                                        </div>
+                                    </t>
+
+                                    <!-- Grading form -->
+                                    <form t-attf-action="/my/tutor/submission/#{sub.id}/grade" method="POST">
                                         <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                        <div class="row g-2 align-items-end">
-                                            <div class="col-3">
-                                                <label class="form-label fw-bold" style="font-size:10px;">Score</label>
-                                                <div class="input-group input-group-sm">
-                                                    <input type="number" name="score" class="form-control" step="0.1" min="0" t-att-max="sub.max_score" t-att-value="sub.score or ''" style="border-radius:6px 0 0 6px; font-size:11px;"/>
-                                                    <span class="input-group-text" style="font-size:10px;">/<t t-esc="int(sub.max_score)"/></span>
+                                        <div style="background:#f8f9fa; border:1px solid #e8eaed; border-radius:8px; padding:12px;">
+                                            <div class="row g-2 align-items-end">
+                                                <!-- Score -->
+                                                <div class="col-sm-3">
+                                                    <label style="font-size:10px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.3px; display:block; margin-bottom:4px;">Score</label>
+                                                    <div class="input-group input-group-sm">
+                                                        <input type="number" name="score" class="form-control"
+                                                               step="0.5" min="0" t-att-max="sub.max_score"
+                                                               t-att-value="sub.score or ''"
+                                                               style="border-radius:6px 0 0 6px; font-size:13px; border-color:#d0d7de;"/>
+                                                        <span class="input-group-text" style="font-size:11px; background:#f1f3f5; border-color:#d0d7de;">
+                                                            / <t t-out="int(sub.max_score)"/>
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                                <!-- Feedback -->
+                                                <div class="col-sm-5">
+                                                    <label style="font-size:10px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.3px; display:block; margin-bottom:4px;">Feedback</label>
+                                                    <textarea name="feedback" class="form-control form-control-sm" rows="3"
+                                                              placeholder="Leave a comment..."
+                                                              style="border-radius:6px; font-size:12px; border-color:#d0d7de; resize:vertical;"><t t-out="sub.feedback or ''"/></textarea>
+                                                </div>
+                                                <!-- Action buttons -->
+                                                <div class="col-sm-4 d-flex gap-2">
+                                                    <button type="submit" name="action" value="complete"
+                                                            style="flex:1; padding:7px 4px; font-size:12px; font-weight:600; color:#fff; background:#22c55e; border:none; border-radius:7px; cursor:pointer;">
+                                                        <i class="fa fa-check me-1"/>Complete
+                                                    </button>
+                                                    <button type="submit" name="action" value="rework"
+                                                            style="flex:1; padding:7px 4px; font-size:12px; font-weight:600; color:#fff; background:#f59e0b; border:none; border-radius:7px; cursor:pointer;">
+                                                        <i class="fa fa-refresh me-1"/>Rework
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div class="col-6"><label class="form-label fw-bold" style="font-size:10px;">Feedback</label><input type="text" name="feedback" class="form-control form-control-sm" style="border-radius:6px; font-size:11px;" t-att-value="sub.feedback or ''" placeholder="Good work!"/></div>
-                                            <div class="col-3"><button type="submit" class="tm-btn tm-btn-green tm-btn-sm w-100 justify-content-center"><i class="fa fa-check"/><t t-if="sub.status == 'graded'">Update</t><t t-else="">Grade</t></button></div>
                                         </div>
                                     </form>
                                 </div>

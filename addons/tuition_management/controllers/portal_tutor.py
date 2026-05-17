@@ -402,13 +402,14 @@ class TutorPortal(http.Controller, PortalMixin):
         if not course.exists() or not self._tutor_has_course_access(tutor, course):
             return request.redirect('/my/tutor/courses')
 
+        is_draft = kw.get('draft', '0') == '1'
         vals = {
             'name': kw.get('name', ''),
             'course_id': course.id,
             'assignment_type': kw.get('assignment_type', 'homework'),
             'due_date': kw.get('due_date') or False,
             'description': kw.get('description', ''),
-            'status': 'assigned',
+            'status': 'draft' if is_draft else 'assigned',
             'assigned_date': fields.Date.today(),
         }
         assignment = request.env['course.assignment'].sudo().create(vals)
@@ -445,6 +446,57 @@ class TutorPortal(http.Controller, PortalMixin):
             'csrf_token': request.csrf_token(),
         })
 
+    @http.route(['/my/tutor/assignment/<int:assignment_id>/edit'], type='http',
+                auth='user', website=True, methods=['POST'], csrf=True)
+    def portal_tutor_assignment_edit(self, assignment_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        assignment = request.env['course.assignment'].sudo().browse(assignment_id)
+        if not assignment.exists() or not self._tutor_has_course_access(tutor, assignment.course_id):
+            return request.redirect('/my/tutor/courses')
+
+        vals = {}
+        if kw.get('name'):
+            vals['name'] = kw['name'].strip()
+        if kw.get('assignment_type'):
+            vals['assignment_type'] = kw['assignment_type']
+        if kw.get('due_date'):
+            vals['due_date'] = kw['due_date']
+        elif 'due_date' in kw:
+            vals['due_date'] = False
+        if kw.get('description') is not None:
+            vals['description'] = kw['description']
+
+        if vals:
+            assignment.sudo().write(vals)
+
+        uploaded_file = kw.get('attachment')
+        if uploaded_file and hasattr(uploaded_file, 'filename') and uploaded_file.filename:
+            att = request.env['ir.attachment'].sudo().create({
+                'name': uploaded_file.filename,
+                'datas': base64.b64encode(uploaded_file.read()),
+                'res_model': 'course.assignment',
+                'res_id': assignment.id,
+                'type': 'binary',
+            })
+            assignment.sudo().write({'attachment_ids': [(4, att.id)]})
+
+        return request.redirect(f'/my/tutor/assignment/{assignment_id}?saved=1')
+
+    @http.route(['/my/tutor/assignment/<int:assignment_id>/delete'], type='http',
+                auth='user', website=True, methods=['POST'], csrf=True)
+    def portal_tutor_assignment_delete(self, assignment_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        assignment = request.env['course.assignment'].sudo().browse(assignment_id)
+        if not assignment.exists() or not self._tutor_has_course_access(tutor, assignment.course_id):
+            return request.redirect('/my/tutor/courses')
+        course_id = assignment.course_id.id
+        assignment.sudo().unlink()
+        return request.redirect(f'/my/tutor/courses/{course_id}/assignments?deleted=1')
+
     @http.route(['/my/tutor/submission/<int:submission_id>/grade'], type='http',
                 auth='user', website=True, methods=['POST'], csrf=True)
     def portal_tutor_grade_submission(self, submission_id, **kw):
@@ -458,11 +510,23 @@ class TutorPortal(http.Controller, PortalMixin):
             score = float(kw.get('score', 0))
         except (ValueError, TypeError):
             score = 0
+        feedback = kw.get('feedback', '')
+        action = kw.get('action', 'complete')
+
         submission.sudo().write({
             'score': score,
-            'feedback': kw.get('feedback', ''),
-            'status': 'graded',
+            'feedback': feedback,
+            'reviewed_by': tutor.id,
+            'review_date': fields.Date.today(),
         })
+
+        if action == 'rework':
+            submission.sudo().write({'status': 'rework'})
+            submission.assignment_id.sudo().write({'status': 'assigned'})
+        else:
+            submission.sudo().write({'status': 'completed'})
+            submission.assignment_id.sudo().write({'status': 'completed'})
+
         return request.redirect(f'/my/tutor/assignment/{submission.assignment_id.id}?graded=1')
 
     @http.route(['/my/tutor/all-assignments'], type='http', auth='user', website=True)

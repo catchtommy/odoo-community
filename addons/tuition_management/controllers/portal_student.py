@@ -340,6 +340,7 @@ class StudentPortal(http.Controller, PortalMixin):
             'student_id': student.id,
             'status': 'submitted',
             'submission_date': fields.Datetime.now(),
+            'notes': kw.get('student_note', ''),
         }
         uploaded_file = kw.get('submission_file')
         attachment_ids = []
@@ -358,5 +359,7 @@ class StudentPortal(http.Controller, PortalMixin):
         else:
             if attachment_ids:
                 vals['attachment_ids'] = [(6, 0, attachment_ids)]
-            request.env['assignment.submission'].sudo().create(vals)
+            submission = request.env['assignment.submission'].sudo().create(vals)
+        # Move assignment to pending_review when student submits
+        assignment.sudo().write({'status': 'pending_review'})
         return request.redirect(f'/my/assignments/{assignment_id}?submitted=1')

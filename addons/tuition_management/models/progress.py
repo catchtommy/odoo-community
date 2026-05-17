@@ -86,7 +86,11 @@ class CourseAssignment(models.Model):
     due_date = fields.Date(string='Due Date')
     assigned_date = fields.Date(string='Assigned Date', default=fields.Date.today)
     status = fields.Selection([
-        ('draft', 'Draft'), ('assigned', 'Assigned'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),
+        ('draft', 'Draft'),
+        ('assigned', 'Assigned'),
+        ('pending_review', 'Pending Review'),
+        ('completed', 'Completed'),
+        ('cancelled', 'Cancelled'),
     ], string='Status', default='draft', tracking=True)
     attachment_ids = fields.Many2many('ir.attachment', string='Attachments')
     submission_ids = fields.One2many('assignment.submission', 'assignment_id', string='Submissions')
@@ -119,9 +123,9 @@ class AssignmentSubmission(models.Model):
     status = fields.Selection([
         ('pending', 'Pending'),
         ('submitted', 'Submitted'),
-        ('under_review', 'Under Review'),
+        ('pending_review', 'Pending Review'),
         ('completed', 'Completed'),
-        ('late', 'Late'),
+        ('rework', 'Rework Required'),
     ], string='Status', default='pending', tracking=True)
     # Tutor review fields
     review_status = fields.Selection([
@@ -132,20 +136,15 @@ class AssignmentSubmission(models.Model):
     score = fields.Float(string='Score', tracking=True)
     max_score = fields.Float(string='Max Score', default=100)
     feedback = fields.Text(string='Tutor Feedback', tracking=True)
+    notes = fields.Text(string='Student Note')
     attachment_ids = fields.Many2many('ir.attachment', 'assignment_submission_attachment_rel',
                                       'submission_id', 'attachment_id', string='Student Attachments')
     reviewed_by = fields.Many2one('tutor.profile', string='Reviewed By', readonly=True)
     review_date = fields.Datetime(string='Review Date', readonly=True)
 
     def action_submit_review(self):
-        """Tutor submits review: feedback + score + review_status → auto-complete."""
+        """Tutor marks submission as completed with feedback."""
         self.ensure_one()
-        if not self.feedback and not self.score and not self.review_status:
-            raise UserError('Please provide feedback, score, or a review status before submitting.')
-        if self.status not in ('submitted', 'under_review', 'pending'):
-            raise UserError('This submission cannot be reviewed in its current state.')
-
-        # Find the reviewing tutor
         tutor = self.env['tutor.profile'].sudo().search(
             [('partner_id', '=', self.env.user.partner_id.id)], limit=1
         )
@@ -156,26 +155,50 @@ class AssignmentSubmission(models.Model):
         if tutor:
             vals['reviewed_by'] = tutor.id
         self.write(vals)
+        # Move assignment to completed when all submissions are done
+        self.assignment_id.sudo().write({'status': 'completed'})
         self.message_post(
             body=(
-                f'<b>Assignment reviewed and completed.</b><br/>'
+                f'<b>Submission reviewed and completed.</b><br/>'
                 f'Score: {self.score} / {self.max_score}<br/>'
-                f'Review Status: {dict(self._fields["review_status"].selection).get(self.review_status, "—")}<br/>'
+                f'Feedback: {self.feedback or "—"}'
+            ),
+            subtype_xmlid='mail.mt_note',
+        )
+
+    def action_request_rework(self):
+        """Tutor requests rework: submission marked rework, assignment back to assigned."""
+        self.ensure_one()
+        tutor = self.env['tutor.profile'].sudo().search(
+            [('partner_id', '=', self.env.user.partner_id.id)], limit=1
+        )
+        vals = {
+            'status': 'rework',
+            'review_date': fields.Datetime.now(),
+        }
+        if tutor:
+            vals['reviewed_by'] = tutor.id
+        self.write(vals)
+        self.assignment_id.sudo().write({'status': 'assigned'})
+        self.message_post(
+            body=(
+                f'<b>Rework requested.</b><br/>'
                 f'Feedback: {self.feedback or "—"}'
             ),
             subtype_xmlid='mail.mt_note',
         )
 
     def action_mark_under_review(self):
-        """Move to Under Review so the tutor can start reviewing."""
+        """Move to Pending Review."""
         for rec in self:
-            if rec.status == 'submitted':
-                rec.write({'status': 'under_review'})
+            if rec.status in ('submitted', 'pending'):
+                rec.write({'status': 'pending_review'})
+                rec.assignment_id.sudo().write({'status': 'pending_review'})
                 rec.message_post(body='Submission is now under review.', subtype_xmlid='mail.mt_note')
 
     def action_reopen(self):
         """Allow tutor to re-open a completed submission for editing."""
         for rec in self:
             if rec.status == 'completed':
-                rec.write({'status': 'under_review'})
-                rec.message_post(body='Submission reopened for editing.', subtype_xmlid='mail.mt_note')
+                rec.write({'status': 'pending_review'})
+                rec.message_post(body='Submission reopened for review.', subtype_xmlid='mail.mt_note')
