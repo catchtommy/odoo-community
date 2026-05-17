@@ -291,9 +291,6 @@ class TutorProfile(models.Model):
     category_ids = fields.Many2many(
         'subject.category',
         string='Categories',
-        compute='_compute_teaching_matrix',
-        inverse='_inverse_category_ids',
-        store=True,
     )
     tutor_subject_rate_ids = fields.One2many(
         'tutor.subject.rate',
@@ -313,24 +310,6 @@ class TutorProfile(models.Model):
     portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
     portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
-
-    @api.depends(
-        'tutor_subject_rate_ids',
-        'tutor_subject_rate_ids.category_id',
-        'tutor_subject_rate_ids.subject_id',
-        'tutor_subject_rate_ids.active_flag',
-    )
-    def _compute_teaching_matrix(self):
-        for rec in self:
-            active_rates = rec.tutor_subject_rate_ids.filtered('active_flag')
-            rec.category_ids = active_rates.mapped('category_id')
-            matrix_subjects = active_rates.mapped('subject_id')
-            if matrix_subjects:
-                rec.subject_ids = matrix_subjects
-
-    def _inverse_category_ids(self):
-        """Allow manual category tagging while the detailed matrix remains authoritative."""
-        return True
 
     @api.depends('availability_ids', 'availability_ids.day_of_week',
                  'availability_ids.start_time', 'availability_ids.end_time')

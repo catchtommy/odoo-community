@@ -42,20 +42,37 @@ class TutorSubjectRate(models.Model):
     )
     def _check_rate_rules(self):
         for rec in self:
-            if rec.standard_hourly_rate <= 0:
-                raise ValidationError("Standard hourly rate must be greater than zero.")
+            if rec.standard_hourly_rate < 0:
+                raise ValidationError("Standard hourly rate must be 0 or greater than zero.")
             if rec.subject_id and rec.category_id and rec.subject_id.category_id != rec.category_id:
                 raise ValidationError("Subject must belong to the selected category.")
+            # Validate that the subject and category are assigned to the tutor profile
+            if rec.tutor_id and rec.subject_id:
+                allowed_subjects = rec.tutor_id.subject_ids
+                if allowed_subjects and rec.subject_id not in allowed_subjects:
+                    raise ValidationError(
+                        f'Subject "{rec.subject_id.name}" is not assigned to tutor '
+                        f'"{rec.tutor_id.name}". Please add this subject to the tutor\'s '
+                        f'profile (Subjects field) before adding a pricing rate for it.'
+                    )
+            if rec.tutor_id and rec.category_id:
+                allowed_subjects = rec.tutor_id.subject_ids
+                if allowed_subjects:
+                    allowed_categories = allowed_subjects.mapped('category_id')
+                    if rec.category_id not in allowed_categories:
+                        raise ValidationError(
+                            f'Category "{rec.category_id.name}" is not associated with any subject '
+                            f'assigned to tutor "{rec.tutor_id.name}". Please add a subject in '
+                            f'this category to the tutor\'s profile first.'
+                        )
             if rec.effective_to and rec.effective_to < rec.effective_from:
                 raise ValidationError("Effective To must be on or after Effective From.")
             if rec.demo_rate_type == 'percentage':
-                if not rec.demo_percentage:
-                    raise ValidationError("Demo percentage is required for percentage demo rates.")
-                if rec.demo_percentage < 1 or rec.demo_percentage > 100:
-                    raise ValidationError("Demo percentage must be between 1 and 100.")
+                if rec.demo_percentage and (rec.demo_percentage < 0 or rec.demo_percentage > 100):
+                    raise ValidationError("Demo percentage must be between 0 and 100.")
             if rec.demo_rate_type == 'custom':
-                if rec.demo_hourly_rate <= 0:
-                    raise ValidationError("Demo hourly rate must be greater than zero for custom demo rates.")
+                if rec.demo_hourly_rate < 0:
+                    raise ValidationError("Demo hourly rate must be 0 or greater than zero for custom demo rates.")  
             if rec.active_flag:
                 overlap_domain = [
                     ('id', '!=', rec.id),

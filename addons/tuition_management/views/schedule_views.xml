@@ -47,15 +47,15 @@
                     <group string="Days of Week" invisible="schedule_type == 'one_time'">
                         <div colspan="2" style="display:flex;gap:24px;flex-wrap:wrap;">
                             <div style="display:flex;gap:16px;">
-                                <field name="monday" widget="boolean_toggle"/><span style="line-height:2;">Monday</span>
-                                <field name="tuesday" widget="boolean_toggle"/><span style="line-height:2;">Tuesday</span>
-                                <field name="wednesday" widget="boolean_toggle"/><span style="line-height:2;">Wednesday</span>
-                                <field name="thursday" widget="boolean_toggle"/><span style="line-height:2;">Thursday</span>
+                                <field name="monday" widget="boolean_toggle" options="{'autosave': False}" on_change="1"/><span style="line-height:2;">Monday</span>
+                                <field name="tuesday" widget="boolean_toggle" options="{'autosave': False}" on_change="1"/><span style="line-height:2;">Tuesday</span>
+                                <field name="wednesday" widget="boolean_toggle" options="{'autosave': False}" on_change="1"/><span style="line-height:2;">Wednesday</span>
+                                <field name="thursday" widget="boolean_toggle" options="{'autosave': False}" on_change="1"/><span style="line-height:2;">Thursday</span>
                             </div>
                             <div style="display:flex;gap:16px;">
-                                <field name="friday" widget="boolean_toggle"/><span style="line-height:2;">Friday</span>
-                                <field name="saturday" widget="boolean_toggle"/><span style="line-height:2;">Saturday</span>
-                                <field name="sunday" widget="boolean_toggle"/><span style="line-height:2;">Sunday</span>
+                                <field name="friday" widget="boolean_toggle" options="{'autosave': False}" on_change="1"/><span style="line-height:2;">Friday</span>
+                                <field name="saturday" widget="boolean_toggle" options="{'autosave': False}" on_change="1"/><span style="line-height:2;">Saturday</span>
+                                <field name="sunday" widget="boolean_toggle" options="{'autosave': False}" on_change="1"/><span style="line-height:2;">Sunday</span>
                             </div>
                         </div>
                     </group>
@@ -71,25 +71,27 @@
                         </div>
                     </group>
                     <group string="Tutor Selection" invisible="not course_id">
-                        <field name="no_tutor_available" invisible="1"/>
-                        <field name="available_tutor_ids" invisible="1"/>
-                        <field name="fallback_tutor_ids" invisible="1"/>
-                        <field name="all_eligible_tutor_ids" invisible="1"/>
-                        <field name="partial_tutor_ids" invisible="1"/>
-                        <!-- No days selected yet: show all course-eligible tutors for reference -->
-                        <div colspan="2" invisible="no_tutor_available or available_tutor_ids or partial_tutor_ids or not all_eligible_tutor_ids">
-                            <p class="text-muted mb-1"><i class="fa fa-info-circle text-info"/> Tutors available for this course's subject and grade (select day(s) and time to filter by availability):</p>
+                        <!-- These fields drive the div visibility below.
+                             Use style="display:none" (not invisible="1") so the
+                             Odoo web client still includes them in fields_spec and
+                             processes their values in onchange responses. -->
+                        <div style="display:none;" colspan="2">
+                            <field name="no_tutor_available"/>
+                            <field name="available_tutor_ids"/>
+                            <field name="fallback_tutor_ids"/>
+                            <field name="all_eligible_tutor_ids"/>
+                            <field name="partial_tutor_ids"/>
+                            <field name="assignable_tutor_ids"/>
+                        </div>
+                        <!-- No days selected: show all course/category/subject tutors for reference -->
+                        <div colspan="2" invisible="available_tutor_ids or partial_tutor_ids or no_tutor_available or not all_eligible_tutor_ids">
+                            <p class="text-muted mb-1"><i class="fa fa-info-circle text-info"/> Tutors configured for this course category and subject (select day(s) to check availability):</p>
                             <field name="all_eligible_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
                         </div>
-                        <!-- Days selected and some tutors are fully available at that time -->
+                        <!-- Days selected and some tutors are fully available on every selected day/time -->
                         <div colspan="2" invisible="not available_tutor_ids">
-                            <p class="text-muted mb-1"><i class="fa fa-check-circle text-success"/> <strong>Available</strong> — tutors fully available for the selected day(s) and time:</p>
+                            <p class="text-muted mb-1"><i class="fa fa-check-circle text-success"/> <strong>Available</strong> — tutors available for every selected day and time:</p>
                             <field name="available_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
-                        </div>
-                        <!-- Partially available tutors -->
-                        <div colspan="2" invisible="not partial_tutor_ids">
-                            <p class="text-muted mb-1"><i class="fa fa-clock-o text-warning"/> <strong>Partially Available</strong> — available for some but not all selected days/time:</p>
-                            <field name="partial_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
                         </div>
                         <!-- Days selected but NO tutors are available at that time -->
                         <div colspan="2" invisible="not no_tutor_available">
@@ -99,8 +101,9 @@
                             <p class="text-muted mb-1" invisible="not fallback_tutor_ids">All eligible tutors (for reference):</p>
                             <field name="fallback_tutor_ids" widget="many2many_tags" readonly="1" nolabel="1" class="mb-2"/>
                         </div>
-                        <field name="tutor_id" string="Assign Tutor" domain="[('id', 'in', all_eligible_tutor_ids)]"
-                               help="You may select any eligible tutor. Use the availability indicators above as a guide."/>
+                        <field name="tutor_id" string="Assign Tutor"
+                               domain="[('id', 'in', assignable_tutor_ids)]"
+                               help="Select any tutor configured for this course category and subject."/>
                     </group>
                     <group string="Tutor Selection" invisible="course_id">
                         <field name="tutor_id" string="Assign Tutor"/>

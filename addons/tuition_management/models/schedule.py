@@ -60,6 +60,7 @@ class ClassSchedule(models.Model):
     fallback_tutor_ids = fields.Many2many('tutor.profile', string='Subject/Grade Tutors', compute='_compute_available_tutors', store=False)
     all_eligible_tutor_ids = fields.Many2many('tutor.profile', string='Course-Eligible Tutors', compute='_compute_available_tutors', store=False)
     partial_tutor_ids = fields.Many2many('tutor.profile', string='Partially Available Tutors', compute='_compute_available_tutors', store=False)
+    assignable_tutor_ids = fields.Many2many('tutor.profile', string='Assignable Tutors', compute='_compute_available_tutors', store=False)
     no_tutor_available = fields.Boolean(string='No Tutor Available', compute='_compute_available_tutors', store=False)
 
     @api.depends('schedule_hour', 'schedule_minute')
@@ -76,19 +77,72 @@ class ClassSchedule(models.Model):
         for rec in self:
             rec.schedule_minute = int(rec.schedule_minute_sel or 0)
 
+    def _get_availability_values(self):
+        """Trigger availability compute and return values as a plain dict.
+        Accessing computed fields here caches their values so that the ORM's
+        onchange snapshot-diff mechanism picks them up for snapshot1."""
+        r = self._calc_availability()
+        # Explicitly set the field values on self so the ORM cache is populated
+        # BEFORE snapshot1 is taken.  We use _compute_available_tutors() here
+        # which sets them via the normal compute path (protected context).
+        self._compute_available_tutors()
+        return r
+
+    def _availability_onchange_values(self, availability):
+        """Return explicit x2many values so the web client refreshes reliably."""
+        return {
+            'all_eligible_tutor_ids': [(6, 0, availability['all_eligible'].ids)],
+            'available_tutor_ids': [(6, 0, availability['available'].ids)],
+            'partial_tutor_ids': [(6, 0, availability['partial'].ids)],
+            'fallback_tutor_ids': [(6, 0, availability['fallback'].ids)],
+            'assignable_tutor_ids': [(6, 0, availability['assignable'].ids)],
+            'no_tutor_available': availability['no_tutor_available'],
+        }
+
+    @staticmethod
+    def _float_to_time_parts(time_float):
+        hours = int(time_float or 0)
+        minutes = int(round(((time_float or 0) - hours) * 60))
+        hours += minutes // 60
+        minutes = minutes % 60
+        return hours, minutes
+
     @api.onchange('course_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
                   'saturday', 'sunday', 'schedule_hour', 'schedule_minute',
+                  'schedule_hour_sel', 'schedule_minute_sel',
                   'schedule_duration', 'start_date', 'end_date', 'schedule_date', 'schedule_type', 'timezone')
     def _onchange_schedule_for_tutor_domain(self):
-        """Restrict the tutor dropdown to tutors eligible for this course (category + subject + grade)."""
-        eligible_ids = self.all_eligible_tutor_ids.ids
+        """Recompute availability and restrict tutor dropdown.
+
+        The web client applies returned values, then diffs the onchange
+        snapshot. Returning the availability x2many values explicitly keeps the
+        tags, warning panel, and tutor domain in sync on every edit.
+        """
+        # Sync hour/minute selection widgets → integer fields so the compute
+        # sees up-to-date values when schedule_hour_sel / schedule_minute_sel change.
+        if self.schedule_hour_sel is not None:
+            self.schedule_hour = int(self.schedule_hour_sel)
+        if self.schedule_minute_sel is not None:
+            self.schedule_minute = int(self.schedule_minute_sel)
+
+        # Force a fresh availability pass after syncing the editable selection
+        # widgets. This makes form-load defaults and subsequent hour/minute,
+        # timezone, and weekday changes visible to the onchange diff.
+        availability = self._get_availability_values()
+        value = self._availability_onchange_values(availability)
+        value.update({
+            'schedule_hour': self.schedule_hour,
+            'schedule_minute': self.schedule_minute,
+        })
+        if self.tutor_id and self.tutor_id not in availability['assignable']:
+            value['tutor_id'] = False
+
         return {
-            'domain': {
-                'tutor_id': [('id', 'in', eligible_ids)] if eligible_ids else [],
-            }
+            'value': value,
         }
 
     @api.onchange('tutor_id', 'schedule_date', 'schedule_hour', 'schedule_minute',
+                  'schedule_hour_sel', 'schedule_minute_sel',
                   'schedule_duration', 'monday', 'tuesday', 'wednesday', 'thursday',
                   'friday', 'saturday', 'sunday', 'start_date', 'end_date',
                   'timezone', 'schedule_type')
@@ -120,7 +174,7 @@ class ClassSchedule(models.Model):
         """Return existing non-cancelled occurrences that overlap the proposed time slots."""
         if not self.tutor_id:
             return self.env['class.schedule.occurrence']
-        tz = pytz.timezone(self.timezone or 'UTC')
+        tz = pytz.timezone(self.timezone or self.env.user.tz or DEFAULT_TIMEZONE)
         duration = self.schedule_duration or 60
         day_fields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
         slots = []
@@ -216,111 +270,166 @@ class ClassSchedule(models.Model):
                 }
             }
 
-    @api.depends('schedule_hour', 'schedule_minute', 'schedule_duration', 'monday', 'tuesday', 'wednesday',
+    @api.depends('schedule_hour', 'schedule_minute', 'schedule_hour_sel', 'schedule_minute_sel',
+                 'schedule_duration', 'monday', 'tuesday', 'wednesday',
                  'thursday', 'friday', 'saturday', 'sunday', 'course_id',
                  'start_date', 'schedule_type', 'schedule_date', 'timezone')
     def _compute_available_tutors(self):
-        day_fields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+        """Assign availability fields from the shared _calc_availability helper."""
         for rec in self:
-            if not rec.course_id:
-                rec.available_tutor_ids = rec.fallback_tutor_ids = rec.all_eligible_tutor_ids = rec.partial_tutor_ids = self.env['tutor.profile']
-                rec.no_tutor_available = False
-                continue
-            category = rec.course_id.category_id
-            subject = rec.course_id.subject_id
-            grade = rec.course_id.grade_id
-            selected_days = [d for d in day_fields if getattr(rec, d, False)]
-            schedule_time = rec.schedule_hour + rec.schedule_minute / 60.0
-            duration_hours = (rec.schedule_duration or 60) / 60.0
-            schedule_end_time = schedule_time + duration_hours
-            target_date = (
-                rec.schedule_date if rec.schedule_type == 'one_time' and rec.schedule_date
-                else rec.start_date or fields.Date.today()
-            )
-            # Build domain filtering by course category + subject + grade
-            tutor_domain = []
-            if category and subject:
-                tutor_domain = [
-                    ('tutor_subject_rate_ids.category_id', '=', category.id),
-                    ('tutor_subject_rate_ids.subject_id', '=', subject.id),
-                    ('tutor_subject_rate_ids.active_flag', '=', True),
-                    '|', ('tutor_subject_rate_ids.effective_from', '=', False),
-                         ('tutor_subject_rate_ids.effective_from', '<=', target_date),
-                    '|', ('tutor_subject_rate_ids.effective_to', '=', False),
-                         ('tutor_subject_rate_ids.effective_to', '>=', target_date),
-                ]
-            elif subject:
-                tutor_domain = [('subject_ids', 'in', [subject.id])]
-            if grade:
-                tutor_domain.append(('grade_ids', 'in', [grade.id]))
-            all_tutors = self.env['tutor.profile'].search(tutor_domain if tutor_domain else [])
+            r = rec._calc_availability()
+            rec.all_eligible_tutor_ids = r['all_eligible']
+            rec.available_tutor_ids    = r['available']
+            rec.partial_tutor_ids      = r['partial']
+            rec.fallback_tutor_ids     = r['fallback']
+            rec.assignable_tutor_ids   = r['assignable']
+            rec.no_tutor_available     = r['no_tutor_available']
 
-            available = self.env['tutor.profile']
-            partial = self.env['tutor.profile']
+    def _calc_availability(self):
+        """Core availability logic for this single record.
+        Returns a plain dict so both the @api.depends compute and the
+        @api.onchange can use the same logic without ORM cache side-effects."""
+        rec = self
+        empty = self.env['tutor.profile']
+        day_fields = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
 
-            sched_tz_name = rec.timezone or DEFAULT_TIMEZONE
+        if not rec.course_id:
+            return {'all_eligible': empty, 'available': empty,
+                    'partial': empty, 'fallback': empty, 'assignable': empty,
+                    'no_tutor_available': False}
 
-            def _convert_to_tutor_tz(time_float, tutor_tz_name):
-                """Convert a time float from schedule TZ to tutor's local TZ."""
-                if not tutor_tz_name or tutor_tz_name == sched_tz_name:
-                    return time_float
-                try:
-                    from datetime import datetime as _dt, date as _date
-                    sched_tz = pytz.timezone(sched_tz_name)
-                    tutor_tz = pytz.timezone(tutor_tz_name)
-                    h = int(time_float)
-                    m = int(round((time_float - h) * 60))
-                    today = _date.today()
-                    naive = _dt(today.year, today.month, today.day, min(h, 23), min(m, 59))
-                    aware = sched_tz.localize(naive)
-                    converted = aware.astimezone(tutor_tz)
-                    return converted.hour + converted.minute / 60.0
-                except Exception:
-                    return time_float
+        category = rec.course_id.category_id or rec.course_id.subject_id.category_id
+        subject = rec.course_id.subject_id
+        # Use schedule_hour/minute (ints). The sel-inverse may or may not have
+        # run yet — read the raw int fields which are always reliable.
+        schedule_hour   = rec.schedule_hour   or 0
+        schedule_minute = rec.schedule_minute or 0
+        schedule_time    = schedule_hour + schedule_minute / 60.0
+        duration_hours   = (rec.schedule_duration or 60) / 60.0
+        schedule_end_time = schedule_time + duration_hours
 
-            if selected_days:
-                for tutor in all_tutors:
-                    tutor_tz_name = tutor.timezone or DEFAULT_TIMEZONE
-                    t_start = _convert_to_tutor_tz(schedule_time, tutor_tz_name)
-                    t_end = _convert_to_tutor_tz(schedule_end_time, tutor_tz_name)
-                    avail_days_ok = []
-                    avail_days_partial = []
-                    for day in selected_days:
-                        # Check if tutor has availability covering the full slot on this day
-                        full_cover = tutor.availability_ids.filtered(
-                            lambda a, d=day, st=t_start, et=t_end: a.day_of_week == d
-                            and a.start_time <= st
-                            and a.end_time >= et
-                        )
-                        # Check partial coverage (starts in window but doesn't cover end)
-                        partial_cover = tutor.availability_ids.filtered(
-                            lambda a, d=day, st=t_start: a.day_of_week == d
-                            and a.start_time <= st
-                            and a.end_time > st
-                        )
-                        avail_days_ok.append(bool(full_cover))
-                        avail_days_partial.append(bool(partial_cover))
-                    if all(avail_days_ok):
-                        available |= tutor
-                    elif any(avail_days_partial):
-                        partial |= tutor
+        target_date = (
+            rec.schedule_date if rec.schedule_type == 'one_time' and rec.schedule_date
+            else rec.start_date or fields.Date.today()
+        )
+        all_tutors = self.env['tutor.profile'].get_eligible_tutors(
+            category,
+            subject,
+            target_date,
+        ) if category and subject else empty
 
-            rec.all_eligible_tutor_ids = all_tutors
-            rec.partial_tutor_ids = partial - available
+        # Derive selected schedule dates. For recurring schedules we need a real
+        # date per selected weekday so timezone conversion can also shift the
+        # tutor's local day, not just the local clock time.
+        if rec.schedule_type == 'one_time' and rec.schedule_date:
+            selected_dates = [rec.schedule_date]
+        else:
+            selected_weekdays = [d for d in day_fields if getattr(rec, d, False)]
+            today = fields.Date.today()
+            base_date = max(rec.start_date or today, today)
+            weekday_index = {day: idx for idx, day in enumerate(day_fields)}
+            selected_dates = []
+            for day in selected_weekdays:
+                delta = (weekday_index[day] - base_date.weekday()) % 7
+                selected_dates.append(base_date + timedelta(days=delta))
 
-            if available:
-                rec.available_tutor_ids = available
-                rec.fallback_tutor_ids = self.env['tutor.profile']
-                rec.no_tutor_available = False
-            else:
-                rec.available_tutor_ids = self.env['tutor.profile']
-                # Only show "no tutor" warning when days are selected
-                if selected_days:
-                    rec.fallback_tutor_ids = all_tutors - available - partial
-                    rec.no_tutor_available = True
-                else:
-                    rec.fallback_tutor_ids = self.env['tutor.profile']
-                    rec.no_tutor_available = False
+        if not selected_dates:
+            return {'all_eligible': all_tutors, 'available': empty,
+                    'partial': empty, 'fallback': empty, 'assignable': all_tutors,
+                    'no_tutor_available': False}
+
+        # Resolve schedule timezone — mirrors the field's Python default so it
+        # works correctly even before the field default is applied on new records.
+        sched_tz_name = rec.timezone or self.env.user.tz or DEFAULT_TIMEZONE
+        try:
+            sched_tz = pytz.timezone(sched_tz_name)
+        except pytz.UnknownTimeZoneError:
+            sched_tz = pytz.timezone(DEFAULT_TIMEZONE)
+
+        def _to_tutor_local(slot_date, time_float, tutor_tz_name):
+            hours, minutes = self._float_to_time_parts(time_float)
+            naive_date = slot_date + timedelta(days=hours // 24)
+            naive_time = time(hours % 24, minutes)
+            schedule_dt = sched_tz.localize(datetime.combine(naive_date, naive_time))
+            if not tutor_tz_name:
+                tutor_tz_name = DEFAULT_TIMEZONE
+            try:
+                tutor_tz = pytz.timezone(tutor_tz_name)
+            except pytz.UnknownTimeZoneError:
+                tutor_tz = pytz.timezone(DEFAULT_TIMEZONE)
+            return schedule_dt.astimezone(tutor_tz)
+
+        def _slot_covered_by_availability(tutor, start_dt, end_dt):
+            """Return whether the whole slot is covered in tutor local time."""
+            cursor = start_dt
+            while cursor < end_dt:
+                day_end = min(
+                    end_dt,
+                    cursor.replace(hour=0, minute=0, second=0, microsecond=0) + timedelta(days=1),
+                )
+                day_name = cursor.strftime('%A').lower()
+                start_float = cursor.hour + cursor.minute / 60.0
+                end_float = day_end.hour + day_end.minute / 60.0
+                if day_end.date() > cursor.date() and end_float == 0:
+                    end_float = 24.0
+                avail = tutor.availability_ids.filtered(lambda a, d=day_name: a.day_of_week == d)
+                day_full = any(a.start_time <= start_float and a.end_time >= end_float for a in avail)
+                if not day_full:
+                    return False
+                cursor = day_end
+            return True
+
+        available = empty
+        for tutor in all_tutors:
+            tutor_tz = tutor.timezone or DEFAULT_TIMEZONE
+            days_full = []
+            for slot_date in selected_dates:
+                t_start = _to_tutor_local(slot_date, schedule_time, tutor_tz)
+                t_end = _to_tutor_local(slot_date, schedule_end_time, tutor_tz)
+                day_full = _slot_covered_by_availability(tutor, t_start, t_end)
+                days_full.append(day_full)
+
+            if all(days_full):
+                available |= tutor
+
+        if available:
+            return {'all_eligible': all_tutors, 'available': available,
+                    'partial': empty, 'fallback': empty,
+                    'assignable': all_tutors,
+                    'no_tutor_available': False}
+        else:
+            return {'all_eligible': all_tutors, 'available': empty,
+                    'partial': empty, 'fallback': all_tutors, 'assignable': all_tutors,
+                    'no_tutor_available': True}
+
+    @api.onchange('tutor_id')
+    def _onchange_tutor_rate_matrix_warning(self):
+        """Warn (non-blocking) when the selected tutor has no pricing matrix
+        for the course's category and subject."""
+        if not self.tutor_id or not self.course_id:
+            return
+        category = self.course_id.category_id
+        subject = self.course_id.subject_id
+        if not category or not subject:
+            return
+        has_rate = self.env['tutor.subject.rate'].search_count([
+            ('tutor_id', '=', self.tutor_id.id),
+            ('category_id', '=', category.id),
+            ('subject_id', '=', subject.id),
+            ('active_flag', '=', True),
+        ])
+        if not has_rate:
+            return {
+                'warning': {
+                    'title': 'Missing Pricing Matrix',
+                    'message': (
+                        f'{self.tutor_id.name} does not have a pricing rate configured '
+                        f'for {category.name} / {subject.name}.\n\n'
+                        f'You can still save the schedule, but billing may not work correctly '
+                        f'until a rate is added in the Tutor Pricing Matrix.'
+                    ),
+                }
+            }
 
     @api.depends('course_id', 'tutor_id', 'schedule_type')
     def _compute_name(self):
@@ -446,6 +555,7 @@ class ClassSchedule(models.Model):
         for record in records:
             record._generate_occurrences()
             record._sync_tutor_to_course()
+            record._warn_missing_tutor_rate()
         return records
 
     def _sync_tutor_to_course(self):
@@ -499,7 +609,35 @@ class ClassSchedule(models.Model):
                 future_unmarked = record.occurrence_ids.filtered(lambda o: o.start_datetime and o.start_datetime >= now and not o.attendance_marked)
                 if future_unmarked:
                     future_unmarked.sudo().write({'tutor_id': vals['tutor_id']})
+            for record in self:
+                record._warn_missing_tutor_rate()
         return res
+
+    def _warn_missing_tutor_rate(self):
+        """Post a chatter warning if the assigned tutor has no pricing rate for
+        the course's category + subject. Non-blocking — the schedule is saved."""
+        self.ensure_one()
+        if not self.tutor_id or not self.course_id:
+            return
+        category = self.course_id.category_id
+        subject = self.course_id.subject_id
+        if not category or not subject:
+            return
+        has_rate = self.env['tutor.subject.rate'].search_count([
+            ('tutor_id', '=', self.tutor_id.id),
+            ('category_id', '=', category.id),
+            ('subject_id', '=', subject.id),
+            ('active_flag', '=', True),
+        ])
+        if not has_rate:
+            self.course_id.message_post(
+                body=(
+                    '⚠️ <b>Missing Pricing Rate</b>: Tutor <b>%s</b> has no active pricing rate '
+                    'configured for <b>%s / %s</b>. '
+                    'Please add a rate in the Tutor Pricing Matrix to ensure correct billing.'
+                ) % (self.tutor_id.name, category.name, subject.name),
+                subtype_xmlid='mail.mt_note',
+            )
 
     def unlink(self):
         now = fields.Datetime.now()
