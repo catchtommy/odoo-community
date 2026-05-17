@@ -461,6 +461,7 @@ class StudentProfile(models.Model):
     email = fields.Char(string='Email')
     country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
+    age = fields.Integer(string='Age')
     grade_id = fields.Many2one('grade.master', string='Grade', required=True)
     subjects_ids = fields.Many2many('subject.master', string='Subjects')
     parent_id = fields.Many2one('parent.profile', string='Parent')

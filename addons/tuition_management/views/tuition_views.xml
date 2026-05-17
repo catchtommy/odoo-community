@@ -49,6 +49,7 @@
                     <group string="Student Information">
                         <field name="student_profile_id" string="Student" domain="[('parent_id', '=', parent_profile_id)]" readonly="is_enrolled" invisible="is_enrolled or not parent_profile_id" required="1"/>
                         <field name="student_name" readonly="1" force_save="1"/>
+                        <field name="student_age" string="Student Age"/>
                     </group>
                     <group string="Academic Information">
                         <field name="category_id" readonly="is_enrolled"/>
@@ -69,7 +70,7 @@
         <field name="arch" type="xml">
             <list string="Enquiries">
                 <field name="enquiry_name"/><field name="name" string="Parent Name"/>
-                <field name="student_name"/><field name="email"/><field name="phone"/>
+                <field name="student_name"/><field name="student_age"/><field name="email"/><field name="phone"/>
                 <field name="subject_id"/><field name="grade_id"/><field name="stage_id"/>
             </list>
         </field>

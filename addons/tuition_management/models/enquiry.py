@@ -34,6 +34,7 @@ class Enquiry(models.Model):
     enquiry_name = fields.Char(string='Enquiry Name', readonly=True, copy=False, default='New')
     name = fields.Char(string='Parent Name', required=True)
     student_name = fields.Char(string='Student Name', required=True)
+    student_age = fields.Integer(string='Student Age')
     email = fields.Char(string='Email')
     country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')

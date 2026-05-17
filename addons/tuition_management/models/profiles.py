@@ -20,6 +20,7 @@ class StudentProfile(models.Model):
     timezone = fields.Selection(_TIMEZONE_LIST, string='Timezone', default='UTC')
     
     # Academic Information
+    age = fields.Integer(string='Age')
     grade_id = fields.Many2one('grade.master', string='Grade')
     subjects_ids = fields.Many2many('subject.master', string='Subjects')
     

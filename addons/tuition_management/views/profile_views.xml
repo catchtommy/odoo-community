@@ -10,6 +10,7 @@
                 <field name="name" string="Full Name"/>
                 <field name="email"/>
                 <field name="phone"/>
+                <field name="age"/>
                 <field name="grade_id"/>
                 <field name="parent_id"/>
             </list>
@@ -43,7 +44,8 @@
                         <h1><field name="name" placeholder="Full Name"/></h1>
                     </div>
                     <group>
-                        <group string="Contact Information">
+                        <group string="Student Information">
+                            <field name="age"/>
                             <field name="email"/>
                             <field name="country_code" string="Country Code"/>
                             <field name="phone"/>
