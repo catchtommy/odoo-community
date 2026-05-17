@@ -11,8 +11,17 @@ class SubjectMasterExt(models.Model):
 class GradeMaster(models.Model):
     _name = 'grade.master'
     _description = 'Grade Master'
+    _order = 'sequence, name'
 
     name = fields.Char(string='Grade Name', required=True)
+    category_ids = fields.Many2many(
+        'subject.category',
+        'subject_category_grade_rel',
+        'grade_id',
+        'category_id',
+        string='Categories',
+    )
+    sequence = fields.Integer(string='Sequence', default=10)
 
 
 class TuitionTimeSlot(models.Model):

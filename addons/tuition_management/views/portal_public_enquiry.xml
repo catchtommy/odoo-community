@@ -89,25 +89,20 @@
 
                             <div class="row mb-3">
                                 <div class="col-6">
-                                    <label class="form-label fw-bold" style="font-size:12px;">Grade <span class="text-danger">*</span></label>
-                                    <select name="grade_id" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
-                                        <option value="">Select grade...</option>
-                                        <t t-foreach="grades" t-as="grade">
-                                            <option t-att-value="grade.id" t-att-selected="'selected' if form_data and str(grade.id) == str(form_data.get('grade_id', '')) else None">
-                                                <t t-esc="grade.name"/>
-                                            </option>
-                                        </t>
-                                    </select>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label fw-bold" style="font-size:12px;">Category</label>
-                                    <select name="category_id" id="field_category" class="form-select" style="border-radius:8px;font-size:13px;">
-                                        <option value="">All categories...</option>
+                                    <label class="form-label fw-bold" style="font-size:12px;">Category <span class="text-danger">*</span></label>
+                                    <select name="category_id" id="field_category" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
+                                        <option value="">Select category...</option>
                                         <t t-foreach="categories" t-as="cat">
                                             <option t-att-value="cat.id" t-att-selected="'selected' if form_data and str(cat.id) == str(form_data.get('category_id', '')) else None">
                                                 <t t-esc="cat.name"/>
                                             </option>
                                         </t>
+                                    </select>
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Grade <span class="text-danger">*</span></label>
+                                    <select name="grade_id" id="field_grade" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
+                                        <option value="">Select grade...</option>
                                     </select>
                                 </div>
                             </div>
@@ -119,19 +114,46 @@
                                 </select>
                             </div>
 
-                            <!-- subjects-by-category map for JS filtering -->
+                            <!-- subjects-by-category and grades-by-category maps for JS filtering -->
                             <t t-set="selected_subject_id" t-value="form_data.get('subject_id', '') if form_data else ''"/>
+                            <t t-set="selected_grade_id" t-value="form_data.get('grade_id', '') if form_data else ''"/>
                             <div id="enquiry_subject_data"
                                  style="display:none"
                                  t-att-data-subjects="subjects_by_category_json"
-                                 t-att-data-selected="selected_subject_id"/>
+                                 t-att-data-grades="grades_by_category_json"
+                                 t-att-data-selected="selected_subject_id"
+                                 t-att-data-selected-grade="selected_grade_id"/>
                             <script>
                                 (function() {
                                     var el = document.getElementById('enquiry_subject_data');
                                     var subjectsByCategory = JSON.parse(el.getAttribute('data-subjects') || '{}');
+                                    var gradesByCategory = JSON.parse(el.getAttribute('data-grades') || '{}');
                                     var selectedSubject = el.getAttribute('data-selected') || '';
+                                    var selectedGrade = el.getAttribute('data-selected-grade') || '';
                                     var catSel = document.getElementById('field_category');
                                     var subSel = document.getElementById('field_subject');
+                                    var gradeSel = document.getElementById('field_grade');
+
+                                    function filterGrades(resetValue) {
+                                        var catId = catSel.value;
+                                        var keepVal = resetValue ? '' : selectedGrade;
+                                        while (gradeSel.options.length > 1) { gradeSel.remove(1); }
+                                        var list = catId
+                                            ? (gradesByCategory[catId] || [])
+                                            : Object.values(gradesByCategory).reduce(function(a, b) {
+                                                var seen = {};
+                                                return a.concat(b.filter(function(g) {
+                                                    return seen[g.id] ? false : (seen[g.id] = true);
+                                                }));
+                                              }, []);
+                                        list.forEach(function(g) {
+                                            var opt = document.createElement('option');
+                                            opt.value = g.id;
+                                            opt.textContent = g.name;
+                                            if (String(g.id) === String(keepVal)) { opt.selected = true; }
+                                            gradeSel.appendChild(opt);
+                                        });
+                                    }
 
                                     function filterSubjects(resetValue) {
                                         var catId = catSel.value;
@@ -149,9 +171,13 @@
                                         });
                                     }
 
-                                    catSel.addEventListener('change', function() { filterSubjects(true); });
+                                    catSel.addEventListener('change', function() {
+                                        filterGrades(true);
+                                        filterSubjects(true);
+                                    });
 
-                                    // Initial render: if category pre-selected (e.g. after validation error), filter now
+                                    // Initial render
+                                    filterGrades(false);
                                     filterSubjects(false);
                                 })();
                             </script>

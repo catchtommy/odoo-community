@@ -132,7 +132,8 @@
                             <field name="category_ids" widget="many2many_tags"/>
                             <field name="subject_ids" widget="many2many_tags"
                                   domain="[('category_id', 'in', category_ids)] if category_ids else []"/>
-                            <field name="grade_ids" widget="many2many_tags"/>
+                            <field name="grade_ids" widget="many2many_tags"
+                                  domain="[('category_ids', 'in', category_ids)] if category_ids else []"/>
                         </group>
                     </group>
                     <notebook>

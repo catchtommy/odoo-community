@@ -50,6 +50,8 @@ class CourseMaster(models.Model):
     def _onchange_category_id(self):
         if self.subject_id and self.subject_id.category_id != self.category_id:
             self.subject_id = False
+        if self.grade_id and self.category_id not in self.grade_id.category_ids:
+            self.grade_id = False
 
     @api.depends('subject_id', 'grade_id')
     def _compute_eligible_tutor_ids(self):

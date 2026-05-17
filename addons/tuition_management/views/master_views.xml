@@ -12,7 +12,25 @@
         <field name="name">subject.category.form</field>
         <field name="model">subject.category</field>
         <field name="arch" type="xml">
-            <form><sheet><group><field name="name"/><field name="description"/></group></sheet></form>
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="description"/>
+                    </group>
+                    <notebook>
+                        <page string="Grades" name="grades">
+                            <field name="grade_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name" string="Grade"/>
+                                    <field name="category_ids" widget="many2many_tags" readonly="1"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
         </field>
     </record>
 
@@ -37,14 +55,22 @@
         <field name="name">grade.master.list</field>
         <field name="model">grade.master</field>
         <field name="arch" type="xml">
-            <list><field name="name"/></list>
+            <list><field name="name"/><field name="category_ids" widget="many2many_tags"/><field name="sequence"/></list>
         </field>
     </record>
     <record id="view_grade_master_form" model="ir.ui.view">
         <field name="name">grade.master.form</field>
         <field name="model">grade.master</field>
         <field name="arch" type="xml">
-            <form><sheet><group><field name="name"/></group></sheet></form>
+            <form>
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="sequence"/>
+                        <field name="category_ids" widget="many2many_tags"/>
+                    </group>
+                </sheet>
+            </form>
         </field>
     </record>
 

@@ -5,9 +5,16 @@ from odoo import api, fields, models
 class SubjectCategory(models.Model):
     _name = 'subject.category'
     _description = 'Subject Category'
-    
+
     name = fields.Char(string='Category Name', required=True)
     description = fields.Text(string='Description')
+    grade_ids = fields.Many2many(
+        'grade.master',
+        'subject_category_grade_rel',
+        'category_id',
+        'grade_id',
+        string='Grades',
+    )
 
 
 class SubjectMaster(models.Model):

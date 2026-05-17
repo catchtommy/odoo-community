@@ -10,16 +10,24 @@ class PublicEnquiryController(http.Controller):
         grades = request.env['grade.master'].sudo().search([], order='name')
         categories = request.env['subject.category'].sudo().search([], order='name')
         subjects = request.env['subject.master'].sudo().search([], order='name')
-        # Build a {category_id: [{id, name}, ...]} map for JS filtering
+        # Build a {category_id: [{id, name}, ...]} map for JS filtering of subjects
         subjects_by_category = {}
         for s in subjects:
             cat_id = str(s.category_id.id) if s.category_id else '0'
             subjects_by_category.setdefault(cat_id, []).append({'id': s.id, 'name': s.name})
+        # Build a {category_id: [{id, name}, ...]} map for JS filtering of grades
+        grades_by_category = {}
+        for g in grades:
+            for cat in g.category_ids:
+                grades_by_category.setdefault(str(cat.id), []).append({'id': g.id, 'name': g.name})
+            if not g.category_ids:
+                grades_by_category.setdefault('0', []).append({'id': g.id, 'name': g.name})
         values = {
             'grades': grades,
             'categories': categories,
             'subjects': subjects,
             'subjects_by_category_json': json.dumps(subjects_by_category),
+            'grades_by_category_json': json.dumps(grades_by_category),
             'success': False,
             'error': False,
             'form_data': {},

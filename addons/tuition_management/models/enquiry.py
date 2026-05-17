@@ -47,8 +47,12 @@ class Enquiry(models.Model):
             # Clear subject if it doesn't belong to the selected category
             if self.subject_id and self.subject_id.category_id != self.category_id:
                 self.subject_id = False
+            # Clear grade if it doesn't belong to the selected category
+            if self.grade_id and self.category_id not in self.grade_id.category_ids:
+                self.grade_id = False
         else:
             self.subject_id = False
+            self.grade_id = False
     stage_id = fields.Many2one(
         'enquiry.stage',
         string='Stage',

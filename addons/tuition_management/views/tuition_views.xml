@@ -53,7 +53,7 @@
                     <group string="Academic Information">
                         <field name="category_id" readonly="is_enrolled"/>
                         <field name="subject_id" domain="[('category_id', '=', category_id)]" readonly="is_enrolled"/>
-                        <field name="grade_id" readonly="is_enrolled"/>
+                        <field name="grade_id" domain="[('category_ids', 'in', [category_id])]" readonly="is_enrolled"/>
                     </group>
                     <group string="Notes">
                         <field name="notes" nolabel="1" readonly="is_enrolled"/>
