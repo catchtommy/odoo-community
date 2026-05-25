@@ -1,0 +1,8 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_learning_country_user,learning.country user,model_learning_country,base.group_user,1,1,1,1
+access_exam_board_user,exam.board user,model_exam_board,base.group_user,1,1,1,1
+access_grade_group_user,grade.group user,model_grade_group,base.group_user,1,1,1,1
+access_grade_level_user,grade.level user,model_grade_level,base.group_user,1,1,1,1
+access_curriculum_subject_user,curriculum.subject user,model_curriculum_subject,base.group_user,1,1,1,1
+access_curriculum_topic_user,curriculum.topic user,model_curriculum_topic,base.group_user,1,1,1,1
+access_curriculum_skill_user,curriculum.skill user,model_curriculum_skill,base.group_user,1,1,1,1
