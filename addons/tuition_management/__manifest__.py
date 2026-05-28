@@ -21,6 +21,7 @@
         "data/ir_sequence_data.xml",
         "views/master_views.xml",
         "views/profile_views.xml",
+        "views/tutor_import_views.xml",
         "views/course_views.xml",
         "views/schedule_views.xml",
         "views/virtual_classroom_views.xml",
@@ -57,6 +58,8 @@
         "web.assets_backend": [
             "tuition_management/static/src/dashboard/dashboard.js",
             "tuition_management/static/src/dashboard/dashboard.xml",
+            "tuition_management/static/src/tutor_list/tutor_list_controller.js",
+            "tuition_management/static/src/tutor_list/tutor_list_controller.xml",
         ],
     },
 }

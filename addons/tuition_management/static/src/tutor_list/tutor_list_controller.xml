@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!--
+        Derives a new standalone template from web.ListView and injects
+        an "Import / Export" button next to the "New" button.
+        t-inherit-mode="primary" creates a NEW named template (not a patch),
+        so TutorListController can reference it by name without affecting
+        any other list view.
+    -->
+    <t t-name="tuition_management.TutorListController"
+       t-inherit="web.ListView"
+       t-inherit-mode="primary">
+        <xpath expr="//button[hasclass('o_list_button_add')]" position="after">
+            <button class="btn btn-secondary ms-2"
+                    t-on-click="openImportExport">
+                Import / Export
+            </button>
+        </xpath>
+    </t>
+</templates>

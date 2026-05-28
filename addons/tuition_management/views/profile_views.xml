@@ -87,7 +87,7 @@
         <field name="name">tutor.profile.list</field>
         <field name="model">tutor.profile</field>
         <field name="arch" type="xml">
-            <list decoration-success="status == 'active'" decoration-muted="status == 'inactive'">
+            <list js_class="tutor_profile_list" decoration-success="status == 'active'" decoration-muted="status == 'inactive'">
                 <field name="name" string="Full Name"/>
                 <field name="email"/>
                 <field name="phone"/>
