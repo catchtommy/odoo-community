@@ -6,13 +6,14 @@
         <field name="name">student.profile.list</field>
         <field name="model">student.profile</field>
         <field name="arch" type="xml">
-            <list>
+            <list decoration-success="status == 'active'" decoration-muted="status == 'inactive'">
                 <field name="name" string="Full Name"/>
                 <field name="email"/>
                 <field name="phone"/>
                 <field name="age"/>
                 <field name="grade_id"/>
                 <field name="parent_id"/>
+                <field name="status" widget="badge"/>
             </list>
         </field>
     </record>
@@ -50,6 +51,7 @@
                             <field name="country_code" string="Country Code"/>
                             <field name="phone"/>
                             <field name="timezone" required="1"/>
+                            <field name="status"/>
                             <field name="partner_id" invisible="1"/>
                         </group>
                         <group string="Academic Information">
@@ -85,13 +87,14 @@
         <field name="name">tutor.profile.list</field>
         <field name="model">tutor.profile</field>
         <field name="arch" type="xml">
-            <list>
+            <list decoration-success="status == 'active'" decoration-muted="status == 'inactive'">
                 <field name="name" string="Full Name"/>
                 <field name="email"/>
                 <field name="phone"/>
                 <field name="category_ids" widget="many2many_tags"/>
                 <field name="subject_ids" widget="many2many_tags"/>
                 <field name="grade_ids" widget="many2many_tags"/>
+                <field name="status" widget="badge"/>
             </list>
         </field>
     </record>
@@ -128,6 +131,7 @@
                             <field name="country_code" string="Country Code"/>
                             <field name="phone"/>
                             <field name="timezone"/>
+                            <field name="status"/>
                             <field name="partner_id"/>
                         </group>
                         <group string="Teaching Information">
@@ -251,10 +255,11 @@
         <field name="name">parent.profile.list</field>
         <field name="model">parent.profile</field>
         <field name="arch" type="xml">
-            <list>
+            <list decoration-success="status == 'active'" decoration-muted="status == 'inactive'">
                 <field name="name" string="Full Name"/>
                 <field name="email"/>
                 <field name="phone"/>
+                <field name="status" widget="badge"/>
             </list>
         </field>
     </record>
@@ -291,6 +296,7 @@
                             <field name="country_code" string="Country Code"/>
                             <field name="phone"/>
                             <field name="timezone"/>
+                            <field name="status"/>
                             <field name="partner_id" invisible="1"/>
                         </group>
                         <group string="Address">

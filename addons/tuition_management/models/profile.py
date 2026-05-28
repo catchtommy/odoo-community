@@ -287,6 +287,12 @@ class TutorProfile(models.Model):
     country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
     timezone = fields.Selection(selection=get_tz_selection, string='Timezone', default=DEFAULT_TIMEZONE)
+    status = fields.Selection(
+        selection=[('active', 'Active'), ('inactive', 'Inactive')],
+        string='Status',
+        default='active',
+        required=True,
+    )
     subject_ids = fields.Many2many('subject.master', string='Subjects')
     category_ids = fields.Many2many(
         'subject.category',
@@ -469,6 +475,12 @@ class StudentProfile(models.Model):
     subscription_ids = fields.One2many('tuition.subscription', 'student_id', string='Subscriptions')
     progress_report_ids = fields.One2many('progress.report', 'student_id', string='Progress Reports')
     timezone = fields.Selection(selection=get_tz_selection, string='Timezone', required=True, default=DEFAULT_TIMEZONE)
+    status = fields.Selection(
+        selection=[('active', 'Active'), ('inactive', 'Inactive')],
+        string='Status',
+        default='active',
+        required=True,
+    )
     address_line_1 = fields.Char(string='Address Line 1')
     address_line_2 = fields.Char(string='Address Line 2')
     address_line_3 = fields.Char(string='Address Line 3')
@@ -559,6 +571,12 @@ class ParentProfile(models.Model):
     country_code = fields.Char(string='Country Code', default='+1')
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=True)
     timezone = fields.Selection(selection=get_tz_selection, string='Timezone', required=True, default=DEFAULT_TIMEZONE)
+    status = fields.Selection(
+        selection=[('active', 'Active'), ('inactive', 'Inactive')],
+        string='Status',
+        default='active',
+        required=True,
+    )
     address_line_1 = fields.Char(string='Address Line 1')
     address_line_2 = fields.Char(string='Address Line 2')
     address_line_3 = fields.Char(string='Address Line 3')

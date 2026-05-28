@@ -17,8 +17,13 @@ class StudentProfile(models.Model):
     phone = fields.Char(string='Phone Number')
     country_code = fields.Char(string='Country Code', default='+1')
     timezone = fields.Selection(_TIMEZONE_LIST, string='Timezone', default='UTC')
-    timezone = fields.Selection(_TIMEZONE_LIST, string='Timezone', default='UTC')
-    
+    status = fields.Selection(
+        selection=[('active', 'Active'), ('inactive', 'Inactive')],
+        string='Status',
+        default='active',
+        required=True,
+    )
+
     # Academic Information
     age = fields.Integer(string='Age')
     grade_id = fields.Many2one('grade.master', string='Grade')
@@ -30,6 +35,11 @@ class StudentProfile(models.Model):
     address_line_3 = fields.Char(string='Address Line 3')
     address_line_4 = fields.Char(string='Address Line 4')
     zip_code = fields.Char(string='Zip Code')
+
+    def init(self):
+        self.env.cr.execute(
+            "UPDATE student_profile SET status = 'active' WHERE status IS NULL"
+        )
 
 
 class TutorProfile(models.Model):
@@ -44,6 +54,12 @@ class TutorProfile(models.Model):
     phone = fields.Char(string='Phone Number')
     country_code = fields.Char(string='Country Code', default='+1')
     timezone = fields.Selection(_TIMEZONE_LIST, string='Timezone', default='UTC')
+    status = fields.Selection(
+        selection=[('active', 'Active'), ('inactive', 'Inactive')],
+        string='Status',
+        default='active',
+        required=True,
+    )
     
     # Professional Information
     subjects_ids = fields.Many2many('subject.master', string='Subjects')
@@ -54,6 +70,11 @@ class TutorProfile(models.Model):
     address_line_3 = fields.Char(string='Address Line 3')
     address_line_4 = fields.Char(string='Address Line 4')
     zip_code = fields.Char(string='Zip Code')
+
+    def init(self):
+        self.env.cr.execute(
+            "UPDATE tutor_profile SET status = 'active' WHERE status IS NULL"
+        )
 
 
 class ParentProfile(models.Model):
@@ -68,6 +89,12 @@ class ParentProfile(models.Model):
     phone = fields.Char(string='Phone Number')
     country_code = fields.Char(string='Country Code', default='+1')
     timezone = fields.Selection(_TIMEZONE_LIST, string='Timezone', default='UTC')
+    status = fields.Selection(
+        selection=[('active', 'Active'), ('inactive', 'Inactive')],
+        string='Status',
+        default='active',
+        required=True,
+    )
     
     # Relationships
     student_ids = fields.Many2many('student.profile', string='Students', help='Students under this parent')
@@ -78,6 +105,11 @@ class ParentProfile(models.Model):
     address_line_3 = fields.Char(string='Address Line 3')
     address_line_4 = fields.Char(string='Address Line 4')
     zip_code = fields.Char(string='Zip Code')
+
+    def init(self):
+        self.env.cr.execute(
+            "UPDATE parent_profile SET status = 'active' WHERE status IS NULL"
+        )
 
 
 class SubjectMaster(models.Model):
