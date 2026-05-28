@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <!-- Subject Category list controller template -->
+    <t t-name="tuition_management.SubjectCategoryListController"
+       t-inherit="web.ListView"
+       t-inherit-mode="primary">
+        <xpath expr="//button[hasclass('o_list_button_add')]" position="after">
+            <button class="btn btn-secondary ms-2" t-on-click="openImportExport">
+                Import / Export
+            </button>
+        </xpath>
+    </t>
+
+    <!-- Subject list controller template -->
+    <t t-name="tuition_management.SubjectListController"
+       t-inherit="web.ListView"
+       t-inherit-mode="primary">
+        <xpath expr="//button[hasclass('o_list_button_add')]" position="after">
+            <button class="btn btn-secondary ms-2" t-on-click="openImportExport">
+                Import / Export
+            </button>
+        </xpath>
+    </t>
+
+    <!-- Grade list controller template -->
+    <t t-name="tuition_management.GradeListController"
+       t-inherit="web.ListView"
+       t-inherit-mode="primary">
+        <xpath expr="//button[hasclass('o_list_button_add')]" position="after">
+            <button class="btn btn-secondary ms-2" t-on-click="openImportExport">
+                Import / Export
+            </button>
+        </xpath>
+    </t>
+
+</templates>

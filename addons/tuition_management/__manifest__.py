@@ -22,6 +22,7 @@
         "views/master_views.xml",
         "views/profile_views.xml",
         "views/tutor_import_views.xml",
+        "views/master_import_views.xml",
         "views/course_views.xml",
         "views/schedule_views.xml",
         "views/virtual_classroom_views.xml",
@@ -60,6 +61,8 @@
             "tuition_management/static/src/dashboard/dashboard.xml",
             "tuition_management/static/src/tutor_list/tutor_list_controller.js",
             "tuition_management/static/src/tutor_list/tutor_list_controller.xml",
+            "tuition_management/static/src/master_list/master_list_controllers.js",
+            "tuition_management/static/src/master_list/master_list_controllers.xml",
         ],
     },
 }
