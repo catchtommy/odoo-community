@@ -178,6 +178,9 @@
                 <field name="tutor_rate_used" optional="hide"/>
                 <field name="tutor_calculated_amount" optional="hide"/>
                 <field name="tutor_payment_status" optional="hide"/>
+                <field name="exclude_from_payroll" optional="hide"
+                       widget="confirm_boolean"
+                       string="Excl. Payroll" groups="base.group_user"/>
             </list>
         </field>
     </record>
@@ -232,6 +235,14 @@
                         <group>
                             <field name="virtual_meeting_id" readonly="1"/>
                         </group>
+                    </group>
+                    <!-- Payroll override — internal users only -->
+                    <group string="Payroll" groups="base.group_user"
+                           invisible="lesson_status == 'cancelled'">
+                        <field name="exclude_from_payroll"
+                               widget="confirm_boolean"
+                               string="Exclude from Tutor Payroll"
+                               help="If checked, this lesson will not be included in any tutor payroll run."/>
                     </group>
                     <!-- Reschedule section — only shown when creating a new event -->
                     <group string="Reschedule" invisible="id">

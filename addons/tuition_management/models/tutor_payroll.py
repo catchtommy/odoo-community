@@ -172,6 +172,13 @@ class ClassScheduleOccurrenceTutorPayment(models.Model):
         ('paid', 'Paid'),
         ('rejected', 'Rejected'),
     ], string='Tutor Payment Status', readonly=True, copy=False)
+    exclude_from_payroll = fields.Boolean(
+        string='Exclude from Tutor Payroll',
+        default=False,
+        copy=False,
+        help='If checked, this lesson will be excluded from tutor payroll generation. '
+             'Only internal users can set this flag.',
+    )
 
 
 class TutorPaymentEngine(models.AbstractModel):
@@ -375,6 +382,7 @@ class TutorPaymentRun(models.Model):
             ('course_id', '!=', False),
             ('start_datetime', '>=', start_dt),
             ('start_datetime', '<=', end_dt),
+            ('exclude_from_payroll', '=', False),
         ]
         if excluded_ids:
             domain.append(('id', 'not in', excluded_ids))
@@ -520,8 +528,13 @@ class TutorPaymentLine(models.Model):
             if line.payment_status != 'rejected':
                 if line.hours_worked <= 0:
                     raise ValidationError("Payment line hours must be greater than zero.")
-                if line.rate_used <= 0:
-                    raise ValidationError("Payment line rate must be greater than zero.")
+                # Demo lessons may have a zero rate (free / non-chargeable demo).
+                # Regular lessons must always have a positive rate.
+                if not line.demo_flag and line.rate_used <= 0:
+                    raise ValidationError(
+                        "Payment line rate must be greater than zero for non-demo lessons.")
+                if line.rate_used < 0:
+                    raise ValidationError("Payment line rate cannot be negative.")
                 if line.amount < 0:
                     raise ValidationError("Payment line amount cannot be negative.")
 

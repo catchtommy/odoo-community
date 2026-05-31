@@ -63,6 +63,7 @@
             "tuition_management/static/src/tutor_list/tutor_list_controller.xml",
             "tuition_management/static/src/master_list/master_list_controllers.js",
             "tuition_management/static/src/master_list/master_list_controllers.xml",
+            "tuition_management/static/src/widgets/confirm_boolean_field.js",
         ],
     },
 }

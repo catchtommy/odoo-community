@@ -67,6 +67,9 @@
                                 <field name="tutor_rate_used" readonly="1" optional="hide"/>
                                 <field name="tutor_calculated_amount" readonly="1" optional="hide"/>
                                 <field name="tutor_payment_status" readonly="1" optional="hide"/>
+                                <field name="exclude_from_payroll" string="Excl. Payroll"
+                                       widget="confirm_boolean"
+                                       optional="show" groups="base.group_user"/>
                                 <field name="is_rescheduled" string="Rescheduled" readonly="1"/>
                                 <field name="cancellation_reason" string="Cancel Reason" readonly="1" optional="hide"/>
                                 <field name="attendance_marked" string="Attendance Marked"/>
