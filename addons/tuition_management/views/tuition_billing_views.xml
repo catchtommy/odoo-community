@@ -88,7 +88,7 @@
                         </field>
                     </page>
                     <page string="Invoices" name="invoices">
-                        <field name="invoice_ids" readonly="1">
+                        <field name="invoice_ids" readonly="1" domain="[('state', '!=', 'cancel')]">
                             <list>
                                 <field name="name"/>
                                 <field name="invoice_date"/>

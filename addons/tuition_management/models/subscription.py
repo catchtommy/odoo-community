@@ -45,9 +45,12 @@ class TuitionSubscription(models.Model):
             rec.current_plan_product = plan.product_id.name if plan else ''
             rec.current_plan_price = plan.price if plan else 0.0
 
+    @api.depends('invoice_ids', 'invoice_ids.state')
     def _compute_invoice_count(self):
         for rec in self:
-            rec.invoice_count = len(rec.invoice_ids)
+            # Exclude cancelled invoices from the count so that cancelling or
+            # resetting an invoice in the Sales app is immediately reflected.
+            rec.invoice_count = len(rec.invoice_ids.filtered(lambda m: m.state != 'cancel'))
 
     def _compute_unapplied_adjustments(self):
         for rec in self:
@@ -60,8 +63,13 @@ class TuitionSubscription(models.Model):
 
     def action_view_invoices(self):
         self.ensure_one()
-        return {'type': 'ir.actions.act_window', 'name': 'Invoices', 'res_model': 'account.move',
-                'view_mode': 'list,form', 'domain': [('id', 'in', self.invoice_ids.ids)]}
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Invoices',
+            'res_model': 'account.move',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', self.invoice_ids.ids), ('state', '!=', 'cancel')],
+        }
 
     def action_generate_invoice(self):
         self.ensure_one()

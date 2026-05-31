@@ -108,7 +108,7 @@ class ClassSchedule(models.Model):
         return hours, minutes
 
     @api.onchange('course_id', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday',
-                  'saturday', 'sunday', 'schedule_hour', 'schedule_minute',
+                  'saturday', 'sunday',
                   'schedule_hour_sel', 'schedule_minute_sel',
                   'schedule_duration', 'start_date', 'end_date', 'schedule_date', 'schedule_type', 'timezone')
     def _onchange_schedule_for_tutor_domain(self):
@@ -118,22 +118,29 @@ class ClassSchedule(models.Model):
         snapshot. Returning the availability x2many values explicitly keeps the
         tags, warning panel, and tutor domain in sync on every edit.
         """
-        # Sync hour/minute selection widgets → integer fields so the compute
-        # sees up-to-date values when schedule_hour_sel / schedule_minute_sel change.
+        # Sync hour/minute selection widgets → integer fields so the availability
+        # compute sees up-to-date values when schedule_hour_sel / schedule_minute_sel
+        # change.  Only sync when the selection widget is the source of truth
+        # (i.e. it disagrees with the integer).  This avoids the "double-onchange"
+        # reset: returning schedule_hour/schedule_minute in the value dict causes
+        # the web client to re-trigger this same onchange, at which point
+        # schedule_hour_sel / schedule_minute_sel are stale ("0") and would
+        # overwrite the user's choice with zero.
         if self.schedule_hour_sel is not None:
-            self.schedule_hour = int(self.schedule_hour_sel)
+            sel_hour = int(self.schedule_hour_sel)
+            if sel_hour != self.schedule_hour:
+                self.schedule_hour = sel_hour
         if self.schedule_minute_sel is not None:
-            self.schedule_minute = int(self.schedule_minute_sel)
+            sel_min = int(self.schedule_minute_sel)
+            if sel_min != self.schedule_minute:
+                self.schedule_minute = sel_min
 
-        # Force a fresh availability pass after syncing the editable selection
-        # widgets. This makes form-load defaults and subsequent hour/minute,
-        # timezone, and weekday changes visible to the onchange diff.
         availability = self._get_availability_values()
         value = self._availability_onchange_values(availability)
-        value.update({
-            'schedule_hour': self.schedule_hour,
-            'schedule_minute': self.schedule_minute,
-        })
+        # Do NOT return schedule_hour / schedule_minute in the value dict.
+        # Returning them triggers a second onchange (they are also in the
+        # trigger list) where the web-client sends stale selection values,
+        # causing the minute to silently reset to 00.
         if self.tutor_id and self.tutor_id not in availability['assignable']:
             value['tutor_id'] = False
 

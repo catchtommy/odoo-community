@@ -39,7 +39,13 @@ export class ConfirmBooleanField extends BooleanField {
             "This lesson will be excluded from tutor payroll calculations " +
             "and will not appear in any payroll run. Do you want to continue?";
         const confirmLabel = opts.confirm_label || "Yes, Exclude";
-        const cancelLabel  = opts.cancel_label  || "Cancel";
+        const cancelLabel  = opts.cancel_label  || "No";
+
+        // Set to true immediately so the record matches the DOM state the
+        // browser has already applied. This gives cancel a real value
+        // transition (true → false) that forces OWL to re-render the checkbox
+        // back to unchecked when the user dismisses the dialog.
+        this.props.record.update({ [this.props.name]: true });
 
         this.dialogService.add(ConfirmationDialog, {
             title,
@@ -47,12 +53,13 @@ export class ConfirmBooleanField extends BooleanField {
             confirmLabel,
             cancelLabel,
             confirm: () => {
-                this.props.record.update({ [this.props.name]: true });
+                // Value is already true — nothing more to do.
             },
-            // Providing an explicit cancel callback ensures the "No" button
-            // is rendered. OWL will re-render the checkbox back to unchecked
-            // automatically because the record value was never updated.
-            cancel: () => {},
+            // Explicit cancel callback: revert true → false so OWL patches
+            // the DOM checkbox back to unchecked.
+            cancel: () => {
+                this.props.record.update({ [this.props.name]: false });
+            },
         });
     }
 }
