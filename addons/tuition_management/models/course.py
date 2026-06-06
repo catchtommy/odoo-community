@@ -3,6 +3,7 @@ from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from datetime import timedelta
 import pytz
+from .user_permission import require_permission
 
 
 class CourseMaster(models.Model):
@@ -335,6 +336,7 @@ class CourseMaster(models.Model):
 
     def action_cancel_course(self):
         self.ensure_one()
+        require_permission(self.env.user, 'course_cancel')
         now = fields.Datetime.now()
 
         # Validation 1: future schedules with attendance marked
@@ -448,6 +450,10 @@ class CourseMaster(models.Model):
             subscriptions.write({'state': 'cancelled'})
 
         self.write({'status': 'cancelled'})
+
+    def unlink(self):
+        require_permission(self.env.user, 'course_delete')
+        return super().unlink()
 
 
 class CourseEnrollment(models.Model):

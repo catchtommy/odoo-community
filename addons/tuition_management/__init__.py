@@ -49,3 +49,13 @@ def _create_default_enquiry_stages(env):
 
     cr.execute("SELECT id, name FROM enquiry_stage ORDER BY sequence")
     _logger.info("After cleanup: %s", cr.fetchall())
+
+
+def _setup_post_init(env):
+    """Combined post-init hook: enquiry stages + default permission group."""
+    _create_default_enquiry_stages(env)
+    try:
+        env['user.permission.group'].sudo().setup_default_group()
+        _logger.info("Tuition permission groups initialised.")
+    except Exception as e:
+        _logger.warning("Could not create default tuition permission group: %s", e)

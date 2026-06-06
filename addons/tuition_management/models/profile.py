@@ -2,6 +2,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
+from .user_permission import require_permission
 
 
 class TutorAvailability(models.Model):
@@ -456,6 +457,10 @@ class TutorProfile(models.Model):
                     rec.partner_id.write(partner_vals)
         return res
 
+    def unlink(self):
+        require_permission(self.env.user, 'tutor_delete')
+        return super().unlink()
+
 
 class StudentProfile(models.Model):
     _name = 'student.profile'
@@ -558,6 +563,10 @@ class StudentProfile(models.Model):
                     rec.partner_id.write(partner_vals)
         return res
 
+    def unlink(self):
+        require_permission(self.env.user, 'student_delete')
+        return super().unlink()
+
 
 class ParentProfile(models.Model):
     _name = 'parent.profile'
@@ -640,6 +649,10 @@ class ParentProfile(models.Model):
                 if partner_vals:
                     rec.partner_id.write(partner_vals)
         return res
+
+    def unlink(self):
+        require_permission(self.env.user, 'parent_delete')
+        return super().unlink()
 
 
 class PortalAccessWizard(models.TransientModel):

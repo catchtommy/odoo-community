@@ -18,7 +18,8 @@
             <header>
                 <button name="action_enroll_student" string="Enroll Student" type="object" class="btn-primary" icon="fa-user-plus"/>
                 <button name="action_start_virtual_class" string="Start Virtual Class" type="object" class="btn-success" icon="fa-video-camera" invisible="status not in ('active',)"/>
-                <button name="action_cancel_course" string="Cancel Course" type="object" class="btn-danger" icon="fa-times-circle" invisible="status == 'cancelled'" confirm="Are you sure you want to cancel this course?"/>
+                <button name="action_cancel_course" string="Cancel Course" type="object" class="btn-danger" icon="fa-times-circle" invisible="status == 'cancelled'" confirm="Are you sure you want to cancel this course?"
+                        groups="tuition_management.group_tuition_course_cancel,base.group_system"/>
                 <field name="status" widget="statusbar"/>
             </header>
             <sheet>

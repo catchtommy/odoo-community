@@ -152,7 +152,7 @@
                             </div>
                             <field name="availability_matrix_html" widget="html" readonly="1" nolabel="1"/>
                         </page>
-                        <page string="Pricing Matrix">
+                        <page string="Pricing Matrix" groups="tuition_management.group_tuition_tutor_pricing_view,base.group_system">
                             <field name="tutor_subject_rate_ids">
                                 <list editable="bottom">
                                     <field name="active_flag" widget="boolean_toggle"/>

@@ -4,6 +4,7 @@ from odoo import models, fields, api
 from odoo.exceptions import UserError
 from dateutil.relativedelta import relativedelta
 import calendar
+from .user_permission import require_permission
 
 
 class BulkBillingWizard(models.TransientModel):
@@ -33,6 +34,7 @@ class BulkBillingWizard(models.TransientModel):
 
     def action_preview_invoices(self):
         self.ensure_one()
+        require_permission(self.env.user, 'parent_invoice_generate')
         # Check for an existing run for this month/year
         existing = self.env['parent.billing.run'].search([
             ('month', '=', self.month),

@@ -3,6 +3,7 @@ from odoo.exceptions import ValidationError
 from datetime import timedelta
 import logging
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
+from .user_permission import require_permission
 
 _logger = logging.getLogger(__name__)
 
@@ -514,6 +515,10 @@ class Enquiry(models.Model):
             'res_model': 'enquiry',
             'view_mode': 'kanban,list,form',
         }
+
+    def unlink(self):
+        require_permission(self.env.user, 'enquiry_delete')
+        return super().unlink()
 
 
 class DemoSession(models.Model):

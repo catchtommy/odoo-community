@@ -3,6 +3,7 @@ from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from dateutil.relativedelta import relativedelta
 from datetime import date
+from .user_permission import require_permission
 
 
 class TuitionSubscription(models.Model):
@@ -48,9 +49,12 @@ class TuitionSubscription(models.Model):
     @api.depends('invoice_ids', 'invoice_ids.state')
     def _compute_invoice_count(self):
         for rec in self:
-            # Exclude cancelled invoices from the count so that cancelling or
-            # resetting an invoice in the Sales app is immediately reflected.
-            rec.invoice_count = len(rec.invoice_ids.filtered(lambda m: m.state != 'cancel'))
+            # Use sudo() to bypass account.move ACL — non-accounting users can
+            # still see the count on the subscription list without needing full
+            # access to the accounting module.
+            rec.invoice_count = len(
+                rec.sudo().invoice_ids.filtered(lambda m: m.state != 'cancel')
+            )
 
     def _compute_unapplied_adjustments(self):
         for rec in self:
@@ -68,11 +72,12 @@ class TuitionSubscription(models.Model):
             'name': 'Invoices',
             'res_model': 'account.move',
             'view_mode': 'list,form',
-            'domain': [('id', 'in', self.invoice_ids.ids), ('state', '!=', 'cancel')],
+            'domain': [('id', 'in', self.sudo().invoice_ids.ids), ('state', '!=', 'cancel')],
         }
 
     def action_generate_invoice(self):
         self.ensure_one()
+        require_permission(self.env.user, 'parent_invoice_generate')
         today = fields.Date.today()
         # check both via many2one and many2many
         existing = self.env['account.move'].sudo().search([
@@ -188,12 +193,14 @@ class TuitionSubscription(models.Model):
 
     def action_schedule_plan_change(self):
         self.ensure_one()
+        require_permission(self.env.user, 'subscription_add_plan')
         return {'type': 'ir.actions.act_window', 'name': 'Schedule Plan Change',
                 'res_model': 'tuition.plan.change.wizard', 'view_mode': 'form', 'target': 'new',
                 'context': {'default_subscription_id': self.id}}
 
     def action_add_adjustment(self):
         self.ensure_one()
+        require_permission(self.env.user, 'subscription_add_adjustment')
         return {'type': 'ir.actions.act_window', 'name': 'Add Adjustment',
                 'res_model': 'tuition.adjustment.wizard', 'view_mode': 'form', 'target': 'new',
                 'context': {'default_subscription_id': self.id}}
@@ -273,6 +280,7 @@ class TuitionPlanLine(models.Model):
             ], limit=1))
 
     def unlink(self):
+        require_permission(self.env.user, 'subscription_plan_delete')
         for rec in self:
             if self.env['account.move'].sudo().search([
                 '|', ('tuition_subscription_id', '=', rec.subscription_id.id),

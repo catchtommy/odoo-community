@@ -17,6 +17,7 @@
     ],
     "data": [
         "security/virtual_classroom_security.xml",
+        "security/tuition_permission_security.xml",
         "security/ir.model.access.csv",
         "data/ir_sequence_data.xml",
         "views/master_views.xml",
@@ -39,6 +40,7 @@
         "views/report_tutor_wise_views.xml",
         "views/report_views.xml",
         "views/tuition_billing_views.xml",
+        "views/user_permission_views.xml",
         "views/portal_css.xml",
         "views/portal_layout.xml",
         "views/portal_common.xml",
@@ -54,7 +56,7 @@
     ],
     "installable": True,
     "application": True,
-    "post_init_hook": "_create_default_enquiry_stages",
+    "post_init_hook": "_setup_post_init",
     "assets": {
         "web.assets_backend": [
             "tuition_management/static/src/dashboard/dashboard.js",

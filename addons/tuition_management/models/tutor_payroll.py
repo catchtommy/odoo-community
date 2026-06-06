@@ -3,6 +3,7 @@ from datetime import datetime, time
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from .user_permission import require_permission
 
 
 class TutorSubjectRate(models.Model):
@@ -330,6 +331,7 @@ class TutorPaymentRun(models.Model):
 
     def action_generate_preview(self):
         for run in self:
+            require_permission(self.env.user, 'tutor_payroll_generate')
             if run.run_status not in ('draft', 'preview'):
                 raise UserError("Only Draft or Preview runs can be regenerated.")
             run.summary_ids.unlink()

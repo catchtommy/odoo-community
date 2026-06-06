@@ -41,7 +41,8 @@
                     <!-- Draft → Preview -->
                     <button name="action_generate_preview" type="object"
                             string="Generate Preview" class="btn-primary"
-                            invisible="state not in ['draft', 'preview']"/>
+                            invisible="state not in ['draft', 'preview']"
+                            groups="tuition_management.group_tuition_parent_invoice_generate,base.group_system"/>
                     <!-- Preview → Approved -->
                     <button name="action_approve" type="object"
                             string="Approve" class="btn-primary"

@@ -9,12 +9,15 @@
             <header>
                 <button name="action_generate_invoice" string="Generate Invoice"
                         type="object" class="oe_highlight"
-                        invisible="state != 'active'"/>
+                        invisible="state != 'active'"
+                        groups="tuition_management.group_tuition_parent_invoice_generate,base.group_system"/>
                 <button name="action_schedule_plan_change" string="Schedule Plan Change"
                         type="object" class="btn-secondary"
-                        invisible="state != 'active'"/>
+                        invisible="state != 'active'"
+                        groups="tuition_management.group_tuition_subscription_plan,base.group_system"/>
                 <button name="action_add_adjustment" string="Add Adjustment"
-                        type="object" class="btn-secondary"/>
+                        type="object" class="btn-secondary"
+                        groups="tuition_management.group_tuition_subscription_adjustment,base.group_system"/>
                 <button name="action_pause" string="Pause"
                         type="object"
                         invisible="state != 'active'"/>
@@ -47,7 +50,8 @@
                 <notebook>
                     <page string="Plan History" name="plan_history">
                         <field name="plan_line_ids">
-                            <list editable="bottom" decoration-success="state=='active'"
+                            <list editable="bottom" delete="0"
+                                  decoration-success="state=='active'"
                                   decoration-info="state=='scheduled'"
                                   decoration-muted="state=='expired'">
                                 <field name="product_id"/>
@@ -57,10 +61,13 @@
                                 <field name="end_date"/>
                                 <field name="state" readonly="1"/>
                                 <field name="notes"/>
+                                <button name="unlink" type="object"
+                                        icon="fa-trash" title="Delete plan line"
+                                        groups="tuition_management.group_tuition_subscription_plan_delete,base.group_system"/>
                             </list>
                         </field>
                     </page>
-                    <page string="Discounts" name="discounts">
+                    <page string="Discounts" name="discounts" groups="tuition_management.group_tuition_subscription_discount,base.group_system">
                         <field name="discount_ids">
                             <list editable="bottom">
                                 <field name="name"/>
@@ -73,7 +80,7 @@
                             </list>
                         </field>
                     </page>
-                    <page string="Adjustments" name="adjustments">
+                    <page string="Adjustments" name="adjustments" groups="tuition_management.group_tuition_subscription_adjustment,base.group_system">
                         <field name="adjustment_ids">
                             <list decoration-success="adjustment_type == 'extra_charge'"
                                   decoration-danger="adjustment_type in ('discount','refund')">
@@ -87,7 +94,7 @@
                             </list>
                         </field>
                     </page>
-                    <page string="Invoices" name="invoices">
+                    <page string="Invoices" name="invoices" groups="tuition_management.group_tuition_parent_invoice_view,base.group_system">
                         <field name="invoice_ids" readonly="1" domain="[('state', '!=', 'cancel')]">
                             <list>
                                 <field name="name"/>
@@ -268,6 +275,13 @@
           parent="menu_tuition_billing_root"
           action="action_bulk_billing_wizard"
           sequence="5"/>
+<!-- Explicitly replace groups to enforce generate-invoice permission (menuitem groups= only adds, not replaces) -->
+<record id="menu_tuition_generate_bulk_invoices" model="ir.ui.menu">
+    <field name="group_ids" eval="[(6, 0, [
+        ref('tuition_management.group_tuition_parent_invoice_generate'),
+        ref('base.group_system'),
+    ])]"/>
+</record>
 
 <menuitem id="menu_tuition_subscriptions"
           name="Subscriptions"

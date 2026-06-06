@@ -66,9 +66,13 @@ action = {
         </field>
     </record>
 
-    <!-- Reports menu -->
-    <menuitem id="menu_tuition_reports"           name="Reports"             parent="menu_tuition_root"    sequence="35"/>
-    <menuitem id="menu_tuition_class_status_report" name="Class Status Report" parent="menu_tuition_reports" action="action_open_class_status_report" sequence="10"/>
-    <menuitem id="menu_tuition_subject_wise_report" name="Subject-wise Report" parent="menu_tuition_reports" action="action_open_subject_wise_report" sequence="20"/>
-    <menuitem id="menu_tuition_tutor_wise_report"   name="Tutor-wise Report"   parent="menu_tuition_reports" action="action_open_tutor_wise_report"   sequence="30"/>
+    <!-- Reports menu — restricted to users with reports_access permission -->
+    <menuitem id="menu_tuition_reports"             name="Reports"               parent="menu_tuition_root"    sequence="35"
+              groups="tuition_management.group_tuition_reports_access,base.group_system"/>
+    <menuitem id="menu_tuition_class_status_report" name="Class Status Report"   parent="menu_tuition_reports" action="action_open_class_status_report" sequence="10"
+              groups="tuition_management.group_tuition_reports_access,base.group_system"/>
+    <menuitem id="menu_tuition_subject_wise_report" name="Subject-wise Report"   parent="menu_tuition_reports" action="action_open_subject_wise_report" sequence="20"
+              groups="tuition_management.group_tuition_reports_access,base.group_system"/>
+    <menuitem id="menu_tuition_tutor_wise_report"   name="Tutor-wise Report"     parent="menu_tuition_reports" action="action_open_tutor_wise_report"   sequence="30"
+              groups="tuition_management.group_tuition_reports_access,base.group_system"/>
 </odoo>

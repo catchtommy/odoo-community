@@ -1,0 +1,238 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <!-- ================================================================
+         Permission Group — List View
+         ================================================================ -->
+    <record id="view_user_permission_group_list" model="ir.ui.view">
+        <field name="name">user.permission.group.list</field>
+        <field name="model">user.permission.group</field>
+        <field name="arch" type="xml">
+            <list string="Permission Groups"
+                  decoration-info="member_count == 0">
+                <field name="name"/>
+                <field name="description"/>
+                <field name="member_count" string="Members"/>
+                <!-- Quick-view booleans -->
+                <field name="tutor_pricing_edit"    string="Pricing" optional="show"/>
+                <field name="tutor_edit"            string="Tutor Edit" optional="show"/>
+                <field name="parent_invoice_generate" string="Invoices" optional="show"/>
+                <field name="tutor_payroll_generate"  string="Payroll" optional="show"/>
+                <field name="subscription_access"   string="Subs." optional="show"/>
+                <field name="settings_access"       string="Settings" optional="show"/>
+                <field name="reports_access"        string="Reports" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         Permission Group — Form View
+         ================================================================ -->
+    <record id="view_user_permission_group_form" model="ir.ui.view">
+        <field name="name">user.permission.group.form</field>
+        <field name="model">user.permission.group</field>
+        <field name="arch" type="xml">
+            <form string="Permission Group">
+                <header>
+                    <button name="action_bulk_assign_users"
+                            string="Bulk Assign Users"
+                            type="object"
+                            class="btn-secondary"
+                            icon="fa-users"/>
+                    <button name="action_export_matrix"
+                            string="Export Permission Matrix"
+                            type="object"
+                            class="btn-secondary"
+                            icon="fa-download"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object"
+                                name="action_bulk_assign_users" icon="fa-users">
+                            <field name="member_count" widget="statinfo" string="Members"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <label for="name" string="Group Name"/>
+                        <h1><field name="name" placeholder="e.g. Teaching Coordinators"/></h1>
+                        <field name="description" placeholder="Optional description of this group's role…"/>
+                    </div>
+
+                    <notebook>
+                        <!-- ── Permissions tab ── -->
+                        <page string="Permissions" name="permissions">
+                            <div class="row">
+                                <!-- Left column -->
+                                <div class="col-6">
+                                    <group string="Tutor Management">
+                                        <field name="tutor_pricing_view"
+                                               widget="boolean_toggle"/>
+                                        <field name="tutor_pricing_edit"
+                                               widget="boolean_toggle"/>
+                                        <field name="tutor_edit"
+                                               widget="boolean_toggle"/>
+                                        <field name="tutor_delete"
+                                               widget="boolean_toggle"/>
+                                        <field name="tutor_rates_edit"
+                                               widget="boolean_toggle"/>
+                                        <field name="parent_delete"
+                                               widget="boolean_toggle"/>
+                                        <field name="student_delete"
+                                               widget="boolean_toggle"/>
+                                    </group>
+                                    <group string="Finance">
+                                        <field name="parent_invoice_view"
+                                               widget="boolean_toggle"/>
+                                        <field name="parent_invoice_generate"
+                                               widget="boolean_toggle"/>
+                                        <field name="tutor_payroll_view"
+                                               widget="boolean_toggle"/>
+                                        <field name="tutor_payroll_generate"
+                                               widget="boolean_toggle"/>
+                                    </group>
+                                    <group string="System">
+                                        <field name="settings_access"
+                                               widget="boolean_toggle"/>
+                                        <field name="reports_access"
+                                               widget="boolean_toggle"/>
+                                    </group>
+                                </div>
+                                <!-- Right column -->
+                                <div class="col-6">
+                                    <group string="Subscriptions">
+                                        <field name="subscription_access"
+                                               widget="boolean_toggle"/>
+                                        <field name="subscription_add_plan"
+                                               widget="boolean_toggle"/>
+                                        <field name="subscription_add_adjustment"
+                                               widget="boolean_toggle"/>
+                                        <field name="subscription_add_discount"
+                                               widget="boolean_toggle"/>
+                                        <field name="subscription_plan_delete"
+                                               widget="boolean_toggle"/>
+                                    </group>
+                                    <group string="Content Management">
+                                        <field name="subject_edit"
+                                               widget="boolean_toggle"/>
+                                        <field name="subject_category_edit"
+                                               widget="boolean_toggle"/>
+                                        <field name="grades_edit"
+                                               widget="boolean_toggle"/>
+                                    </group>
+                                    <group string="Destructive Actions">
+                                        <field name="enquiry_delete"
+                                               widget="boolean_toggle"/>
+                                        <field name="course_delete"
+                                               widget="boolean_toggle"/>
+                                        <field name="course_cancel"
+                                               widget="boolean_toggle"/>
+                                    </group>
+                                </div>
+                            </div>
+                        </page>
+
+                        <!-- ── Members tab ── -->
+                        <page string="Members" name="members">
+                            <div class="alert alert-info" role="status">
+                                <i class="fa fa-info-circle"/> Adding or removing members
+                                here automatically updates the underlying Odoo security groups.
+                                Changes take effect immediately on next page load.
+                            </div>
+                            <field name="member_ids"
+                                   nolabel="1"
+                                   domain="[('share', '=', False), ('active', '=', True)]"
+                                   options="{'no_create': True, 'no_create_edit': True}">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="login"/>
+                                    <field name="email"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         Permission Group — Search View
+         ================================================================ -->
+    <record id="view_user_permission_group_search" model="ir.ui.view">
+        <field name="name">user.permission.group.search</field>
+        <field name="model">user.permission.group</field>
+        <field name="arch" type="xml">
+            <search string="Permission Groups">
+                <field name="name"/>
+                <field name="member_ids" string="Member"/>
+                <filter string="Has Members" name="has_members"
+                        domain="[('member_count', '>', 0)]"/>
+                <filter string="Empty Groups" name="empty"
+                        domain="[('member_count', '=', 0)]"/>
+                <separator/>
+                <filter string="Can Generate Invoices" name="invoice"
+                        domain="[('parent_invoice_generate', '=', True)]"/>
+                <filter string="Can Run Payroll" name="payroll"
+                        domain="[('tutor_payroll_generate', '=', True)]"/>
+                <filter string="Has Settings Access" name="settings"
+                        domain="[('settings_access', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         Bulk Assign Wizard — Form
+         ================================================================ -->
+    <record id="view_user_perm_assign_wizard_form" model="ir.ui.view">
+        <field name="name">user.permission.group.assign.wizard.form</field>
+        <field name="model">user.permission.group.assign.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Assign Users">
+                <group>
+                    <field name="group_id" readonly="1"/>
+                    <field name="replace"/>
+                    <field name="user_ids"
+                           widget="many2many_tags"
+                           domain="[('share', '=', False), ('active', '=', True)]"
+                           options="{'no_create': True}"/>
+                </group>
+                <footer>
+                    <button name="action_confirm" type="object"
+                            string="Apply" class="btn-primary"/>
+                    <button string="Cancel" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         Window Actions
+         ================================================================ -->
+    <record id="action_user_permission_groups" model="ir.actions.act_window">
+        <field name="name">Permission Groups</field>
+        <field name="res_model">user.permission.group</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_user_permission_group_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No permission groups defined yet.
+            </p>
+            <p>
+                Create a permission group, choose which actions members can
+                perform, and assign internal users to it.
+            </p>
+        </field>
+    </record>
+
+    <!-- ================================================================
+         Menu: Settings → Permissions  (admin only)
+         ================================================================ -->
+    <menuitem id="menu_tuition_permissions"
+              name="Permissions"
+              parent="menu_tuition_settings"
+              action="action_user_permission_groups"
+              sequence="99"
+              groups="base.group_system"/>
+
+</odoo>

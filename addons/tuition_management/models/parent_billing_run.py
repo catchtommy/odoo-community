@@ -4,6 +4,7 @@ from datetime import date
 from dateutil.relativedelta import relativedelta
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+from .user_permission import require_permission
 
 
 class ParentBillingRun(models.Model):
@@ -128,6 +129,7 @@ class ParentBillingRun(models.Model):
     def action_generate_preview(self):
         """Build billing lines from subscriptions due in the period."""
         for run in self:
+            require_permission(self.env.user, 'parent_invoice_generate')
             if run.state not in ('draft', 'preview'):
                 raise UserError("Only Draft or Preview runs can be regenerated.")
             run.line_ids.unlink()
