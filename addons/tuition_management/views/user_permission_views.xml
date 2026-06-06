@@ -64,7 +64,7 @@
                             <div class="row">
                                 <!-- Left column -->
                                 <div class="col-6">
-                                    <group string="Tutor Management">
+                                    <group string="User Management">
                                         <field name="tutor_pricing_view"
                                                widget="boolean_toggle"/>
                                         <field name="tutor_pricing_edit"
@@ -92,6 +92,12 @@
                                         <field name="tutor_payroll_generate"
                                                widget="boolean_toggle"/>
                                         <field name="tutor_payroll_approve"
+                                               widget="boolean_toggle"/>
+                                        <field name="student_edit"
+                                               widget="boolean_toggle"/>
+                                        <field name="parent_edit"
+                                               widget="boolean_toggle"/>
+                                        <field name="exclude_payroll_schedule"
                                                widget="boolean_toggle"/>
                                         <field name="subscription_approve"
                                                widget="boolean_toggle"/>
@@ -127,7 +133,11 @@
                                         <field name="grades_edit"
                                                widget="boolean_toggle"/>
                                     </group>
-                                    <group string="Destructive Actions">
+                                    <group string="Course Management">
+                                        <field name="course_edit"
+                                               widget="boolean_toggle"/>
+                                        <field name="enquiry_edit"
+                                               widget="boolean_toggle"/>
                                         <field name="enquiry_delete"
                                                widget="boolean_toggle"/>
                                         <field name="course_delete"

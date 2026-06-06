@@ -33,6 +33,7 @@
                 </header>
                 <sheet>
                     <field name="has_portal_access" invisible="1"/>
+                    <field name="can_edit_student" invisible="1"/>
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" icon="fa-globe"
                                 name="action_invite_to_portal" type="object"
@@ -42,9 +43,9 @@
                     </div>
                     <div class="oe_title">
                         <label for="name"/>
-                        <h1><field name="name" placeholder="Full Name"/></h1>
+                        <h1><field name="name" readonly="not can_edit_student" placeholder="Full Name"/></h1>
                     </div>
-                    <group>
+                    <group readonly="not can_edit_student">
                         <group string="Student Information">
                             <field name="age"/>
                             <field name="email"/>
@@ -60,7 +61,7 @@
                             <field name="parent_id"/>
                         </group>
                     </group>
-                    <group string="Address">
+                    <group string="Address" readonly="not can_edit_student">
                         <field name="address_line_1"/>
                         <field name="address_line_2"/>
                         <field name="address_line_3"/>
@@ -280,6 +281,7 @@
                 </header>
                 <sheet>
                     <field name="has_portal_access" invisible="1"/>
+                    <field name="can_edit_parent" invisible="1"/>
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" icon="fa-globe"
                                 name="action_invite_to_portal" type="object"
@@ -289,9 +291,9 @@
                     </div>
                     <div class="oe_title">
                         <label for="name"/>
-                        <h1><field name="name" placeholder="Full Name"/></h1>
+                        <h1><field name="name" readonly="not can_edit_parent" placeholder="Full Name"/></h1>
                     </div>
-                    <group>
+                    <group readonly="not can_edit_parent">
                         <group string="Contact Information">
                             <field name="email"/>
                             <field name="country_code" string="Country Code"/>

@@ -3,7 +3,7 @@ from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from datetime import timedelta
 import pytz
-from .user_permission import require_permission
+from .user_permission import require_permission, user_has_permission
 
 
 class CourseMaster(models.Model):
@@ -110,6 +110,16 @@ class CourseMaster(models.Model):
     virtual_class_notes = fields.Text(string='Legacy Virtual Class Notes')
 
     student_count = fields.Integer(string='Total Students', compute='_compute_student_count')
+    can_edit_course = fields.Boolean(string='Can Edit Course', compute='_compute_can_edit_course')
+
+    @api.depends_context('uid')
+    def _compute_can_edit_course(self):
+        can_edit = (
+            self.env.user.has_group('base.group_system') or
+            user_has_permission(self.env.user, 'course_edit')
+        )
+        for rec in self:
+            rec.can_edit_course = can_edit
 
     @api.depends('enrollment_ids')
     def _compute_student_count(self):
@@ -160,6 +170,7 @@ class CourseMaster(models.Model):
         return records
 
     def write(self, vals):
+        require_permission(self.env.user, 'course_edit')
         old_tutors = {rec.id: rec.tutor_id for rec in self}
         res = super().write(vals)
         if {'enrollment_ids', 'tutor_id', 'tutor_ids'} & set(vals.keys()):

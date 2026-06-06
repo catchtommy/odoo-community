@@ -24,12 +24,15 @@ PERMISSION_GROUP_MAP = {
     'tutor_rates_edit':           'group_tuition_tutor_rates_edit',
     'parent_delete':              'group_tuition_parent_delete',
     'student_delete':             'group_tuition_student_delete',
+    'student_edit':               'group_tuition_student_edit',
+    'parent_edit':                'group_tuition_parent_edit',
     'parent_invoice_view':           'group_tuition_parent_invoice_view',
     'parent_invoice_generate':       'group_tuition_parent_invoice_generate',
     'parent_invoice_approve':        'group_tuition_parent_invoice_approve',
     'tutor_payroll_view':            'group_tuition_payroll_view',
     'tutor_payroll_generate':        'group_tuition_payroll_generate',
     'tutor_payroll_approve':         'group_tuition_tutor_payroll_approve',
+    'exclude_payroll_schedule':      'group_tuition_exclude_payroll_schedule',
     'subscription_access':        'group_tuition_subscription_access',
     'subscription_add_plan':      'group_tuition_subscription_plan',
     'subscription_add_adjustment':'group_tuition_subscription_adjustment',
@@ -40,6 +43,8 @@ PERMISSION_GROUP_MAP = {
     'subject_edit':               'group_tuition_subject_edit',
     'subject_category_edit':      'group_tuition_subject_category_edit',
     'grades_edit':                'group_tuition_grades_edit',
+    'course_edit':                'group_tuition_course_edit',
+    'enquiry_edit':               'group_tuition_enquiry_edit',
     'enquiry_delete':             'group_tuition_enquiry_delete',
     'course_delete':              'group_tuition_course_delete',
     'course_cancel':              'group_tuition_course_cancel',
@@ -56,12 +61,15 @@ PERMISSION_LABELS = {
     'tutor_rates_edit':           'Edit Tutor Rates',
     'parent_delete':              'Delete Parents',
     'student_delete':             'Delete Students',
+    'student_edit':               'Edit Student Profiles',
+    'parent_edit':                'Edit Parent Profiles',
     'parent_invoice_view':           'View Parent Invoices',
     'parent_invoice_generate':       'Generate Parent Invoices',
     'parent_invoice_approve':        'Approve Parent Invoicing Runs',
     'tutor_payroll_view':            'View Tutor Payroll',
     'tutor_payroll_generate':        'Generate Tutor Payroll',
     'tutor_payroll_approve':         'Approve Tutor Payroll Runs',
+    'exclude_payroll_schedule':      'Exclude Schedules from Payroll',
     'subscription_access':        'Access Billing',
     'subscription_add_plan':      'Add Subscription Plans',
     'subscription_add_adjustment':'Add Adjustments',
@@ -72,6 +80,8 @@ PERMISSION_LABELS = {
     'subject_edit':               'Edit Subjects',
     'subject_category_edit':      'Edit Subject Categories',
     'grades_edit':                'Edit Grades',
+    'course_edit':                'Edit Courses',
+    'enquiry_edit':               'Edit Enquiries',
     'enquiry_delete':             'Delete Enquiries',
     'course_delete':              'Delete Courses',
     'course_cancel':              'Cancel Courses',
@@ -187,6 +197,15 @@ class UserPermissionGroup(models.Model):
     tutor_payroll_approve = fields.Boolean(
         string='Approve Tutor Payroll Runs', tracking=True,
         help='Can approve tutor payroll runs before payment.')
+    student_edit = fields.Boolean(
+        string='Edit Student Profiles', tracking=True,
+        help='Can edit student profile information.')
+    parent_edit = fields.Boolean(
+        string='Edit Parent Profiles', tracking=True,
+        help='Can edit parent profile information.')
+    exclude_payroll_schedule = fields.Boolean(
+        string='Exclude Schedules from Payroll', tracking=True,
+        help='Can view and toggle the Excl. Payroll checkbox on lesson records.')
 
     # ── Subscriptions ─────────────────────────────────────────────────────
     subscription_access = fields.Boolean(
@@ -223,6 +242,12 @@ class UserPermissionGroup(models.Model):
         help='Can create and edit grade level records.')
 
     # ── Actions ───────────────────────────────────────────────────────────
+    course_edit = fields.Boolean(
+        string='Edit Courses', tracking=True,
+        help='Can edit course details from the Courses page.')
+    enquiry_edit = fields.Boolean(
+        string='Edit Enquiries', tracking=True,
+        help='Can edit enquiry details from the Enquiries page.')
     enquiry_delete = fields.Boolean(
         string='Delete Enquiries', tracking=True,
         help='Can permanently delete enquiry records.')

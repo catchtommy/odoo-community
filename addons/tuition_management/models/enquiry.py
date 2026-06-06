@@ -3,7 +3,7 @@ from odoo.exceptions import ValidationError
 from datetime import timedelta
 import logging
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
-from .user_permission import require_permission
+from .user_permission import require_permission, user_has_permission
 
 _logger = logging.getLogger(__name__)
 
@@ -97,6 +97,16 @@ class Enquiry(models.Model):
     student_profile_id = fields.Many2one('student.profile', string='Student Profile', tracking=True)
 
     can_convert_course = fields.Boolean(compute='_compute_can_convert_course')
+    can_edit_enquiry = fields.Boolean(string='Can Edit Enquiry', compute='_compute_can_edit_enquiry')
+
+    @api.depends_context('uid')
+    def _compute_can_edit_enquiry(self):
+        can_edit = (
+            self.env.user.has_group('base.group_system') or
+            user_has_permission(self.env.user, 'enquiry_edit')
+        )
+        for rec in self:
+            rec.can_edit_enquiry = can_edit
 
     @api.depends('stage_id', 'is_enrolled')
     def _compute_can_convert_course(self):
@@ -226,6 +236,7 @@ class Enquiry(models.Model):
         return records
 
     def write(self, vals):
+        require_permission(self.env.user, 'enquiry_edit')
         if vals.get('status') and not vals.get('stage_id'):
             vals = dict(vals)
             stage_id = self._stage_id_from_status(vals.pop('status'))

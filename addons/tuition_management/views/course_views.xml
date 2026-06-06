@@ -37,7 +37,8 @@
                         <span>Progress Reports</span>
                     </button>
                 </div>
-                <group>
+                <field name="can_edit_course" invisible="1"/>
+                <group readonly="not can_edit_course">
                     <group string="Course Information">
                         <field name="name"/>
                         <field name="category_id"/>
@@ -70,7 +71,7 @@
                                 <field name="tutor_payment_status" readonly="1" optional="hide"/>
                                 <field name="exclude_from_payroll" string="Excl. Payroll"
                                        widget="confirm_boolean"
-                                       optional="show" groups="base.group_user"/>
+                                       optional="show" groups="tuition_management.group_tuition_exclude_payroll_schedule,base.group_system"/>
                                 <field name="is_rescheduled" string="Rescheduled" readonly="1"/>
                                 <field name="cancellation_reason" string="Cancel Reason" readonly="1" optional="hide"/>
                                 <field name="attendance_marked" string="Attendance Marked"/>

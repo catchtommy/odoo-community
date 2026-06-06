@@ -503,6 +503,16 @@ class StudentProfile(models.Model):
     address_line_4 = fields.Char(string='Address Line 4')
     zip_code = fields.Char(string='Zip Code')
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=True)
+    can_edit_student = fields.Boolean(string='Can Edit Student', compute='_compute_can_edit_student')
+
+    @api.depends_context('uid')
+    def _compute_can_edit_student(self):
+        can_edit = (
+            self.env.user.has_group('base.group_system') or
+            user_has_permission(self.env.user, 'student_edit')
+        )
+        for rec in self:
+            rec.can_edit_student = can_edit
 
     @api.constrains('email', 'phone', 'parent_id')
     def _check_contact_info(self):
@@ -562,6 +572,7 @@ class StudentProfile(models.Model):
         return records
 
     def write(self, vals):
+        require_permission(self.env.user, 'student_edit')
         res = super().write(vals)
         for rec in self:
             if rec.partner_id:
@@ -590,6 +601,17 @@ class ParentProfile(models.Model):
     phone = fields.Char(string='Phone')
     country_code = fields.Char(string='Country Code', default='+1')
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=True)
+    can_edit_parent = fields.Boolean(string='Can Edit Parent', compute='_compute_can_edit_parent')
+
+    @api.depends_context('uid')
+    def _compute_can_edit_parent(self):
+        can_edit = (
+            self.env.user.has_group('base.group_system') or
+            user_has_permission(self.env.user, 'parent_edit')
+        )
+        for rec in self:
+            rec.can_edit_parent = can_edit
+
     timezone = fields.Selection(selection=get_tz_selection, string='Timezone', required=True, default=DEFAULT_TIMEZONE)
     status = fields.Selection(
         selection=[('active', 'Active'), ('inactive', 'Inactive')],
@@ -649,6 +671,7 @@ class ParentProfile(models.Model):
         return records
 
     def write(self, vals):
+        require_permission(self.env.user, 'parent_edit')
         res = super().write(vals)
         for rec in self:
             if rec.partner_id:
