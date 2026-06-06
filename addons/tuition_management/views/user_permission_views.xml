@@ -110,6 +110,8 @@
                                                widget="boolean_toggle"/>
                                         <field name="subscription_plan_delete"
                                                widget="boolean_toggle"/>
+                                        <field name="subscription_approve"
+                                               widget="boolean_toggle"/>
                                     </group>
                                     <group string="Content Management">
                                         <field name="subject_edit"

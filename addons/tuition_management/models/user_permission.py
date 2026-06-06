@@ -33,6 +33,7 @@ PERMISSION_GROUP_MAP = {
     'subscription_add_adjustment':'group_tuition_subscription_adjustment',
     'subscription_add_discount':  'group_tuition_subscription_discount',
     'subscription_plan_delete':   'group_tuition_subscription_plan_delete',
+    'subscription_approve':       'group_tuition_subscription_approve',
     'subject_edit':               'group_tuition_subject_edit',
     'subject_category_edit':      'group_tuition_subject_category_edit',
     'grades_edit':                'group_tuition_grades_edit',
@@ -61,6 +62,7 @@ PERMISSION_LABELS = {
     'subscription_add_adjustment':'Add Adjustments',
     'subscription_add_discount':  'Add Discounts',
     'subscription_plan_delete':   'Delete Plan History Lines',
+    'subscription_approve':       'Approve Subscription Changes',
     'subject_edit':               'Edit Subjects',
     'subject_category_edit':      'Edit Subject Categories',
     'grades_edit':                'Edit Grades',
@@ -190,6 +192,9 @@ class UserPermissionGroup(models.Model):
     subscription_plan_delete = fields.Boolean(
         string='Delete Plan History Lines', tracking=True,
         help='Can delete rows in the subscription plan history tab.')
+    subscription_approve = fields.Boolean(
+        string='Approve Subscription Changes', tracking=True,
+        help='Can approve or reject draft plan history lines, adjustments, and discounts.')
 
     # ── Content Management ────────────────────────────────────────────────
     subject_edit = fields.Boolean(

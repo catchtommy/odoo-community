@@ -13,6 +13,8 @@ class TuitionSubscription(models.Model):
 
     name = fields.Char(string='Reference', compute='_compute_name', store=True)
     student_id = fields.Many2one('student.profile', string='Student', required=True, ondelete='restrict')
+    parent_id = fields.Many2one('parent.profile', string='Parent',
+                                related='student_id.parent_id', store=True, readonly=True)
     enrollment_id = fields.Many2one('course.enrollment', string='Enrollment', ondelete='restrict',
                                     domain="[('student_id', '=', student_id)]")
     plan_line_ids = fields.One2many('tuition.plan.line', 'subscription_id', string='Plan History')
@@ -36,11 +38,11 @@ class TuitionSubscription(models.Model):
             parts = [p for p in [rec.student_id.name, rec.enrollment_id.course_id.name if rec.enrollment_id else ''] if p]
             rec.name = ' / '.join(parts) if parts else 'New Subscription'
 
-    @api.depends('plan_line_ids', 'plan_line_ids.state', 'plan_line_ids.start_date', 'plan_line_ids.end_date')
+    @api.depends('plan_line_ids', 'plan_line_ids.state')
     def _compute_current_plan(self):
-        today = fields.Date.today()
         for rec in self:
-            plans = rec.plan_line_ids.filtered(lambda p: p.state == 'active' and p.start_date <= today and (not p.end_date or p.end_date >= today))
+            # state == 'active' already implies approved + date check (see TuitionPlanLine._compute_state)
+            plans = rec.plan_line_ids.filtered(lambda p: p.state == 'active')
             plan = plans[0] if plans else False
             rec.current_plan_id = plan.id if plan else False
             rec.current_plan_product = plan.product_id.name if plan else ''
@@ -58,7 +60,10 @@ class TuitionSubscription(models.Model):
 
     def _compute_unapplied_adjustments(self):
         for rec in self:
-            rec.unapplied_adjustment_count = len(rec.adjustment_ids.filtered(lambda a: not a.applied_in_invoice))
+            # Only count approved (not yet applied) adjustments
+            rec.unapplied_adjustment_count = len(
+                rec.adjustment_ids.filtered(lambda a: a.state == 'approved')
+            )
 
     def _compute_totals(self):
         for rec in self:
@@ -129,7 +134,7 @@ class TuitionSubscription(models.Model):
                   'quantity': 1, 'unit_price': base_price, 'subtotal': base_price, 'line_type': 'plan'}]
         total_discounts = 0.0
         today = fields.Date.today()
-        for disc in self.discount_ids.filtered(lambda d: d.active and (not d.date_start or d.date_start <= today) and (not d.date_end or d.date_end >= today)):
+        for disc in self.discount_ids.filtered(lambda d: d.state == 'active'):
             disc_amount = disc._compute_discount_amount(base_price)
             if disc_amount:
                 label = '[Discount] %s' % disc.name
@@ -138,7 +143,7 @@ class TuitionSubscription(models.Model):
                               'unit_price': -abs(disc_amount), 'subtotal': -abs(disc_amount), 'line_type': 'discount'})
                 total_discounts += abs(disc_amount)
         total_adjustments = 0.0
-        unapplied = self.adjustment_ids.filtered(lambda a: not a.applied_in_invoice)
+        unapplied = self.adjustment_ids.filtered(lambda a: a.state == 'approved')
         for adj in unapplied:
             lines.append({'description': '[%s] %s' % (dict(adj._fields['adjustment_type'].selection).get(adj.adjustment_type, ''), adj.description),
                           'product_id': False, 'quantity': 1, 'unit_price': adj.signed_amount, 'subtotal': adj.signed_amount, 'line_type': 'adjustment'})
@@ -231,8 +236,38 @@ class TuitionDiscount(models.Model):
     value = fields.Float(string='Value', required=True)
     date_start = fields.Date(string='From', default=fields.Date.today)
     date_end = fields.Date(string='Until')
-    active = fields.Boolean(string='Active', default=True)
+    active = fields.Boolean(string='Enabled', default=True)
     description = fields.Char(string='Notes')
+    approval_state = fields.Selection(
+        [('draft', 'Draft'), ('approved', 'Approved')],
+        default='draft', required=True)  # hidden backend field
+    state = fields.Selection([
+        ('pending_approval', 'Pending Approval'),
+        ('active', 'Active'),
+        ('inactive', 'Inactive'),
+    ], string='Status', compute='_compute_state', store=True)
+
+    @api.depends('approval_state', 'active', 'date_end')
+    def _compute_state(self):
+        today = fields.Date.today()
+        for rec in self:
+            if rec.approval_state == 'draft':
+                rec.state = 'pending_approval'
+            elif not rec.active or (rec.date_end and rec.date_end < today):
+                rec.state = 'inactive'
+            else:
+                rec.state = 'active'
+
+    def init(self):
+        self.env.cr.execute(
+            "UPDATE tuition_discount SET approval_state = 'approved' WHERE approval_state IS NULL"
+        )
+
+    def action_approve(self):
+        self.write({'approval_state': 'approved'})
+
+    def action_set_draft(self):
+        self.write({'approval_state': 'draft'})
 
     def _compute_discount_amount(self, base_price):
         self.ensure_one()
@@ -250,10 +285,26 @@ class TuitionPlanLine(models.Model):
     classes_per_week = fields.Integer(string='Classes per Week', required=True, default=1)
     start_date = fields.Date(string='Start Date', required=True)
     end_date = fields.Date(string='End Date')
-    state = fields.Selection([('active', 'Active'), ('scheduled', 'Scheduled'), ('expired', 'Expired')],
-                             string='Status', compute='_compute_state', store=True)
+    state = fields.Selection([
+        ('pending_approval', 'Pending Approval'),
+        ('active', 'Active'), ('scheduled', 'Scheduled'), ('expired', 'Expired'),
+    ], string='Status', compute='_compute_state', store=True)
+    approval_state = fields.Selection(
+        [('draft', 'Draft'), ('approved', 'Approved')],
+        default='draft', required=True)  # hidden backend field — drives state compute
     notes = fields.Char(string='Notes')
     has_invoices = fields.Boolean(string='Has Invoices', compute='_compute_has_invoices', store=False)
+
+    def init(self):
+        self.env.cr.execute(
+            "UPDATE tuition_plan_line SET approval_state = 'approved' WHERE approval_state IS NULL"
+        )
+
+    def action_approve(self):
+        self.write({'approval_state': 'approved'})
+
+    def action_set_draft(self):
+        self.write({'approval_state': 'draft'})
 
     @api.onchange('product_id')
     def _onchange_product_id(self):
@@ -263,13 +314,18 @@ class TuitionPlanLine(models.Model):
             if tmpl and tmpl.tuition_classes_per_week:
                 self.classes_per_week = tmpl.tuition_classes_per_week
 
-    @api.depends('start_date', 'end_date')
+    @api.depends('start_date', 'end_date', 'approval_state')
     def _compute_state(self):
         today = fields.Date.today()
         for rec in self:
-            if rec.start_date and rec.start_date > today: rec.state = 'scheduled'
-            elif rec.end_date and rec.end_date < today: rec.state = 'expired'
-            else: rec.state = 'active'
+            if rec.approval_state == 'draft':
+                rec.state = 'pending_approval'
+            elif rec.start_date and rec.start_date > today:
+                rec.state = 'scheduled'
+            elif rec.end_date and rec.end_date < today:
+                rec.state = 'expired'
+            else:
+                rec.state = 'active'
 
     def _compute_has_invoices(self):
         for rec in self:
@@ -342,6 +398,38 @@ class TuitionAdjustment(models.Model):
     signed_amount = fields.Float(string='Signed Amount', compute='_compute_signed_amount', store=True)
     applied_in_invoice = fields.Boolean(string='Applied', default=False)
     invoice_id = fields.Many2one('account.move', string='Invoice', readonly=True)
+    approval_state = fields.Selection(
+        [('draft', 'Draft'), ('approved', 'Approved')],
+        default='draft', required=True)  # hidden backend field
+    state = fields.Selection([
+        ('pending_approval', 'Pending Approval'),
+        ('approved', 'Approved'),
+        ('applied', 'Applied'),
+    ], string='Status', compute='_compute_state', store=True)
+
+    @api.depends('approval_state', 'applied_in_invoice')
+    def _compute_state(self):
+        for rec in self:
+            if rec.approval_state == 'draft':
+                rec.state = 'pending_approval'
+            elif rec.applied_in_invoice:
+                rec.state = 'applied'
+            else:
+                rec.state = 'approved'
+
+    def init(self):
+        self.env.cr.execute(
+            "UPDATE tuition_adjustment SET approval_state = 'approved' WHERE approval_state IS NULL"
+        )
+
+    def action_approve(self):
+        self.write({'approval_state': 'approved'})
+
+    def action_set_draft(self):
+        for rec in self:
+            if rec.applied_in_invoice:
+                raise UserError("Cannot reset to Pending Approval — this adjustment has already been applied to an invoice.")
+        self.write({'approval_state': 'draft'})
 
     @api.depends('amount', 'adjustment_type')
     def _compute_signed_amount(self):
