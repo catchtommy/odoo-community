@@ -7,10 +7,6 @@
     <field name="arch" type="xml">
         <form string="Subscription">
             <header>
-                <button name="action_generate_invoice" string="Generate Invoice"
-                        type="object" class="oe_highlight"
-                        invisible="state != 'active'"
-                        groups="tuition_management.group_tuition_parent_invoice_generate,base.group_system"/>
                 <button name="action_schedule_plan_change" string="Schedule Plan Change"
                         type="object" class="btn-secondary"
                         invisible="state != 'active'"
@@ -39,7 +35,10 @@
                         <field name="student_id"/>
                         <field name="parent_id" readonly="1"/>
                         <field name="enrollment_id"/>
-                        <field name="next_billing_date"/>
+                        <field name="next_billing_date"
+                               readonly="not can_edit_billing_date"
+                               help="Auto-calculated from last invoice date or plan start date. Users with 'Edit Next Billing Date' permission can override manually."/>
+                        <field name="can_edit_billing_date" invisible="1"/>
                     </group>
                     <group>
                         <field name="current_plan_product" readonly="1"/>
@@ -198,63 +197,6 @@
     <field name="search_view_id" ref="view_tuition_subscription_search"/>
 </record>
 
-<record id="view_tuition_invoice_preview_wizard" model="ir.ui.view">
-    <field name="name">tuition.invoice.preview.wizard.form</field>
-    <field name="model">tuition.invoice.preview.wizard</field>
-    <field name="arch" type="xml">
-        <form string="Invoice Preview">
-            <group>
-                <group>
-                    <field name="partner_id" readonly="1"/>
-                    <field name="month_label" readonly="1"/>
-                </group>
-                <group>
-                    <field name="base_price" readonly="1"/>
-                    <field name="total_discounts" readonly="1"/>
-                    <field name="total_adjustments" readonly="1"/>
-                    <field name="total_amount" readonly="1" class="fw-bold"/>
-                </group>
-            </group>
-            <field name="line_ids" readonly="1">
-                <list>
-                    <field name="description"/>
-                    <field name="product_id"/>
-                    <field name="quantity"/>
-                    <field name="unit_price"/>
-                    <field name="subtotal"/>
-                </list>
-            </field>
-            <footer>
-                <button name="action_confirm" type="object" string="Confirm &amp; Create Order" class="btn-primary"/>
-                <button name="action_discard" type="object" string="Discard" class="btn-secondary"/>
-            </footer>
-        </form>
-    </field>
-</record>
-
-<record id="view_tuition_invoice_confirm_wizard" model="ir.ui.view">
-    <field name="name">tuition.invoice.confirm.wizard.form</field>
-    <field name="model">tuition.invoice.confirm.wizard</field>
-    <field name="arch" type="xml">
-        <form string="Duplicate Invoice Warning">
-            <div class="alert alert-warning" role="alert">
-                <strong>An invoice already exists for this subscription this month.</strong>
-            </div>
-            <group string="Existing Invoice">
-                <field name="existing_invoice_name" readonly="1"/>
-                <field name="existing_invoice_date" readonly="1"/>
-                <field name="existing_invoice_amount" readonly="1"/>
-                <field name="existing_invoice_state" readonly="1"/>
-            </group>
-            <p>Do you want to generate another invoice anyway?</p>
-            <footer>
-                <button name="action_proceed" type="object" string="Generate Anyway" class="btn-warning"/>
-                <button name="action_cancel" type="object" string="Cancel" class="btn-secondary"/>
-            </footer>
-        </form>
-    </field>
-</record>
-
 <record id="view_tuition_plan_change_wizard" model="ir.ui.view">
     <field name="name">tuition.plan.change.wizard.form</field>
     <field name="model">tuition.plan.change.wizard</field>
@@ -313,16 +255,10 @@
           name="Billing"
           parent="menu_tuition_root"
           sequence="30"/>
-
-<menuitem id="menu_tuition_generate_bulk_invoices"
-          name="Generate Invoices"
-          parent="menu_tuition_billing_root"
-          action="action_bulk_billing_wizard"
-          sequence="5"/>
-<!-- Explicitly replace groups to enforce generate-invoice permission (menuitem groups= only adds, not replaces) -->
-<record id="menu_tuition_generate_bulk_invoices" model="ir.ui.menu">
+<!-- Force-set groups so Billing menu is only visible to users with Access Billing permission -->
+<record id="menu_tuition_billing_root" model="ir.ui.menu">
     <field name="group_ids" eval="[(6, 0, [
-        ref('tuition_management.group_tuition_parent_invoice_generate'),
+        ref('tuition_management.group_tuition_subscription_access'),
         ref('base.group_system'),
     ])]"/>
 </record>
@@ -332,15 +268,5 @@
           parent="menu_tuition_billing_root"
           action="action_tuition_subscriptions"
           sequence="10"/>
-
-<record id="ir_cron_generate_tuition_invoices" model="ir.cron">
-    <field name="name">Tuition: Generate Monthly Invoices</field>
-    <field name="model_id" ref="model_tuition_subscription"/>
-    <field name="state">code</field>
-    <field name="code">model._cron_generate_monthly_invoices()</field>
-    <field name="interval_number">1</field>
-    <field name="interval_type">days</field>
-    <field name="active">True</field>
-</record>
 
 </odoo>

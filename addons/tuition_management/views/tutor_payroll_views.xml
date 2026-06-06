@@ -156,7 +156,8 @@
                     <button name="action_generate_preview" type="object" string="Generate Preview" class="btn-primary" invisible="run_status not in ['draft', 'preview']"
                             groups="tuition_management.group_tuition_payroll_generate,base.group_system"/>
                     <button name="action_reset_to_draft" type="object" string="Reset Draft" invisible="run_status not in ['preview']"/>
-                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="run_status != 'preview'"/>
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="run_status != 'preview'"
+                            groups="tuition_management.group_tuition_tutor_payroll_approve,base.group_system"/>
                     <button name="action_mark_paid" type="object" string="Mark Paid" class="btn-primary" invisible="run_status != 'approved'"/>
                     <field name="run_status" widget="statusbar" statusbar_visible="draft,preview,approved,paid"/>
                 </header>

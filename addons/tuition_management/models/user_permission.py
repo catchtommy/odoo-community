@@ -24,16 +24,19 @@ PERMISSION_GROUP_MAP = {
     'tutor_rates_edit':           'group_tuition_tutor_rates_edit',
     'parent_delete':              'group_tuition_parent_delete',
     'student_delete':             'group_tuition_student_delete',
-    'parent_invoice_view':        'group_tuition_parent_invoice_view',
-    'parent_invoice_generate':    'group_tuition_parent_invoice_generate',
-    'tutor_payroll_view':         'group_tuition_payroll_view',
-    'tutor_payroll_generate':     'group_tuition_payroll_generate',
+    'parent_invoice_view':           'group_tuition_parent_invoice_view',
+    'parent_invoice_generate':       'group_tuition_parent_invoice_generate',
+    'parent_invoice_approve':        'group_tuition_parent_invoice_approve',
+    'tutor_payroll_view':            'group_tuition_payroll_view',
+    'tutor_payroll_generate':        'group_tuition_payroll_generate',
+    'tutor_payroll_approve':         'group_tuition_tutor_payroll_approve',
     'subscription_access':        'group_tuition_subscription_access',
     'subscription_add_plan':      'group_tuition_subscription_plan',
     'subscription_add_adjustment':'group_tuition_subscription_adjustment',
     'subscription_add_discount':  'group_tuition_subscription_discount',
-    'subscription_plan_delete':   'group_tuition_subscription_plan_delete',
-    'subscription_approve':       'group_tuition_subscription_approve',
+    'subscription_plan_delete':        'group_tuition_subscription_plan_delete',
+    'subscription_approve':            'group_tuition_subscription_approve',
+    'subscription_edit_billing_date':  'group_tuition_subscription_edit_billing_date',
     'subject_edit':               'group_tuition_subject_edit',
     'subject_category_edit':      'group_tuition_subject_category_edit',
     'grades_edit':                'group_tuition_grades_edit',
@@ -53,16 +56,19 @@ PERMISSION_LABELS = {
     'tutor_rates_edit':           'Edit Tutor Rates',
     'parent_delete':              'Delete Parents',
     'student_delete':             'Delete Students',
-    'parent_invoice_view':        'View Parent Invoices',
-    'parent_invoice_generate':    'Generate Parent Invoices',
-    'tutor_payroll_view':         'View Tutor Payroll',
-    'tutor_payroll_generate':     'Generate Tutor Payroll',
-    'subscription_access':        'Access Subscriptions',
+    'parent_invoice_view':           'View Parent Invoices',
+    'parent_invoice_generate':       'Generate Parent Invoices',
+    'parent_invoice_approve':        'Approve Parent Invoicing Runs',
+    'tutor_payroll_view':            'View Tutor Payroll',
+    'tutor_payroll_generate':        'Generate Tutor Payroll',
+    'tutor_payroll_approve':         'Approve Tutor Payroll Runs',
+    'subscription_access':        'Access Billing',
     'subscription_add_plan':      'Add Subscription Plans',
     'subscription_add_adjustment':'Add Adjustments',
     'subscription_add_discount':  'Add Discounts',
-    'subscription_plan_delete':   'Delete Plan History Lines',
-    'subscription_approve':       'Approve Subscription Changes',
+    'subscription_plan_delete':        'Delete Plan History Lines',
+    'subscription_approve':            'Approve Subscription Changes',
+    'subscription_edit_billing_date':  'Edit Next Billing Date',
     'subject_edit':               'Edit Subjects',
     'subject_category_edit':      'Edit Subject Categories',
     'grades_edit':                'Edit Grades',
@@ -169,17 +175,23 @@ class UserPermissionGroup(models.Model):
     parent_invoice_generate = fields.Boolean(
         string='Generate Parent Invoices', tracking=True,
         help='Can generate parent invoices and billing runs.')
+    parent_invoice_approve = fields.Boolean(
+        string='Approve Parent Invoicing Runs', tracking=True,
+        help='Can approve parent billing runs before invoices are generated.')
     tutor_payroll_view = fields.Boolean(
         string='View Tutor Payroll', tracking=True,
         help='Can view tutor payroll runs and statements.')
     tutor_payroll_generate = fields.Boolean(
         string='Generate Tutor Payroll', tracking=True,
         help='Can create and run tutor payroll.')
+    tutor_payroll_approve = fields.Boolean(
+        string='Approve Tutor Payroll Runs', tracking=True,
+        help='Can approve tutor payroll runs before payment.')
 
     # ── Subscriptions ─────────────────────────────────────────────────────
     subscription_access = fields.Boolean(
-        string='Access Subscriptions', tracking=True,
-        help='Can view and manage subscriptions.')
+        string='Access Billing', tracking=True,
+        help='Can see the Billing menu and manage subscriptions.')
     subscription_add_plan = fields.Boolean(
         string='Add Plan Products', tracking=True,
         help='Can add or change plan products in a subscription.')
@@ -195,6 +207,9 @@ class UserPermissionGroup(models.Model):
     subscription_approve = fields.Boolean(
         string='Approve Subscription Changes', tracking=True,
         help='Can approve or reject draft plan history lines, adjustments, and discounts.')
+    subscription_edit_billing_date = fields.Boolean(
+        string='Edit Next Billing Date', tracking=True,
+        help='Can manually override the auto-calculated next billing date on a subscription.')
 
     # ── Content Management ────────────────────────────────────────────────
     subject_edit = fields.Boolean(

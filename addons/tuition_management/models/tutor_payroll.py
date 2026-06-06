@@ -391,6 +391,7 @@ class TutorPaymentRun(models.Model):
         return self.env['class.schedule.occurrence'].search(domain, order='tutor_id, start_datetime')
 
     def action_approve(self):
+        require_permission(self.env.user, 'tutor_payroll_approve')
         for run in self:
             if run.run_status != 'preview':
                 raise UserError("Only Preview runs can be approved.")

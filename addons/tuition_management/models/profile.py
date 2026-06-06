@@ -2,7 +2,7 @@
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
-from .user_permission import require_permission
+from .user_permission import require_permission, user_has_permission
 
 
 class TutorAvailability(models.Model):
@@ -317,6 +317,16 @@ class TutorProfile(models.Model):
     portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
     portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
+    can_edit_tutor = fields.Boolean(string='Can Edit Tutor', compute='_compute_can_edit_tutor')
+
+    @api.depends_context('uid')
+    def _compute_can_edit_tutor(self):
+        can_edit = (
+            self.env.user.has_group('base.group_system') or
+            user_has_permission(self.env.user, 'tutor_edit')
+        )
+        for rec in self:
+            rec.can_edit_tutor = can_edit
 
     @api.depends('availability_ids', 'availability_ids.day_of_week',
                  'availability_ids.start_time', 'availability_ids.end_time')
@@ -445,6 +455,7 @@ class TutorProfile(models.Model):
         return records
 
     def write(self, vals):
+        require_permission(self.env.user, 'tutor_edit')
         res = super().write(vals)
         for rec in self:
             if rec.partner_id:

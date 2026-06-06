@@ -145,6 +145,7 @@ class ParentBillingRun(models.Model):
 
     def action_approve(self):
         """Admin reviews and approves — does NOT yet create invoices."""
+        require_permission(self.env.user, 'parent_invoice_approve')
         for run in self:
             if run.state != 'preview':
                 raise UserError("Only Preview runs can be approved.")

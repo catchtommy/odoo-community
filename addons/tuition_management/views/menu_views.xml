@@ -33,10 +33,7 @@
     <menuitem id="menu_tuition_tutor_payment_statements" name="Tutor Payment Statements" parent="menu_tuition_payroll" action="action_tutor_payment_summaries"
               groups="tuition_management.group_tuition_payroll_view,base.group_system"/>
     <menuitem id="menu_tuition_parent_billing_runs" name="Parent Invoicing Runs" parent="menu_tuition_payroll" action="action_parent_billing_runs"
-              groups="tuition_management.group_tuition_parent_invoice_view,base.group_system"/>
-    <menuitem id="menu_tuition_generate_parent_invoices" name="Generate Parent Invoices" parent="menu_tuition_payroll" action="action_parent_billing_run_wizard"
-              groups="tuition_management.group_tuition_parent_invoice_generate,base.group_system"/>
-
+              groups="tuition_management.group_tuition_parent_invoice_view,tuition_management.group_tuition_parent_invoice_generate,tuition_management.group_tuition_parent_invoice_approve,base.group_system"/>
     <!-- Users -->
     <menuitem id="menu_tuition_users" name="Users" parent="menu_tuition_root" sequence="30"/>
     <menuitem id="menu_tuition_students" name="Students" parent="menu_tuition_users" action="action_student_profiles"/>

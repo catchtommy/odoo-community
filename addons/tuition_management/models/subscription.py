@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import UserError, ValidationError, AccessError
 from dateutil.relativedelta import relativedelta
 from datetime import date
-from .user_permission import require_permission
+from .user_permission import require_permission, user_has_permission
 
 
 class TuitionSubscription(models.Model):
@@ -24,13 +24,24 @@ class TuitionSubscription(models.Model):
     current_plan_id = fields.Many2one('tuition.plan.line', string='Current Plan', compute='_compute_current_plan', store=False)
     current_plan_product = fields.Char(string='Current Plan', compute='_compute_current_plan', store=False)
     current_plan_price = fields.Float(string='Monthly Price', compute='_compute_current_plan', store=False)
-    next_billing_date = fields.Date(string='Next Billing Date')
+    next_billing_date = fields.Date(
+        string='Next Billing Date',
+        compute='_compute_next_billing_date',
+        store=True,
+        readonly=False,
+        help="Auto-calculated: 1st of the month after the last invoice. "
+             "If no invoice exists yet, defaults to the current plan's start date.",
+    )
     state = fields.Selection([('active', 'Active'), ('paused', 'Paused'), ('cancelled', 'Cancelled')],
                              string='Status', default='active', required=True)
     invoice_count = fields.Integer(compute='_compute_invoice_count', string='Invoices')
     unapplied_adjustment_count = fields.Integer(compute='_compute_unapplied_adjustments', string='Pending Adjustments')
     total_adjustments_applied = fields.Float(compute='_compute_totals', string='Total Adjustments Applied')
     monthly_revenue = fields.Float(compute='_compute_totals', string='Monthly Revenue')
+    can_edit_billing_date = fields.Boolean(
+        string='Can Edit Billing Date',
+        compute='_compute_can_edit_billing_date',
+    )
 
     @api.depends('student_id', 'enrollment_id')
     def _compute_name(self):
@@ -47,6 +58,36 @@ class TuitionSubscription(models.Model):
             rec.current_plan_id = plan.id if plan else False
             rec.current_plan_product = plan.product_id.name if plan else ''
             rec.current_plan_price = plan.price if plan else 0.0
+
+    @api.depends('invoice_ids', 'invoice_ids.state', 'invoice_ids.invoice_date',
+                 'plan_line_ids', 'plan_line_ids.state', 'plan_line_ids.start_date')
+    def _compute_next_billing_date(self):
+        """
+        Derive next billing date without any manual input:
+          • Last posted invoice → next = 1st of the month after that invoice date
+          • No invoices yet     → current plan's start_date (always the 1st by constraint)
+          • No approved plan    → False (cron skips this subscription)
+        """
+        for rec in self:
+            posted = rec.sudo().invoice_ids.filtered(
+                lambda m: m.state == 'posted' and m.invoice_date
+            ).sorted('invoice_date', reverse=True)
+            if posted:
+                last_date = posted[0].invoice_date
+                rec.next_billing_date = last_date.replace(day=1) + relativedelta(months=1)
+            elif rec.current_plan_id and rec.current_plan_id.start_date:
+                rec.next_billing_date = rec.current_plan_id.start_date
+            else:
+                rec.next_billing_date = False
+
+    @api.depends_context('uid')
+    def _compute_can_edit_billing_date(self):
+        can_edit = (
+            self.env.user.has_group('base.group_system') or
+            user_has_permission(self.env.user, 'subscription_edit_billing_date')
+        )
+        for rec in self:
+            rec.can_edit_billing_date = can_edit
 
     @api.depends('invoice_ids', 'invoice_ids.state')
     def _compute_invoice_count(self):
@@ -79,40 +120,6 @@ class TuitionSubscription(models.Model):
             'view_mode': 'list,form',
             'domain': [('id', 'in', self.sudo().invoice_ids.ids), ('state', '!=', 'cancel')],
         }
-
-    def action_generate_invoice(self):
-        self.ensure_one()
-        require_permission(self.env.user, 'parent_invoice_generate')
-        today = fields.Date.today()
-        # check both via many2one and many2many
-        existing = self.env['account.move'].sudo().search([
-            '|', ('tuition_subscription_id', '=', self.id),
-                 ('tuition_subscription_ids', 'in', [self.id]),
-            ('invoice_date', '>=', today.replace(day=1)), ('state', '!=', 'cancel'),
-        ], limit=1)
-        if existing:
-            return {
-                'type': 'ir.actions.act_window', 'name': 'Duplicate Invoice Warning',
-                'res_model': 'tuition.invoice.confirm.wizard', 'view_mode': 'form', 'target': 'new',
-                'context': {
-                    'default_subscription_id': self.id, 'default_existing_invoice_id': existing.id,
-                    'default_existing_invoice_name': existing.name, 'default_existing_invoice_date': str(existing.invoice_date),
-                    'default_existing_invoice_amount': existing.amount_total, 'default_existing_invoice_state': existing.payment_state,
-                },
-            }
-        return self._open_invoice_preview()
-
-    def _open_invoice_preview(self):
-        self.ensure_one()
-        preview_vals = self._build_preview_vals()
-        wizard = self.env['tuition.invoice.preview.wizard'].create({
-            'subscription_id': self.id, 'partner_id': preview_vals['partner_id'],
-            'month_label': preview_vals['month_label'], 'base_price': preview_vals['base_price'],
-            'total_discounts': preview_vals['total_discounts'], 'total_adjustments': preview_vals['total_adjustments'],
-            'total_amount': preview_vals['total_amount'], 'line_ids': [(0, 0, l) for l in preview_vals['lines']],
-        })
-        return {'type': 'ir.actions.act_window', 'name': 'Invoice Preview',
-                'res_model': 'tuition.invoice.preview.wizard', 'view_mode': 'form', 'res_id': wizard.id, 'target': 'new'}
 
     def _build_preview_vals(self):
         self.ensure_one()
@@ -153,45 +160,6 @@ class TuitionSubscription(models.Model):
                 'total_amount': base_price - total_discounts + total_adjustments,
                 'lines': lines, 'plan_id': plan.id, 'unapplied_adj_ids': unapplied.ids}
 
-    def _generate_invoice(self):
-        self.ensure_one()
-        preview_vals = self._build_preview_vals()
-        self._create_sale_order(preview_vals)
-        today = fields.Date.today()
-        self.next_billing_date = today.replace(day=1) + relativedelta(months=1)
-
-    def _create_sale_order(self, preview_vals):
-        self.ensure_one()
-        payment_term = self.env['account.payment.term'].sudo().search([('name', 'ilike', '15')], limit=1)
-        if not payment_term:
-            payment_term = self.env['account.payment.term'].sudo().search([], limit=1)
-        misc_product = self.env['product.product'].sudo().search([('type', '=', 'service')], limit=1)
-        order_lines = []
-        for line in preview_vals['lines']:
-            product = self.env['product.product'].sudo().browse(line['product_id']) if line.get('product_id') else misc_product
-            if not product: continue
-            order_lines.append((0, 0, {'product_id': product.id, 'product_uom_qty': line['quantity'],
-                                       'price_unit': line['unit_price'], 'name': line['description']}))
-        order = self.env['sale.order'].sudo().create({
-            'partner_id': preview_vals['partner_id'], 'payment_term_id': payment_term.id if payment_term else False,
-            'tuition_subscription_id': self.id,
-            'tuition_subscription_ids': [(4, self.id)],
-            'order_line': order_lines,
-            'note': 'Tuition: %s | %s' % (self.student_id.name, preview_vals['month_label']),
-        })
-        order.action_confirm()
-        invoice = self.env['account.move'].sudo().search([('invoice_origin', 'like', order.name), ('move_type', '=', 'out_invoice')], limit=1)
-        if not invoice: invoice = order._create_invoices()
-        invoice.sudo().write({
-            'tuition_subscription_id': self.id,
-            'tuition_subscription_ids': [(4, self.id)],
-            'tuition_plan_line_id': preview_vals.get('plan_id')
-        })
-        invoice.sudo().action_post()
-        if preview_vals.get('unapplied_adj_ids'):
-            self.env['tuition.adjustment'].browse(preview_vals['unapplied_adj_ids']).write({'applied_in_invoice': True, 'invoice_id': invoice.id})
-        return order
-
     def action_pause(self): self.write({'state': 'paused'})
     def action_activate(self): self.write({'state': 'active'})
     def action_cancel(self): self.write({'state': 'cancelled'})
@@ -210,18 +178,15 @@ class TuitionSubscription(models.Model):
                 'res_model': 'tuition.adjustment.wizard', 'view_mode': 'form', 'target': 'new',
                 'context': {'default_subscription_id': self.id}}
 
-    @api.model
-    def _cron_generate_monthly_invoices(self):
-        today = fields.Date.today()
-        for sub in self.search([('state', '=', 'active'), ('next_billing_date', '<=', today)]):
-            try:
-                sub._generate_invoice()
-            except Exception as e:
-                self.env['ir.logging'].sudo().create({
-                    'name': 'tuition.subscription', 'type': 'server', 'level': 'ERROR',
-                    'message': 'Invoice failed for %s: %s' % (sub.name, str(e)),
-                    'path': 'models/subscription.py', 'func': '_cron_generate_monthly_invoices', 'line': '0',
-                })
+    def write(self, vals):
+        if 'next_billing_date' in vals:
+            if not (self.env.user.has_group('base.group_system') or
+                    user_has_permission(self.env.user, 'subscription_edit_billing_date')):
+                raise AccessError(
+                    "You do not have permission to manually edit the Next Billing Date.\n"
+                    "Contact your administrator to enable the 'Edit Next Billing Date' permission."
+                )
+        return super().write(vals)
 
 
 class TuitionDiscount(models.Model):
@@ -264,6 +229,7 @@ class TuitionDiscount(models.Model):
         )
 
     def action_approve(self):
+        require_permission(self.env.user, 'subscription_approve')
         self.write({'approval_state': 'approved'})
 
     def action_set_draft(self):
@@ -301,6 +267,7 @@ class TuitionPlanLine(models.Model):
         )
 
     def action_approve(self):
+        require_permission(self.env.user, 'subscription_approve')
         self.write({'approval_state': 'approved'})
 
     def action_set_draft(self):
@@ -423,6 +390,7 @@ class TuitionAdjustment(models.Model):
         )
 
     def action_approve(self):
+        require_permission(self.env.user, 'subscription_approve')
         self.write({'approval_state': 'approved'})
 
     def action_set_draft(self):
@@ -495,69 +463,6 @@ class TuitionPlanChangeWizard(models.TransientModel):
                 'params': {'title': 'Plan Change Scheduled',
                            'message': "Plan '%s' effective from %s." % (self.product_id.name, self.start_date.strftime('%d %b %Y')),
                            'type': 'success', 'sticky': False, 'next': {'type': 'ir.actions.act_window_close'}}}
-
-
-class TuitionInvoicePreviewWizardLine(models.TransientModel):
-    _name = 'tuition.invoice.preview.wizard.line'
-    _description = 'Invoice Preview Line'
-
-    wizard_id = fields.Many2one('tuition.invoice.preview.wizard', ondelete='cascade')
-    description = fields.Char(string='Description', readonly=True)
-    product_id = fields.Many2one('product.product', string='Product', readonly=True)
-    quantity = fields.Float(string='Qty', readonly=True, default=1)
-    unit_price = fields.Float(string='Unit Price', readonly=True)
-    subtotal = fields.Float(string='Subtotal', readonly=True)
-    line_type = fields.Char(string='Type', readonly=True)
-
-
-class TuitionInvoicePreviewWizard(models.TransientModel):
-    _name = 'tuition.invoice.preview.wizard'
-    _description = 'Invoice Preview'
-
-    subscription_id = fields.Many2one('tuition.subscription', required=True)
-    partner_id = fields.Many2one('res.partner', string='Bill To', readonly=True)
-    month_label = fields.Char(string='Billing Month', readonly=True)
-    base_price = fields.Float(string='Base Price', readonly=True)
-    total_discounts = fields.Float(string='Total Discounts', readonly=True)
-    total_adjustments = fields.Float(string='Total Adjustments', readonly=True)
-    total_amount = fields.Float(string='Total Amount', readonly=True)
-    line_ids = fields.One2many('tuition.invoice.preview.wizard.line', 'wizard_id', string='Lines')
-
-    def action_confirm(self):
-        self.ensure_one()
-        sub = self.subscription_id
-        preview_vals = sub._build_preview_vals()
-        order = sub._create_sale_order(preview_vals)
-        today = fields.Date.today()
-        sub.next_billing_date = today.replace(day=1) + relativedelta(months=1)
-        invoice = self.env['account.move'].sudo().search([('tuition_subscription_id', '=', sub.id),
-                                                          ('move_type', '=', 'out_invoice'), ('state', '=', 'posted')],
-                                                         order='id desc', limit=1)
-        if invoice:
-            return {'type': 'ir.actions.act_window', 'name': 'Invoice', 'res_model': 'account.move', 'view_mode': 'form', 'res_id': invoice.id}
-        return {'type': 'ir.actions.act_window', 'name': 'Sale Order', 'res_model': 'sale.order', 'view_mode': 'form', 'res_id': order.id}
-
-    def action_discard(self):
-        return {'type': 'ir.actions.act_window_close'}
-
-
-class TuitionInvoiceConfirmWizard(models.TransientModel):
-    _name = 'tuition.invoice.confirm.wizard'
-    _description = 'Duplicate Invoice Warning'
-
-    subscription_id = fields.Many2one('tuition.subscription', required=True)
-    existing_invoice_id = fields.Many2one('account.move', string='Existing Invoice', readonly=True)
-    existing_invoice_name = fields.Char(string='Invoice #', readonly=True)
-    existing_invoice_date = fields.Char(string='Invoice Date', readonly=True)
-    existing_invoice_amount = fields.Float(string='Amount', readonly=True)
-    existing_invoice_state = fields.Char(string='Payment State', readonly=True)
-
-    def action_proceed(self):
-        self.ensure_one()
-        return self.subscription_id._open_invoice_preview()
-
-    def action_cancel(self):
-        return {'type': 'ir.actions.act_window_close'}
 
 
 class TuitionAdjustmentWizard(models.TransientModel):

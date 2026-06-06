@@ -85,9 +85,15 @@
                                                widget="boolean_toggle"/>
                                         <field name="parent_invoice_generate"
                                                widget="boolean_toggle"/>
+                                        <field name="parent_invoice_approve"
+                                               widget="boolean_toggle"/>
                                         <field name="tutor_payroll_view"
                                                widget="boolean_toggle"/>
                                         <field name="tutor_payroll_generate"
+                                               widget="boolean_toggle"/>
+                                        <field name="tutor_payroll_approve"
+                                               widget="boolean_toggle"/>
+                                        <field name="subscription_approve"
                                                widget="boolean_toggle"/>
                                     </group>
                                     <group string="System">
@@ -110,7 +116,7 @@
                                                widget="boolean_toggle"/>
                                         <field name="subscription_plan_delete"
                                                widget="boolean_toggle"/>
-                                        <field name="subscription_approve"
+                                        <field name="subscription_edit_billing_date"
                                                widget="boolean_toggle"/>
                                     </group>
                                     <group string="Content Management">

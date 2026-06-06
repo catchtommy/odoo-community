@@ -47,7 +47,7 @@
                     <button name="action_approve" type="object"
                             string="Approve" class="btn-primary"
                             invisible="state != 'preview'"
-                            groups="base.group_system"/>
+                            groups="tuition_management.group_tuition_parent_invoice_approve,base.group_system"/>
                     <!-- Approved → Invoiced -->
                     <button name="action_generate_invoices" type="object"
                             string="Generate Invoices" class="btn-primary"
