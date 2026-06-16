@@ -12,8 +12,8 @@ class QbSubject(models.Model):
     active = fields.Boolean(default=True)
 
     topic_ids = fields.One2many('qb.topic', 'subject_id', string='Topics')
-    topic_count = fields.Integer(compute='_compute_counts', string='Topics')
-    question_count = fields.Integer(compute='_compute_counts', string='Questions')
+    topic_count = fields.Integer(compute='_compute_counts', string='Topic Count')
+    question_count = fields.Integer(compute='_compute_counts', string='Question Count')
 
     @api.depends('topic_ids')
     def _compute_counts(self):

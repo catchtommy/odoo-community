@@ -126,20 +126,20 @@ registry.category("form_footers").add("qb_question_preview", {
 // Patch FormRenderer to mount the preview when viewing a qb.question form.
 import { patch }           from "@web/core/utils/patch";
 import { FormRenderer }    from "@web/views/form/form_renderer";
-import { useService }      from "@web/core/utils/hooks";
-import { App }             from "@odoo/owl";
 
 patch(FormRenderer.prototype, {
     setup() {
         super.setup(...arguments);
-        this._qbPreviewApp = null;
+        onMounted(() => this._mountQbPreview());
+        onPatched(() => this._mountQbPreview());
     },
 
     _mountQbPreview() {
         const model = this.props.model;
         if (!model || model.root.resModel !== "qb.question") return;
 
-        const root = this.__owl__.bdom?.el?.querySelector?.("#qb-live-preview-root");
+        const rendererEl = (this.__owl__ && this.__owl__.bdom && this.__owl__.bdom.el) ? this.__owl__.bdom.el : null;
+        const root = rendererEl && rendererEl.querySelector ? rendererEl.querySelector("#qb-live-preview-root") : null;
         if (!root || root.dataset.qbMounted) return;
         root.dataset.qbMounted = "1";
 
@@ -156,49 +156,15 @@ patch(FormRenderer.prototype, {
                 graph_json:       data.graph_json || "",
                 true_false_answer: data.true_false_answer || "",
                 blank_answer:     data.blank_answer || "",
-                options: (data.option_ids?.records || []).map(r => ({
+                options: (((data.option_ids && data.option_ids.records) ? data.option_ids.records : [])).map(r => ({
                     option_text: r.data.option_text || "",
                     is_correct:  r.data.is_correct  || false,
                 })),
             };
         };
 
-        class PreviewRoot extends Component {
-            static template = "question_bank.QuestionPreview";
-            static components = {};
-            setup() {
-                this.question = useState(getQuestion());
-                // Poll every 600 ms for field changes (OWL form model is reactive
-                // but external subscription is the safest approach here).
-                this._interval = setInterval(() => {
-                    const fresh = getQuestion();
-                    Object.assign(this.question, fresh);
-                }, 600);
-            }
-            get typeLabel() {
-                const labels = { mcq: "MCQ", true_false: "True / False", fill_blank: "Fill in the Blank" };
-                return labels[this.question.question_type] || "—";
-            }
-            get difficultyLabel() {
-                const labels = { easy: "Easy", medium: "Medium", hard: "Hard" };
-                return labels[this.question.difficulty] || "—";
-            }
-            get formattedGraph() {
-                const p = safeParseJson(this.question.graph_json);
-                return p ? JSON.stringify(p, null, 2) : this.question.graph_json;
-            }
-            get latexContainer() { return { el: this.__owl__.bdom?.el?.querySelector(".qb-latex-render") }; }
-        }
-
-        PreviewRoot.components = { QuestionPreview };
-
-        this._qbPreviewApp = new App(PreviewRoot, {
-            templates: odoo.__qb_templates__ || {},
-            env: { _t: (s) => s },
-            dev: false,
-        });
-        // Use simple template approach — the template is already registered globally.
-        // We'll mount with a simpler inline component using the registered template.
+        // Mount a lightweight HTML preview; keep it robust for create-mode (new record)
+        // where relying on OWL internal component tree lookups is brittle.
         this._mountSimplePreview(root, model, getQuestion);
     },
 
@@ -215,10 +181,12 @@ patch(FormRenderer.prototype, {
     },
 
     __destroy__() {
-        // clean up interval if present
-        const root = this.__owl__?.bdom?.el?.querySelector?.("#qb-live-preview-root");
+        const rendererEl = (this.__owl__ && this.__owl__.bdom && this.__owl__.bdom.el) ? this.__owl__.bdom.el : null;
+        const root = rendererEl && rendererEl.querySelector ? rendererEl.querySelector("#qb-live-preview-root") : null;
         if (root && root._qbInterval) clearInterval(root._qbInterval);
-        super.__destroy__?.(...arguments);
+        if (super.__destroy__) {
+            super.__destroy__(...arguments);
+        }
     },
 });
 
@@ -249,7 +217,8 @@ function buildPreviewHTML(q) {
     // Title
     html += `<h5 class="qb-preview-title">${escape(q.name)}</h5>`;
 
-    // HTML content (trusted — from our own HTML field)
+    // HTML content (trusted — from our own HTML field). LaTeX delimiters inside
+    // this HTML are typeset by MathJax via renderMathJax(root).
     if (q.question_html) {
         html += `<div class="qb-preview-html">${q.question_html}</div>`;
     }
@@ -272,7 +241,7 @@ function buildPreviewHTML(q) {
         </div>`;
     }
 
-    // MCQ options
+    // MCQ options (option_text is HTML; MathJax will typeset any LaTeX delimiters)
     if (q.question_type === "mcq" && q.options && q.options.length) {
         html += `<div class="qb-preview-options mt-3">
             <div class="qb-preview-section-label">Options</div>
@@ -325,57 +294,4 @@ function buildPreviewHTML(q) {
     return html;
 }
 
-// ─── Trigger preview mount after form renders ──────────────────────────────────
-
-// We use a MutationObserver to detect when the preview root appears in the DOM.
-const observer = new MutationObserver(() => {
-    document.querySelectorAll("#qb-live-preview-root:not([data-qb-mounted])").forEach(root => {
-        root.dataset.qbMounted = "1";
-        // Find the nearest form model via OWL component tree
-        const formEl = root.closest(".o_form_view");
-        if (!formEl) return;
-
-        // Get the OWL component from the DOM element
-        const owlNode = formEl.__owl__;
-        const model = owlNode?.component?.props?.model || owlNode?.component?.model;
-
-        const getQuestion = () => {
-            try {
-                const data = model?.root?.data || {};
-                return {
-                    name:              data.name || "",
-                    question_type:     data.question_type || "mcq",
-                    difficulty:        data.difficulty || "medium",
-                    marks:             data.marks || 0,
-                    question_html:     data.question_html || "",
-                    explanation:       data.explanation || "",
-                    latex_equation:    data.latex_equation || "",
-                    graph_json:        data.graph_json || "",
-                    true_false_answer: data.true_false_answer || "",
-                    blank_answer:      data.blank_answer || "",
-                    options: (data.option_ids?.records || []).map(r => ({
-                        option_text: r.data?.option_text || "",
-                        is_correct:  r.data?.is_correct  || false,
-                    })),
-                };
-            } catch (_) { return {}; }
-        };
-
-        const render = () => {
-            root.innerHTML = buildPreviewHTML(getQuestion());
-            renderMathJax(root);
-        };
-
-        render();
-        root._qbInterval = setInterval(render, 700);
-    });
-});
-
-// Defer until DOM is ready so document.body is guaranteed to exist.
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => {
-        observer.observe(document.body, { childList: true, subtree: true });
-    });
-} else {
-    observer.observe(document.body, { childList: true, subtree: true });
-}
+// Preview mounting is handled via the FormRenderer patch above.

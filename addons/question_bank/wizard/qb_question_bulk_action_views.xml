@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    
+    <record id="qb_question_bulk_action_view_form" model="ir.ui.view">
+        <field name="name">qb.question.bulk.action.form</field>
+        <field name="model">qb.question.bulk.action</field>
+        <field name="arch" type="xml">
+            <form string="Bulk Actions">
+                <group>
+                    <field name="question_count" readonly="1"/>
+                    <field name="action_type" widget="radio"/>
+                </group>
+                
+                <group invisible="action_type != 'change_state'">
+                    <field name="new_state" required="action_type == 'change_state'"/>
+                </group>
+                
+                <group invisible="action_type != 'change_subject'">
+                    <field name="new_subject_id"/>
+                    <field name="new_topic_id" domain="[('subject_id', '=', new_subject_id)]"/>
+                </group>
+                
+                <group invisible="action_type not in ['add_tags', 'remove_tags']">
+                    <field name="tag_ids" widget="many2many_tags" 
+                           required="action_type in ['add_tags', 'remove_tags']"/>
+                </group>
+                
+                <group invisible="action_type != 'change_difficulty'">
+                    <field name="new_difficulty" required="action_type == 'change_difficulty'"/>
+                </group>
+                
+                <div class="alert alert-warning" role="alert" 
+                     invisible="action_type != 'delete'">
+                    <strong>Warning!</strong> This will permanently delete the selected questions.
+                </div>
+                
+                <footer>
+                    <button string="Apply" name="action_apply" type="object" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    
+    <record id="action_qb_question_bulk_action" model="ir.actions.act_window">
+        <field name="name">Bulk Actions</field>
+        <field name="res_model">qb.question.bulk.action</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_qb_question"/>
+        <field name="binding_view_types">list</field>
+    </record>
+
+</odoo>

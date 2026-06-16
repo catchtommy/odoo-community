@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<quiz>
+  
+  <!-- Sample Multiple Choice Question with LaTeX -->
+  <question type="multichoice">
+    <name>
+      <text>Quadratic Formula</text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<p>What is the solution to the quadratic equation $ax^2 + bx + c = 0$?</p>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<p>The quadratic formula is: $x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$</p>]]></text>
+    </generalfeedback>
+    <answer fraction="100" format="html">
+      <text><![CDATA[<p>$x = \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}$</p>]]></text>
+    </answer>
+    <answer fraction="0" format="html">
+      <text><![CDATA[<p>$x = \frac{-b \pm b^2}{2a}$</p>]]></text>
+    </answer>
+    <answer fraction="0" format="html">
+      <text><![CDATA[<p>$x = \frac{b \pm \sqrt{b^2 - 4ac}}{a}$</p>]]></text>
+    </answer>
+    <answer fraction="0" format="html">
+      <text><![CDATA[<p>$x = -\frac{b}{2a}$</p>]]></text>
+    </answer>
+  </question>
+
+  <!-- Sample True/False Question -->
+  <question type="truefalse">
+    <name>
+      <text>Pythagorean Theorem</text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<p>The Pythagorean theorem states that $a^2 + b^2 = c^2$ for any right triangle.</p>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<p>This is true! In a right triangle, the square of the hypotenuse equals the sum of squares of the other two sides.</p>]]></text>
+    </generalfeedback>
+    <answer fraction="100" format="moodle_auto_format">
+      <text>true</text>
+    </answer>
+    <answer fraction="0" format="moodle_auto_format">
+      <text>false</text>
+    </answer>
+  </question>
+
+  <!-- Sample Short Answer Question -->
+  <question type="shortanswer">
+    <name>
+      <text>Area of Circle</text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<p>What is the formula for the area of a circle with radius r?</p>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<p>The area of a circle is $\pi r^2$, where r is the radius.</p>]]></text>
+    </generalfeedback>
+    <answer fraction="100" format="moodle_auto_format">
+      <text>πr²</text>
+    </answer>
+    <answer fraction="100" format="moodle_auto_format">
+      <text>pi*r^2</text>
+    </answer>
+    <answer fraction="100" format="moodle_auto_format">
+      <text>πr^2</text>
+    </answer>
+  </question>
+
+  <!-- Sample MCQ with Category -->
+  <question type="multichoice">
+    <name>
+      <text>Triangle Properties</text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<p>What is the sum of interior angles in a triangle?</p>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<p>The sum of interior angles in any triangle is always 180 degrees or π radians.</p>]]></text>
+    </generalfeedback>
+    <defaultgrade>1.0000000</defaultgrade>
+    <penalty>0.3333333</penalty>
+    <hidden>0</hidden>
+    <single>true</single>
+    <shuffleanswers>true</shuffleanswers>
+    <answernumbering>abc</answernumbering>
+    <answer fraction="100" format="html">
+      <text><![CDATA[<p>180°</p>]]></text>
+    </answer>
+    <answer fraction="0" format="html">
+      <text><![CDATA[<p>360°</p>]]></text>
+    </answer>
+    <answer fraction="0" format="html">
+      <text><![CDATA[<p>90°</p>]]></text>
+    </answer>
+    <answer fraction="0" format="html">
+      <text><![CDATA[<p>270°</p>]]></text>
+    </answer>
+    <category>
+      <text>$course$/Geometry/Basic Properties</text>
+    </category>
+  </question>
+
+  <!-- Sample Question with Complex LaTeX -->
+  <question type="multichoice">
+    <name>
+      <text>Integration</text>
+    </name>
+    <questiontext format="html">
+      <text><![CDATA[<p>What is the result of $$\int_0^{\pi} \sin(x) \, dx$$?</p>]]></text>
+    </questiontext>
+    <generalfeedback format="html">
+      <text><![CDATA[<p>Solution: $$\int_0^{\pi} \sin(x) \, dx = [-\cos(x)]_0^{\pi} = -\cos(\pi) - (-\cos(0)) = -(-1) - (-1) = 2$$</p>]]></text>
+    </generalfeedback>
+    <answer fraction="100" format="html">
+      <text><![CDATA[<p>2</p>]]></text>
+    </answer>
+    <answer fraction="0" format="html">
+      <text><![CDATA[<p>0</p>]]></text>
+    </answer>
+    <answer fraction="0" format="html">
+      <text><![CDATA[<p>π</p>]]></text>
+    </answer>
+    <answer fraction="0" format="html">
+      <text><![CDATA[<p>1</p>]]></text>
+    </answer>
+    <category>
+      <text>$course$/Calculus/Integration</text>
+    </category>
+  </question>
+
+</quiz>

@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Action for Preview Detail (must be defined before it's used) -->
+    <record id="action_qb_moodle_import_preview_detail" model="ir.actions.act_window">
+        <field name="name">Question Preview</field>
+        <field name="res_model">qb.moodle.import.line</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+    <!-- Preview Line List View -->
+    <record id="view_qb_moodle_import_line_tree" model="ir.ui.view">
+        <field name="name">qb.moodle.import.line.tree</field>
+        <field name="model">qb.moodle.import.line</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="selected" widget="boolean_toggle"/>
+                <field name="name" string="Question Name"/>
+                <field name="question_type" widget="badge"/>
+                <field name="category"/>
+                <field name="has_latex" widget="boolean_toggle" string="LaTeX"/>
+                <field name="has_images" widget="boolean_toggle" string="Images"/>
+                <field name="correct_answer"/>
+                <button name="%(action_qb_moodle_import_preview_detail)d" 
+                        type="action" 
+                        icon="fa-eye" 
+                        string="View Details"
+                        context="{'default_line_id': id}"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Preview Detail Form (Popup for detailed view) -->
+    <record id="view_qb_moodle_import_line_form" model="ir.ui.view">
+        <field name="name">qb.moodle.import.line.form</field>
+        <field name="model">qb.moodle.import.line</field>
+        <field name="arch" type="xml">
+            <form string="Question Preview Details">
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="Question Name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="question_type" widget="badge"/>
+                            <field name="moodle_type"/>
+                            <field name="category"/>
+                        </group>
+                        <group>
+                            <field name="has_latex"/>
+                            <field name="has_images"/>
+                            <field name="selected"/>
+                        </group>
+                    </group>
+                    
+                    <group string="Question Text">
+                        <field name="question_text" nolabel="1" widget="html"/>
+                    </group>
+                    
+                    <group string="Answers" invisible="not answers_preview">
+                        <field name="answers_preview" nolabel="1" widget="text"/>
+                    </group>
+                    
+                    <group string="Correct Answer">
+                        <field name="correct_answer" nolabel="1"/>
+                    </group>
+                    
+                    <group string="Feedback" invisible="not feedback">
+                        <field name="feedback" nolabel="1" widget="html"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Close" special="cancel" class="btn-primary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Moodle Import Wizard Form -->
+    <record id="view_qb_moodle_import_form" model="ir.ui.view">
+        <field name="name">qb.moodle.import.form</field>
+        <field name="model">qb.moodle.import</field>
+        <field name="arch" type="xml">
+            <form string="Import Moodle Questions">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="upload,preview,done"/>
+                </header>
+                <sheet>
+                    <!-- Upload State -->
+                    <div class="alert alert-info" role="alert" invisible="state != 'upload'">
+                        <i class="fa fa-info-circle"/> Upload your Moodle XML question bank file to preview and import questions.
+                    </div>
+                    
+                    <group invisible="state != 'upload'">
+                        <group>
+                            <field name="xml_file" filename="filename" widget="binary"/>
+                            <field name="filename" invisible="1"/>
+                        </group>
+                        <group>
+                            <field name="subject_id" required="1" options="{'no_create': True}"/>
+                            <field name="topic_id" domain="[('subject_id', '=', subject_id)]"/>
+                        </group>
+                    </group>
+                    
+                    <group invisible="state != 'upload'">
+                        <group string="Import Options">
+                            <field name="create_categories_as_topics"/>
+                            <field name="skip_duplicates"/>
+                        </group>
+                    </group>
+
+                    <!-- Preview State -->
+                    <div class="alert alert-success" role="alert" invisible="state != 'preview'">
+                        <i class="fa fa-check-circle"/> 
+                        Found <field name="total_questions" class="fw-bold" readonly="1"/> question(s). 
+                        Review and select questions to import.
+                    </div>
+
+                    <group invisible="state != 'preview'">
+                        <group>
+                            <field name="subject_id" readonly="1"/>
+                            <field name="topic_id" readonly="1"/>
+                        </group>
+                        <group>
+                            <label for="selected_questions" string="Selected"/>
+                            <div>
+                                <field name="selected_questions" class="oe_inline fw-bold"/> / 
+                                <field name="total_questions" class="oe_inline"/>
+                            </div>
+                        </group>
+                    </group>
+
+                    <notebook invisible="state != 'preview'">
+                        <page string="Questions Preview" name="preview">
+                            <field name="preview_line_ids" nolabel="1"/>
+                        </page>
+                    </notebook>
+
+                    <!-- Done State -->
+                    <div class="alert alert-success" role="alert" invisible="state != 'done'">
+                        <h4><i class="fa fa-check-circle"/> Import Completed!</h4>
+                        <p>Questions have been successfully imported into your question bank.</p>
+                    </div>
+                </sheet>
+                
+                <footer>
+                    <button string="Parse XML" 
+                            name="action_parse_xml" 
+                            type="object" 
+                            class="btn-primary" 
+                            invisible="state != 'upload'"/>
+                    <button string="Back" 
+                            name="action_back_to_upload" 
+                            type="object" 
+                            invisible="state != 'preview'"/>
+                    <button string="Import Questions" 
+                            name="action_import_questions" 
+                            type="object" 
+                            class="btn-primary" 
+                            invisible="state != 'preview'"/>
+                    <button string="Close" 
+                            special="cancel" 
+                            class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <!-- Main Action -->
+    <record id="action_qb_moodle_import" model="ir.actions.act_window">
+        <field name="name">Import from Moodle</field>
+        <field name="res_model">qb.moodle.import</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>

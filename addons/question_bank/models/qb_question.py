@@ -35,7 +35,7 @@ class QbQuestion(models.Model):
         ('hard',   'Hard'),
     ], string='Difficulty', default='medium', tracking=True)
     marks = fields.Float(string='Marks', default=1.0)
-    tag_ids = fields.Many2many('qb.tag', 'qb_question_tag_rel',
+    tag_ids = fields.Many2many('qb.question.tag', 'qb_question_tag_rel',
                                 'question_id', 'tag_id', string='Tags')
 
     # ── Rich content ──────────────────────────────────────────────────────
@@ -78,6 +78,35 @@ class QbQuestion(models.Model):
     # ── Computed stats ────────────────────────────────────────────────────
     option_count = fields.Integer(compute='_compute_option_stats', store=True)
     correct_option_count = fields.Integer(compute='_compute_option_stats', store=True)
+    
+    # ── Moodle-style features ─────────────────────────────────────────────
+    version = fields.Integer(string='Version', default=1, readonly=True, tracking=True)
+    parent_question_id = fields.Many2one('qb.question', string='Original Question', 
+                                         help='Reference to original question if this is a version')
+    version_ids = fields.One2many('qb.question', 'parent_question_id', string='Versions')
+    version_count = fields.Integer(compute='_compute_version_count', string='# Versions')
+    
+    # Usage statistics
+    usage_count = fields.Integer(string='Times Used', default=0, readonly=True)
+    last_used_date = fields.Datetime(string='Last Used', readonly=True)
+    average_score = fields.Float(string='Average Score %', readonly=True)
+    
+    # Question bank metadata
+    created_by = fields.Many2one('res.users', string='Created By', 
+                                 default=lambda self: self.env.user, readonly=True)
+    modified_by = fields.Many2one('res.users', string='Modified By', tracking=True)
+    idnumber = fields.Char(string='ID Number', help='External reference number')
+    is_shared = fields.Boolean(string='Shared', default=False, 
+                               help='Allow other users to use this question')
+    shared_by = fields.Many2one('res.users', string='Shared By')
+    comment = fields.Text(string='Comment', tracking=True)
+    negative_marks = fields.Float(string='Negative Marks', default=0.0)
+    
+    # Computed preview
+    question_preview = fields.Html(compute='_compute_question_preview', 
+                                   string='Preview')
+    type_display = fields.Char(compute='_compute_type_display', string='Question Type')
+    sequence = fields.Integer(string='Sequence', default=10)
     difficulty_color = fields.Char(compute='_compute_difficulty_color')
 
     # ─────────────────────────────────────────────────────────────────────
@@ -163,6 +192,92 @@ class QbQuestion(models.Model):
             'view_mode': 'form',
             'target': 'current',
         }
+    
+    # ── Moodle-style actions ──────────────────────────────────────────────
+    @api.depends('version_ids')
+    def _compute_version_count(self):
+        for rec in self:
+            rec.version_count = len(rec.version_ids)
+    
+    @api.depends('question_html', 'question_type')
+    def _compute_question_preview(self):
+        for rec in self:
+            preview = rec.question_html or ''
+            if len(preview) > 200:
+                preview = preview[:200] + '...'
+            rec.question_preview = preview
+    
+    @api.depends('question_type')
+    def _compute_type_display(self):
+        type_labels = dict(self._fields['question_type'].selection)
+        for rec in self:
+            rec.type_display = type_labels.get(rec.question_type, rec.question_type)
+    
+    def action_create_version(self):
+        """Create a new version of this question"""
+        self.ensure_one()
+        
+        # Find the root question
+        root_question = self.parent_question_id or self
+        max_version = max([q.version for q in root_question.version_ids] + [root_question.version])
+        
+        # Copy the question
+        new_version = self.copy({
+            'parent_question_id': root_question.id,
+            'version': max_version + 1,
+            'name': f"{self.name} (v{max_version + 1})",
+        })
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'qb.question',
+            'res_id': new_version.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+    
+    def action_preview_question(self):
+        """Show question preview in modal"""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'qb.question',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'view_id': self.env.ref('question_bank.qb_question_view_form_preview').id,
+            'target': 'new',
+            'context': {'preview_mode': True},
+        }
+    
+    def action_edit_from_preview(self):
+        """Open question in edit mode from preview"""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'qb.question',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+    
+    def action_duplicate_question(self):
+        """Duplicate the question"""
+        self.ensure_one()
+        new_question = self.copy({
+            'name': f"{self.name} (Copy)",
+        })
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'qb.question',
+            'res_id': new_question.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+    
+    def write(self, vals):
+        if vals.keys() - {'usage_count', 'last_used_date', 'average_score'}:
+            vals['modified_by'] = self.env.user.id
+        return super().write(vals)
 
 
 class QbQuestionOption(models.Model):
