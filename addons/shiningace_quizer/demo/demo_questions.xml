@@ -1,0 +1,320 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Demo Tags -->
+    <record id="demo_tag_algebra" model="shiningace.question.tag">
+        <field name="name">Algebra</field>
+        <field name="color">1</field>
+    </record>
+
+    <record id="demo_tag_geometry" model="shiningace.question.tag">
+        <field name="name">Geometry</field>
+        <field name="color">2</field>
+    </record>
+
+    <record id="demo_tag_grammar" model="shiningace.question.tag">
+        <field name="name">Grammar</field>
+        <field name="color">3</field>
+    </record>
+
+    <record id="demo_tag_vocabulary" model="shiningace.question.tag">
+        <field name="name">Vocabulary</field>
+        <field name="color">4</field>
+    </record>
+
+    <record id="demo_tag_mechanics" model="shiningace.question.tag">
+        <field name="name">Mechanics</field>
+        <field name="color">5</field>
+    </record>
+
+    <record id="demo_tag_thermodynamics" model="shiningace.question.tag">
+        <field name="name">Thermodynamics</field>
+        <field name="color">6</field>
+    </record>
+
+    <!-- Demo Questions -->
+    <!-- Mathematics - Multiple Choice -->
+    <record id="demo_question_math_mc_1" model="shiningace.question">
+        <field name="name">Solve quadratic equation</field>
+        <field name="question_text"><![CDATA[
+            <p>Solve the quadratic equation: $$x^2 - 5x + 6 = 0$$</p>
+            <p>What are the solutions?</p>
+        ]]></field>
+        <field name="question_type_id" ref="question_type_multichoice"/>
+        <field name="subject_id" ref="subject_mathematics"/>
+        <field name="difficulty_level">medium</field>
+        <field name="difficulty_score">5.0</field>
+        <field name="default_mark">2.0</field>
+        <field name="topic">Quadratic Equations</field>
+        <field name="state">approved</field>
+        <field name="bloom_taxonomy">apply</field>
+        <field name="tags" eval="[(4, ref('demo_tag_algebra'))]"/>
+    </record>
+
+    <record id="demo_question_math_mc_1_a1" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_math_mc_1"/>
+        <field name="answer_text">x = 2 and x = 3</field>
+        <field name="is_correct">True</field>
+        <field name="fraction">1.0</field>
+        <field name="sequence">10</field>
+        <field name="feedback">Correct! (x-2)(x-3) = 0, so x = 2 or x = 3.</field>
+    </record>
+
+    <record id="demo_question_math_mc_1_a2" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_math_mc_1"/>
+        <field name="answer_text">x = -2 and x = -3</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">20</field>
+        <field name="feedback">Check your signs. Try factoring (x-2)(x-3).</field>
+    </record>
+
+    <record id="demo_question_math_mc_1_a3" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_math_mc_1"/>
+        <field name="answer_text">x = 5 and x = 6</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">30</field>
+        <field name="feedback">Not quite. Remember to factor the quadratic.</field>
+    </record>
+
+    <record id="demo_question_math_mc_1_a4" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_math_mc_1"/>
+        <field name="answer_text">x = 1 and x = 6</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">40</field>
+    </record>
+
+    <!-- Mathematics - True/False -->
+    <record id="demo_question_math_tf_1" model="shiningace.question">
+        <field name="name">Sum of angles in triangle</field>
+        <field name="question_text"><![CDATA[
+            <p>The sum of interior angles in any triangle is <strong>180 degrees</strong>.</p>
+        ]]></field>
+        <field name="question_type_id" ref="question_type_truefalse"/>
+        <field name="subject_id" ref="subject_mathematics"/>
+        <field name="difficulty_level">easy</field>
+        <field name="difficulty_score">2.0</field>
+        <field name="default_mark">1.0</field>
+        <field name="topic">Geometry</field>
+        <field name="state">approved</field>
+        <field name="bloom_taxonomy">remember</field>
+        <field name="tags" eval="[(4, ref('demo_tag_geometry'))]"/>
+    </record>
+
+    <record id="demo_question_math_tf_1_a1" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_math_tf_1"/>
+        <field name="answer_text">True</field>
+        <field name="is_correct">True</field>
+        <field name="fraction">1.0</field>
+        <field name="sequence">10</field>
+        <field name="feedback">Correct! The sum of interior angles in a triangle is always 180 degrees.</field>
+    </record>
+
+    <record id="demo_question_math_tf_1_a2" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_math_tf_1"/>
+        <field name="answer_text">False</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">20</field>
+        <field name="feedback">Incorrect. The sum of interior angles in any triangle is 180 degrees.</field>
+    </record>
+
+    <!-- Physics - Multiple Choice -->
+    <record id="demo_question_phy_mc_1" model="shiningace.question">
+        <field name="name">Newton's Second Law</field>
+        <field name="question_text"><![CDATA[
+            <p>Newton's Second Law of Motion states:</p>
+            <p>$$F = ma$$</p>
+            <p>If a force of <strong>10 N</strong> is applied to a <strong>2 kg</strong> mass, what is the acceleration?</p>
+        ]]></field>
+        <field name="question_type_id" ref="question_type_multichoice"/>
+        <field name="subject_id" ref="subject_physics"/>
+        <field name="difficulty_level">easy</field>
+        <field name="difficulty_score">3.0</field>
+        <field name="default_mark">1.0</field>
+        <field name="topic">Mechanics</field>
+        <field name="state">approved</field>
+        <field name="bloom_taxonomy">apply</field>
+        <field name="tags" eval="[(4, ref('demo_tag_mechanics'))]"/>
+    </record>
+
+    <record id="demo_question_phy_mc_1_a1" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_phy_mc_1"/>
+        <field name="answer_text">5 m/s²</field>
+        <field name="is_correct">True</field>
+        <field name="fraction">1.0</field>
+        <field name="sequence">10</field>
+        <field name="feedback">Correct! a = F/m = 10/2 = 5 m/s²</field>
+    </record>
+
+    <record id="demo_question_phy_mc_1_a2" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_phy_mc_1"/>
+        <field name="answer_text">20 m/s²</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">20</field>
+        <field name="feedback">Check: a = F/m, not F × m.</field>
+    </record>
+
+    <record id="demo_question_phy_mc_1_a3" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_phy_mc_1"/>
+        <field name="answer_text">0.2 m/s²</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">30</field>
+        <field name="feedback">Check: a = F/m, not m/F.</field>
+    </record>
+
+    <record id="demo_question_phy_mc_1_a4" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_phy_mc_1"/>
+        <field name="answer_text">12 m/s²</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">40</field>
+    </record>
+
+    <!-- Chemistry - True/False -->
+    <record id="demo_question_chem_tf_1" model="shiningace.question">
+        <field name="name">Water molecule composition</field>
+        <field name="question_text"><![CDATA[
+            <p>A water molecule ($$H_2O$$) contains two hydrogen atoms and one oxygen atom.</p>
+        ]]></field>
+        <field name="question_type_id" ref="question_type_truefalse"/>
+        <field name="subject_id" ref="subject_chemistry"/>
+        <field name="difficulty_level">easy</field>
+        <field name="difficulty_score">1.0</field>
+        <field name="default_mark">1.0</field>
+        <field name="topic">Basic Chemistry</field>
+        <field name="state">approved</field>
+        <field name="bloom_taxonomy">remember</field>
+    </record>
+
+    <record id="demo_question_chem_tf_1_a1" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_chem_tf_1"/>
+        <field name="answer_text">True</field>
+        <field name="is_correct">True</field>
+        <field name="fraction">1.0</field>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="demo_question_chem_tf_1_a2" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_chem_tf_1"/>
+        <field name="answer_text">False</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">20</field>
+    </record>
+
+    <!-- English - Multiple Choice -->
+    <record id="demo_question_eng_mc_1" model="shiningace.question">
+        <field name="name">Identify the correct sentence</field>
+        <field name="question_text"><![CDATA[
+            <p>Which of the following sentences is <strong>grammatically correct</strong>?</p>
+        ]]></field>
+        <field name="question_type_id" ref="question_type_multichoice"/>
+        <field name="subject_id" ref="subject_english"/>
+        <field name="difficulty_level">medium</field>
+        <field name="difficulty_score">4.0</field>
+        <field name="default_mark">1.0</field>
+        <field name="topic">Grammar</field>
+        <field name="state">approved</field>
+        <field name="bloom_taxonomy">understand</field>
+        <field name="tags" eval="[(4, ref('demo_tag_grammar'))]"/>
+    </record>
+
+    <record id="demo_question_eng_mc_1_a1" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_eng_mc_1"/>
+        <field name="answer_text">She goes to the store every day.</field>
+        <field name="is_correct">True</field>
+        <field name="fraction">1.0</field>
+        <field name="sequence">10</field>
+        <field name="feedback">Correct! Subject-verb agreement is correct (she goes).</field>
+    </record>
+
+    <record id="demo_question_eng_mc_1_a2" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_eng_mc_1"/>
+        <field name="answer_text">She go to the store every day.</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">20</field>
+        <field name="feedback">Incorrect. 'She' requires 'goes' (third person singular).</field>
+    </record>
+
+    <record id="demo_question_eng_mc_1_a3" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_eng_mc_1"/>
+        <field name="answer_text">She going to the store every day.</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">30</field>
+        <field name="feedback">Incorrect. 'Going' needs a helper verb (is going).</field>
+    </record>
+
+    <record id="demo_question_eng_mc_1_a4" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_eng_mc_1"/>
+        <field name="answer_text">She goes to the store every days.</field>
+        <field name="is_correct">False</field>
+        <field name="fraction">0.0</field>
+        <field name="sequence">40</field>
+        <field name="feedback">'Every day' is correct, not 'every days'.</field>
+    </record>
+
+    <!-- Mathematics - Numerical -->
+    <record id="demo_question_math_num_1" model="shiningace.question">
+        <field name="name">Area of a circle</field>
+        <field name="question_text"><![CDATA[
+            <p>Calculate the area of a circle with radius $$r = 5$$ cm.</p>
+            <p>Use $$\pi \approx 3.14159$$</p>
+            <p>Round your answer to <strong>2 decimal places</strong>.</p>
+        ]]></field>
+        <field name="question_type_id" ref="question_type_numerical"/>
+        <field name="subject_id" ref="subject_mathematics"/>
+        <field name="difficulty_level">medium</field>
+        <field name="difficulty_score">5.0</field>
+        <field name="default_mark">2.0</field>
+        <field name="numerical_answer">78.54</field>
+        <field name="numerical_tolerance">0.01</field>
+        <field name="topic">Geometry - Circles</field>
+        <field name="state">approved</field>
+        <field name="bloom_taxonomy">apply</field>
+        <field name="tags" eval="[(4, ref('demo_tag_geometry'))]"/>
+    </record>
+
+    <record id="demo_question_math_num_1_a1" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_math_num_1"/>
+        <field name="answer_text">78.54</field>
+        <field name="numerical_answer">78.54</field>
+        <field name="numerical_tolerance">0.01</field>
+        <field name="is_correct">True</field>
+        <field name="fraction">1.0</field>
+        <field name="sequence">10</field>
+        <field name="feedback">Correct! A = πr² = 3.14159 × 25 = 78.54 cm²</field>
+    </record>
+
+    <!-- English - Short Answer -->
+    <record id="demo_question_eng_sa_1" model="shiningace.question">
+        <field name="name">Past tense of 'go'</field>
+        <field name="question_text"><![CDATA[
+            <p>What is the <strong>past tense</strong> of the verb <em>to go</em>?</p>
+            <p>Type your answer in the box below.</p>
+        ]]></field>
+        <field name="question_type_id" ref="question_type_shortanswer"/>
+        <field name="subject_id" ref="subject_english"/>
+        <field name="difficulty_level">easy</field>
+        <field name="difficulty_score">2.0</field>
+        <field name="default_mark">1.0</field>
+        <field name="topic">Verb Tenses</field>
+        <field name="state">approved</field>
+        <field name="bloom_taxonomy">remember</field>
+        <field name="tags" eval="[(4, ref('demo_tag_grammar'))]"/>
+    </record>
+
+    <record id="demo_question_eng_sa_1_a1" model="shiningace.question.answer">
+        <field name="question_id" ref="demo_question_eng_sa_1"/>
+        <field name="answer_text">went</field>
+        <field name="is_correct">True</field>
+        <field name="fraction">1.0</field>
+        <field name="sequence">10</field>
+        <field name="feedback">Correct! 'Go' is an irregular verb; its past tense is 'went'.</field>
+    </record>
+</odoo>

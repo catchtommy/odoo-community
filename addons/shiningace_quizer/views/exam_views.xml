@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_shiningace_exam_tree" model="ir.ui.view">
+        <field name="name">shiningace.exam.tree</field>
+        <field name="model">shiningace.exam</field>
+        <field name="arch" type="xml">
+            <list string="Exams" decoration-success="state=='completed'" decoration-warning="state=='ready'" decoration-info="state=='in_progress'" decoration-muted="state=='cancelled'">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="subject_id"/>
+                <field name="exam_date"/>
+                <field name="total_marks"/>
+                <field name="question_count"/>
+                <field name="state"/>
+                <field name="duration_minutes" string="Duration (min)"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_shiningace_exam_form" model="ir.ui.view">
+        <field name="name">shiningace.exam.form</field>
+        <field name="model">shiningace.exam</field>
+        <field name="arch" type="xml">
+            <form string="Exam">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,ready,completed,graded" clickable="True"/>
+                    <button name="action_ready" string="Mark Ready" type="object" invisible="state != 'draft'" class="btn-primary"/>
+                    <button name="action_start" string="Start Exam" type="object" invisible="state != 'ready'" class="btn-success"/>
+                    <button name="action_complete" string="Complete" type="object" invisible="state != 'in_progress'" class="btn-warning"/>
+                    <button name="action_grade" string="Grade Exam" type="object" invisible="state != 'completed'" class="btn-primary"/>
+                    <button name="action_draft" string="Reset to Draft" type="object" invisible="state != 'ready' and state != 'cancelled'" class="btn-secondary"/>
+                    <button name="action_cancel" string="Cancel" type="object" invisible="state != 'draft' and state != 'ready'" class="btn-danger"/>
+                </header>
+                <sheet>
+                    <field name="active" invisible="1"/>
+
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="subject_id" options="{'no_create': True}"/>
+                            <field name="description"/>
+                            <field name="instructions" placeholder="Exam instructions..."/>
+                        </group>
+                        <group>
+                            <field name="exam_date"/>
+                            <field name="duration_minutes"/>
+                            <field name="max_attempts"/>
+                            <field name="pass_percentage"/>
+                            <field name="total_marks"/>
+                        </group>
+                    </group>
+
+                    <group string="Shuffle Options">
+                        <group>
+                            <field name="shuffle_questions"/>
+                            <field name="shuffle_answers"/>
+                        </group>
+                        <group>
+                            <field name="auto_grade"/>
+                        </group>
+                    </group>
+
+                    <group string="Question Selection">
+                        <field name="selection_method"/>
+                        <field name="random_question_count"/>
+                        <field name="random_difficulty"/>
+                        <field name="random_tag_ids" widget="many2many_tags"/>
+                        <button name="action_generate_random_questions" string="Generate Random Questions" type="object" class="btn-secondary"/>
+                    </group>
+
+                    <notebook>
+                        <page name="questions" string="Questions">
+                            <field name="question_ids">
+                                <list string="Questions" editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="question_id" options="{'no_create': True}"/>
+                                    <field name="mark"/>
+                                    <field name="is_required"/>
+                                    <field name="question_type_name"/>
+                                    <field name="difficulty"/>
+                                    <field name="is_answered"/>
+                                    <field name="obtained_mark"/>
+                                </list>
+                                <form string="Exam Question">
+                                    <group>
+                                        <field name="question_id"/>
+                                        <field name="mark"/>
+                                        <field name="is_required"/>
+                                        <field name="shuffle_answers"/>
+                                    </group>
+                                    <group string="Grading">
+                                        <field name="is_answered"/>
+                                        <field name="is_correct"/>
+                                        <field name="obtained_mark"/>
+                                        <field name="student_answer"/>
+                                        <field name="feedback_given"/>
+                                        <field name="grader_notes"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <field name="message_follower_ids" widget="mail_followers"/>
+                <field name="activity_ids" widget="mail_activity"/>
+                <field name="message_ids" widget="mail_thread"/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_shiningace_exam_search" model="ir.ui.view">
+        <field name="name">shiningace.exam.search</field>
+        <field name="model">shiningace.exam</field>
+        <field name="arch" type="xml">
+            <search string="Search Exams">
+                <field name="name"/>
+                <field name="code"/>
+                <field name="subject_id"/>
+                <filter name="filter_draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_ready" string="Ready" domain="[('state', '=', 'ready')]"/>
+                <filter name="filter_completed" string="Completed" domain="[('state', '=', 'completed')]"/>
+                <filter name="filter_graded" string="Graded" domain="[('state', '=', 'graded')]"/>
+                <separator/>
+                <filter name="group_by_subject" string="Subject" context="{'group_by': 'subject_id'}"/>
+                <filter name="group_by_state" string="Status" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+</odoo>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- All window actions defined here for cross-file reference -->
+
+    <record id="action_shiningace_question" model="ir.actions.act_window">
+        <field name="name">Questions</field>
+        <field name="res_model">shiningace.question</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first question!
+            </p>
+            <p>Questions are reusable across multiple exams and homework assignments.</p>
+        </field>
+    </record>
+
+    <record id="action_shiningace_subject" model="ir.actions.act_window">
+        <field name="name">Subjects</field>
+        <field name="res_model">shiningace.subject</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first subject!
+            </p>
+            <p>Subjects help organise your question bank (e.g., Mathematics, Physics, English).</p>
+        </field>
+    </record>
+
+    <record id="action_shiningace_question_type" model="ir.actions.act_window">
+        <field name="name">Question Types</field>
+        <field name="res_model">shiningace.question.type</field>
+        <field name="view_mode">list,form</field>
+        <field name="group_ids" eval="[(4, ref('group_shiningace_quizer_manager'))]"/>
+    </record>
+
+    <record id="action_shiningace_question_tag" model="ir.actions.act_window">
+        <field name="name">Tags</field>
+        <field name="res_model">shiningace.question.tag</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_shiningace_exam" model="ir.actions.act_window">
+        <field name="name">Exams</field>
+        <field name="res_model">shiningace.exam</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first exam!
+            </p>
+            <p>Exams are composed of questions from your question bank.</p>
+        </field>
+    </record>
+
+    <record id="action_shiningace_homework" model="ir.actions.act_window">
+        <field name="name">Homework</field>
+        <field name="res_model">shiningace.homework</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create your first homework assignment!
+            </p>
+            <p>Homework assignments use questions from your question bank.</p>
+        </field>
+    </record>
+
+    <record id="action_shiningace_moodle_import_log" model="ir.actions.act_window">
+        <field name="name">Import Logs</field>
+        <field name="res_model">shiningace.moodle.import.log</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <record id="action_shiningace_import_moodle" model="ir.actions.act_window">
+        <field name="name">Import from Moodle XML</field>
+        <field name="res_model">shiningace.import.moodle.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="binding_model_id" ref="model_shiningace_question"/>
+        <field name="binding_view_types">list,form</field>
+        <field name="help" type="html">
+            <p>Import questions from a Moodle XML export file.</p>
+            <p>Supports all standard Moodle question types.</p>
+        </field>
+    </record>
+
+    <!-- Server Actions -->
+    <record id="server_action_shiningace_question_approve" model="ir.actions.server">
+        <field name="name">Approve Questions</field>
+        <field name="model_id" ref="model_shiningace_question"/>
+        <field name="binding_model_id" ref="model_shiningace_question"/>
+        <field name="state">code</field>
+        <field name="code">records.action_approve()</field>
+    </record>
+
+    <record id="server_action_shiningace_question_review" model="ir.actions.server">
+        <field name="name">Send to Review</field>
+        <field name="model_id" ref="model_shiningace_question"/>
+        <field name="binding_model_id" ref="model_shiningace_question"/>
+        <field name="state">code</field>
+        <field name="code">records.action_review()</field>
+    </record>
+</odoo>
+

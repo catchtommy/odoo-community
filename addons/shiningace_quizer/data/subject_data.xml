@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="subject_mathematics" model="shiningace.subject">
+        <field name="name">Mathematics</field>
+        <field name="code">MATH</field>
+        <field name="color">1</field>
+    </record>
+
+    <record id="subject_english" model="shiningace.subject">
+        <field name="name">English</field>
+        <field name="code">ENG</field>
+        <field name="color">2</field>
+    </record>
+
+    <record id="subject_physics" model="shiningace.subject">
+        <field name="name">Physics</field>
+        <field name="code">PHY</field>
+        <field name="color">3</field>
+    </record>
+
+    <record id="subject_chemistry" model="shiningace.subject">
+        <field name="name">Chemistry</field>
+        <field name="code">CHEM</field>
+        <field name="color">4</field>
+    </record>
+
+    <record id="subject_biology" model="shiningace.subject">
+        <field name="name">Biology</field>
+        <field name="code">BIO</field>
+        <field name="color">5</field>
+    </record>
+
+    <record id="subject_history" model="shiningace.subject">
+        <field name="name">History</field>
+        <field name="code">HIST</field>
+        <field name="color">6</field>
+    </record>
+
+    <record id="subject_geography" model="shiningace.subject">
+        <field name="name">Geography</field>
+        <field name="code">GEO</field>
+        <field name="color">7</field>
+    </record>
+
+    <record id="subject_computer_science" model="shiningace.subject">
+        <field name="name">Computer Science</field>
+        <field name="code">CS</field>
+        <field name="color">8</field>
+    </record>
+
+    <record id="subject_general" model="shiningace.subject">
+        <field name="name">General Knowledge</field>
+        <field name="code">GK</field>
+        <field name="color">9</field>
+    </record>
+</odoo>

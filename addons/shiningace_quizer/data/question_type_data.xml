@@ -1,0 +1,166 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Multiple Choice -->
+    <record id="question_type_multichoice" model="shiningace.question.type">
+        <field name="name">Multiple Choice</field>
+        <field name="code">multichoice</field>
+        <field name="sequence">10</field>
+        <field name="description">Select one or more correct answers from a list of choices.</field>
+        <field name="icon">fa-check-circle</field>
+        <field name="allow_multiple_answers">True</field>
+        <field name="has_choices">True</field>
+        <field name="llm_prompt_template">Generate a multiple choice question with {n_choices} options on the topic of {topic} at {difficulty} difficulty. Include one correct answer and distractors.</field>
+    </record>
+
+    <!-- True/False -->
+    <record id="question_type_truefalse" model="shiningace.question.type">
+        <field name="name">True/False</field>
+        <field name="code">truefalse</field>
+        <field name="sequence">20</field>
+        <field name="description">A simple true or false statement question.</field>
+        <field name="icon">fa-toggle-on</field>
+        <field name="has_choices">True</field>
+        <field name="llm_prompt_template">Generate a true/false statement about {topic} at {difficulty} difficulty.</field>
+    </record>
+
+    <!-- Short Answer -->
+    <record id="question_type_shortanswer" model="shiningace.question.type">
+        <field name="name">Short Answer</field>
+        <field name="code">shortanswer</field>
+        <field name="sequence">30</field>
+        <field name="description">A question requiring a short text answer, with possible correct answers defined.</field>
+        <field name="icon">fa-pencil</field>
+        <field name="has_text_answer">True</field>
+    </record>
+
+    <!-- Numerical -->
+    <record id="question_type_numerical" model="shiningace.question.type">
+        <field name="name">Numerical</field>
+        <field name="code">numerical</field>
+        <field name="sequence">40</field>
+        <field name="description">A question with a numerical answer, with optional tolerance range.</field>
+        <field name="icon">fa-calculator</field>
+        <field name="has_numerical_answer">True</field>
+    </record>
+
+    <!-- Calculated -->
+    <record id="question_type_calculated" model="shiningace.question.type">
+        <field name="name">Calculated</field>
+        <field name="code">calculated</field>
+        <field name="sequence">50</field>
+        <field name="description">A numerical question using variables that generate different values each time.</field>
+        <field name="icon">fa-superscript</field>
+        <field name="has_numerical_answer">True</field>
+        <field name="has_calculated">True</field>
+    </record>
+
+    <!-- Calculated Simple -->
+    <record id="question_type_calculated_simple" model="shiningace.question.type">
+        <field name="name">Calculated Simple</field>
+        <field name="code">calculated_simple</field>
+        <field name="sequence">55</field>
+        <field name="description">Simpler version of calculated questions with a single formula using wildcards.</field>
+        <field name="icon">fa-superscript</field>
+        <field name="has_numerical_answer">True</field>
+        <field name="has_calculated">True</field>
+    </record>
+
+    <!-- Calculated Multi-choice -->
+    <record id="question_type_calculated_multi" model="shiningace.question.type">
+        <field name="name">Calculated Multi-choice</field>
+        <field name="code">calculated_multi</field>
+        <field name="sequence">56</field>
+        <field name="description">A multi-choice question where each choice is a calculated value from a formula.</field>
+        <field name="icon">fa-superscript</field>
+        <field name="has_choices">True</field>
+        <field name="has_calculated">True</field>
+    </record>
+
+    <!-- Essay -->
+    <record id="question_type_essay" model="shiningace.question.type">
+        <field name="name">Essay</field>
+        <field name="code">essay</field>
+        <field name="sequence">60</field>
+        <field name="description">A free-form essay question requiring manual grading.</field>
+        <field name="icon">fa-file-text</field>
+        <field name="has_choices">False</field>
+        <field name="has_essay">True</field>
+        <field name="has_text_answer">True</field>
+        <field name="llm_eval_template">Evaluate this essay answer on {topic} based on: content accuracy, structure, clarity, and depth. Score out of {max_score}.</field>
+    </record>
+
+    <!-- Matching -->
+    <record id="question_type_matching" model="shiningace.question.type">
+        <field name="name">Matching</field>
+        <field name="code">matching</field>
+        <field name="sequence">70</field>
+        <field name="description">Match items from two columns correctly.</field>
+        <field name="icon">fa-arrows-h</field>
+        <field name="has_choices">False</field>
+        <field name="has_matching">True</field>
+    </record>
+
+    <!-- Drag and Drop (Text) -->
+    <record id="question_type_drag_drop" model="shiningace.question.type">
+        <field name="name">Drag and Drop (Text)</field>
+        <field name="code">drag_drop</field>
+        <field name="sequence">80</field>
+        <field name="description">Drag text items into correct positions/drop zones.</field>
+        <field name="icon">fa-arrows</field>
+        <field name="has_choices">False</field>
+        <field name="has_drag_drop">True</field>
+    </record>
+
+    <!-- Drag and Drop (Image) -->
+    <record id="question_type_drag_drop_image" model="shiningace.question.type">
+        <field name="name">Drag and Drop (Image)</field>
+        <field name="code">drag_drop_image</field>
+        <field name="sequence">82</field>
+        <field name="description">Drag images into correct positions/drop zones.</field>
+        <field name="icon">fa-picture-o</field>
+        <field name="has_choices">False</field>
+        <field name="has_drag_drop">True</field>
+    </record>
+
+    <!-- Drag and Drop Marker -->
+    <record id="question_type_drag_drop_marker" model="shiningace.question.type">
+        <field name="name">Drag and Drop Marker</field>
+        <field name="code">drag_drop_marker</field>
+        <field name="sequence">84</field>
+        <field name="description">Drag markers onto an image/background.</field>
+        <field name="icon">fa-map-marker</field>
+        <field name="has_choices">False</field>
+        <field name="has_drag_drop">True</field>
+    </record>
+
+    <!-- Cloze (Embedded Answers) -->
+    <record id="question_type_cloze" model="shiningace.question.type">
+        <field name="name">Cloze (Gap-fill)</field>
+        <field name="code">cloze</field>
+        <field name="sequence">90</field>
+        <field name="description">Text with embedded answers (gaps) using Moodle-compatible syntax.</field>
+        <field name="icon">fa-ellipsis-h</field>
+        <field name="has_choices">False</field>
+        <field name="has_cloze">True</field>
+    </record>
+
+    <!-- Description (not a real question) -->
+    <record id="question_type_description" model="shiningace.question.type">
+        <field name="name">Description</field>
+        <field name="code">description</field>
+        <field name="sequence">100</field>
+        <field name="description">A descriptive text/label, not a real question. Useful for section headings.</field>
+        <field name="icon">fa-info-circle</field>
+        <field name="has_choices">False</field>
+    </record>
+
+    <!-- Random Short Match -->
+    <record id="question_type_random_short_match" model="shiningace.question.type">
+        <field name="name">Random Short-Answer Matching</field>
+        <field name="code">random_short_match</field>
+        <field name="sequence">110</field>
+        <field name="description">Randomly selects short-answer questions from the same category and presents them as a matching exercise.</field>
+        <field name="icon">fa-random</field>
+        <field name="has_choices">False</field>
+    </record>
+</odoo>

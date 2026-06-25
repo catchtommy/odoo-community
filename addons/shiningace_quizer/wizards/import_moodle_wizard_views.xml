@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_shiningace_import_moodle_wizard_form" model="ir.ui.view">
+        <field name="name">shiningace.import.moodle.wizard.form</field>
+        <field name="model">shiningace.import.moodle.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Import from Moodle XML">
+                <group>
+                    <group>
+                        <field name="moodle_xml_file" filename="file_name"
+                               placeholder="Select Moodle XML file..."/>
+                        <field name="file_name" invisible="1"/>
+                    </group>
+                </group>
+
+                <group string="Import Settings">
+                    <group>
+                        <field name="subject_id" options="{'no_create': True}"
+                               placeholder="Select subject for imported questions..." required="1"/>
+                        <field name="default_difficulty"/>
+                    </group>
+                    <group>
+                        <field name="skip_existing"/>
+                        <field name="overwrite_existing"/>
+                    </group>
+                </group>
+
+                <group string="Default Tags">
+                    <field name="default_tag_ids" widget="many2many_tags"/>
+                </group>
+
+                <!-- Import Results (shown after import) -->
+                <group string="Import Results">
+                    <group>
+                        <field name="total_found" string="Total Questions Found"/>
+                        <field name="imported" string="Successfully Imported" decoration-success="True"/>
+                    </group>
+                    <group>
+                        <field name="skipped" string="Skipped" decoration-warning="True"/>
+                        <field name="errors" string="Errors" decoration-danger="True"/>
+                    </group>
+                </group>
+
+                <field name="import_log" readonly="1"/>
+
+                <footer>
+                    <button name="action_import" string="Import" type="object" class="btn-primary"/>
+                    <button string="Close" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+</odoo>

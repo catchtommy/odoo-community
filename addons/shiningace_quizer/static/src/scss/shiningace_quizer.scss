@@ -1,0 +1,195 @@
+/**
+ * ShiningAce Quizer SCSS Styles
+ * Styling for the question bank management module.
+ */
+
+// LaTeX Preview Styles
+.shiningace-latex-preview-widget {
+    min-height: 100px;
+    padding: 10px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+    margin-top: 10px;
+
+    .shiningace-latex-preview-content {
+        min-height: 60px;
+
+        img {
+            max-width: 100%;
+        }
+    }
+
+    .latex-content {
+        padding: 15px;
+        font-size: 1.2em;
+        text-align: center;
+    }
+}
+
+// Inline LaTeX indicator
+.shiningace-latex-display {
+    display: block;
+    text-align: center;
+    padding: 10px;
+    margin: 10px 0;
+    background: #f0f0f0;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    border: 1px dashed #ccc;
+    cursor: pointer;
+
+    &:hover {
+        border-color: #66afe9;
+        box-shadow: 0 0 5px rgba(102, 175, 233, 0.5);
+    }
+}
+
+.shiningace-latex-inline {
+    padding: 2px 6px;
+    background: #fff3cd;
+    border-radius: 3px;
+    font-family: 'Courier New', monospace;
+    border: 1px dashed #ffc107;
+    cursor: pointer;
+
+    &:hover {
+        border-color: #66afe9;
+        box-shadow: 0 0 3px rgba(102, 175, 233, 0.5);
+    }
+}
+
+// Question Editor Extras toolbar
+.shiningace-question-editor-extras {
+    padding: 8px;
+    border-bottom: 1px solid #e0e0e0;
+    background: #f5f5f5;
+    border-radius: 4px 4px 0 0;
+
+    .btn-group {
+        .btn {
+            margin-right: 2px;
+        }
+    }
+}
+
+// Question type badges
+.shiningace-question-type-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.85em;
+    font-weight: 500;
+
+    &.multichoice {
+        background: #cce5ff;
+        color: #004085;
+    }
+
+    &.truefalse {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    &.shortanswer {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    &.numerical {
+        background: #e2d5f1;
+        color: #6f42c1;
+    }
+
+    &.essay {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    &.matching {
+        background: #d1ecf1;
+        color: #0c5460;
+    }
+}
+
+// Question difficulty indicators
+.shiningace-difficulty {
+    .difficulty-easy {
+        color: #28a745;
+    }
+    .difficulty-medium {
+        color: #ffc107;
+    }
+    .difficulty-hard {
+        color: #dc3545;
+    }
+    .difficulty-very-hard {
+        color: #dc3545;
+        font-weight: bold;
+    }
+}
+
+// Import wizard styles
+.shiningace-import-result {
+    .import-stat {
+        text-align: center;
+        padding: 15px;
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .stat-label {
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        &.success {
+            .stat-value { color: #28a745; }
+        }
+
+        &.warning {
+            .stat-value { color: #ffc107; }
+        }
+
+        &.danger {
+            .stat-value { color: #dc3545; }
+        }
+    }
+}
+
+// Math display in question text
+.shiningace-math-display {
+    text-align: center;
+    padding: 15px;
+    margin: 10px 0;
+    font-size: 1.1em;
+}
+
+// Question kanban card improvements
+.o_kanban_card_content {
+    .shiningace-question-preview {
+        max-height: 100px;
+        overflow: hidden;
+        margin: 8px 0;
+        font-size: 0.9em;
+        color: #555;
+    }
+}
+
+// Common equations list
+.o_common_equations {
+    max-height: 300px;
+    overflow-y: auto;
+
+    .list-group-item {
+        cursor: pointer;
+        font-family: 'Courier New', monospace;
+        font-size: 0.9em;
+
+        &:hover {
+            background: #e8f0fe;
+        }
+    }
+}

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_shiningace_question_answer_tree" model="ir.ui.view">
+        <field name="name">shiningace.question.answer.tree</field>
+        <field name="model">shiningace.question.answer</field>
+        <field name="arch" type="xml">
+            <list string="Answers">
+                <field name="sequence" widget="handle"/>
+                <field name="answer_preview" string="Answer"/>
+                <field name="is_correct"/>
+                <field name="fraction"/>
+                <field name="has_images"/>
+                <field name="has_latex"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_shiningace_question_answer_form" model="ir.ui.view">
+        <field name="name">shiningace.question.answer.form</field>
+        <field name="model">shiningace.question.answer</field>
+        <field name="arch" type="xml">
+            <form string="Answer">
+                <group>
+                    <group>
+                        <field name="sequence"/>
+                        <field name="answer_text" placeholder="Enter answer text... Use $$...$$ for LaTeX"/>
+                        <field name="answer_latex" placeholder="Alternate LaTeX representation"/>
+                    </group>
+                    <group>
+                        <field name="is_correct"/>
+                        <field name="fraction"/>
+                        <field name="numerical_answer" invisible="1"/>
+                        <field name="numerical_tolerance" invisible="1"/>
+                    </group>
+                </group>
+                <group string="Feedback for this Answer">
+                    <field name="feedback" placeholder="Feedback..."/>
+                    <field name="feedback_latex" placeholder="LaTeX feedback..."/>
+                </group>
+            </form>
+        </field>
+    </record>
+</odoo>

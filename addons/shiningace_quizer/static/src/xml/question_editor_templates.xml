@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+
+    <t t-name="shiningace.LatexPreview">
+        <div class="shiningace-latex-preview-widget">
+            <t t-if="state.error">
+                <div class="alert alert-danger">
+                    <i class="fa fa-exclamation-triangle"/>
+                    <t t-esc="state.error"/>
+                </div>
+            </t>
+            <t t-if="state.latexSource and !state.rendered">
+                <div class="alert alert-info">
+                    <i class="fa fa-spinner fa-spin"/> Rendering LaTeX...
+                </div>
+            </t>
+            <div t-ref="latexPreview" class="shiningace-latex-preview-content"/>
+            <t t-if="!state.latexSource">
+                <div class="alert alert-muted">
+                    Enter LaTeX to see a preview.
+                </div>
+            </t>
+        </div>
+    </t>
+
+    <t t-name="shiningace.QuestionEditorExtras">
+        <div class="shiningace-question-editor-extras">
+            <div class="btn-group" role="group">
+                <button type="button" class="btn btn-default btn-sm o_btn_insert_latex"
+                        title="Insert LaTeX equation">
+                    <i class="fa fa-superscript"/> Σ
+                </button>
+                <button type="button" class="btn btn-default btn-sm o_btn_insert_image"
+                        title="Insert image">
+                    <i class="fa fa-image"/>
+                </button>
+                <button type="button" class="btn btn-default btn-sm o_btn_insert_graph"
+                        title="Insert graph">
+                    <i class="fa fa-line-chart"/>
+                </button>
+            </div>
+        </div>
+    </t>
+
+    <t t-name="shiningace.LatexInsertDialog">
+        <div class="modal fade" tabindex="-1" role="dialog">
+            <div class="modal-dialog" role="document">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Insert LaTeX Equation</h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span>&#215;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label>Equation Type</label>
+                            <select class="form-control o_latex_type">
+                                <option value="inline">Inline: \( ... \)</option>
+                                <option value="display">Display: $$ ... $$</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>LaTeX Code</label>
+                            <textarea class="form-control o_latex_code" rows="4"
+                                      placeholder="e.g., E = mc^2 or \frac{-b \pm \sqrt{b^2 - 4ac}}{2a}"/>
+                        </div>
+                        <div class="form-group">
+                            <label>Preview</label>
+                            <div class="o_latex_preview_wrapper p-2 bg-light border rounded">
+                                <Widget name="shiningace_latex_preview"/>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>Common Equations</label>
+                            <div class="list-group o_common_equations">
+                                <button type="button" class="list-group-item list-group-item-action"
+                                        data-latex="E = mc^2">E = mc²</button>
+                                <button type="button" class="list-group-item list-group-item-action"
+                                        data-latex="\frac{-b \pm \sqrt{b^2 - 4ac}}{2a}">Quadratic Formula</button>
+                                <button type="button" class="list-group-item list-group-item-action"
+                                        data-latex="\pi r^2">Area of Circle</button>
+                                <button type="button" class="list-group-item list-group-item-action"
+                                        data-latex="F = ma">Newton's Second Law</button>
+                                <button type="button" class="list-group-item list-group-item-action"
+                                        data-latex="E = h\nu">Planck's Relation</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary o_insert_latex_btn">Insert</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </t>
+
+</templates>

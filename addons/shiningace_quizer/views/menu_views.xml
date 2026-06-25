@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Main Menu -->
+    <menuitem id="menu_shiningace_root"
+              name="ShiningAce"
+              sequence="10"
+              web_icon="shiningace_quizer,static/description/icon.png"
+              groups="group_shiningace_quizer_user"/>
+
+    <menuitem id="menu_shiningace_quizer"
+              name="Quizer"
+              parent="menu_shiningace_root"
+              sequence="10"/>
+
+    <!-- Question Bank -->
+    <menuitem id="menu_shiningace_question_bank"
+              name="Question Bank"
+              parent="menu_shiningace_quizer"
+              sequence="10"/>
+
+    <menuitem id="menu_shiningace_questions"
+              name="Questions"
+              parent="menu_shiningace_question_bank"
+              action="action_shiningace_question"
+              sequence="10"/>
+
+    <menuitem id="menu_shiningace_subjects"
+              name="Subjects"
+              parent="menu_shiningace_question_bank"
+              action="action_shiningace_subject"
+              sequence="20"/>
+
+    <menuitem id="menu_shiningace_question_types"
+              name="Question Types"
+              parent="menu_shiningace_question_bank"
+              action="action_shiningace_question_type"
+              sequence="30"
+              groups="group_shiningace_quizer_manager"/>
+
+    <menuitem id="menu_shiningace_tags"
+              name="Tags"
+              parent="menu_shiningace_question_bank"
+              action="action_shiningace_question_tag"
+              sequence="40"/>
+
+    <menuitem id="menu_shiningace_import"
+              name="Import from Moodle"
+              parent="menu_shiningace_question_bank"
+              action="action_shiningace_import_moodle"
+              sequence="50"/>
+
+    <!-- Exams -->
+    <menuitem id="menu_shiningace_exams"
+              name="Exams"
+              parent="menu_shiningace_quizer"
+              action="action_shiningace_exam"
+              sequence="20"/>
+
+    <!-- Homework -->
+    <menuitem id="menu_shiningace_homework"
+              name="Homework"
+              parent="menu_shiningace_quizer"
+              action="action_shiningace_homework"
+              sequence="30"/>
+
+    <!-- Reports -->
+    <menuitem id="menu_shiningace_reports"
+              name="Reports"
+              parent="menu_shiningace_quizer"
+              sequence="40"
+              groups="group_shiningace_quizer_manager"/>
+
+    <menuitem id="menu_shiningace_import_logs"
+              name="Import Logs"
+              parent="menu_shiningace_reports"
+              action="action_shiningace_moodle_import_log"
+              sequence="10"/>
+</odoo>

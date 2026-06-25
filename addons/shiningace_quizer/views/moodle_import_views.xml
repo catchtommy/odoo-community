@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Import Log Tree View -->
+    <record id="view_shiningace_moodle_import_log_tree" model="ir.ui.view">
+        <field name="name">shiningace.moodle.import.log.tree</field>
+        <field name="model">shiningace.moodle.import.log</field>
+        <field name="arch" type="xml">
+            <list string="Import Logs">
+                <field name="name"/>
+                <field name="import_date"/>
+                <field name="user_id"/>
+                <field name="file_name"/>
+                <field name="total_questions"/>
+                <field name="imported_count"/>
+                <field name="skipped_count"/>
+                <field name="error_count"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Import Log Form View -->
+    <record id="view_shiningace_moodle_import_log_form" model="ir.ui.view">
+        <field name="name">shiningace.moodle.import.log.form</field>
+        <field name="model">shiningace.moodle.import.log</field>
+        <field name="arch" type="xml">
+            <form string="Import Log">
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="import_date"/>
+                            <field name="user_id"/>
+                            <field name="file_name"/>
+                            <field name="state"/>
+                        </group>
+                        <group>
+                            <field name="total_questions" string="Found"/>
+                            <field name="imported_count" string="Imported"/>
+                            <field name="skipped_count" string="Skipped"/>
+                            <field name="error_count" string="Errors"/>
+                        </group>
+                    </group>
+
+                    <notebook>
+                        <page name="details" string="Import Details">
+                            <field name="import_details">
+                                <list string="Details">
+                                    <field name="moodle_question_id"/>
+                                    <field name="moodle_question_name"/>
+                                    <field name="moodle_question_type"/>
+                                    <field name="status"/>
+                                    <field name="created_question_id"/>
+                                    <field name="message"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Import Log Search -->
+    <record id="view_shiningace_moodle_import_log_search" model="ir.ui.view">
+        <field name="name">shiningace.moodle.import.log.search</field>
+        <field name="model">shiningace.moodle.import.log</field>
+        <field name="arch" type="xml">
+            <search string="Search Import Logs">
+                <field name="name"/>
+                <field name="file_name"/>
+                <field name="user_id"/>
+                <filter name="filter_completed" string="Completed" domain="[('state', '=', 'completed')]"/>
+                <filter name="filter_partial" string="Partial" domain="[('state', '=', 'partial')]"/>
+                <filter name="filter_failed" string="Failed" domain="[('state', '=', 'failed')]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Actions -->
+</odoo>

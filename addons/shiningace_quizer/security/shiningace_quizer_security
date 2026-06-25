@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="0">
+        <!-- Module Category -->
+        <record id="module_category_shiningace_education" model="ir.module.category">
+            <field name="name">ShiningAce Education</field>
+            <field name="description">ShiningAce Education Modules</field>
+            <field name="sequence">90</field>
+        </record>
+
+        <!-- Privilege (replaces direct category_id on groups) -->
+        <record model="res.groups.privilege" id="privilege_shiningace_education">
+            <field name="name">ShiningAce Education</field>
+            <field name="sequence">90</field>
+            <field name="category_id" ref="module_category_shiningace_education"/>
+        </record>
+
+        <!-- Groups -->
+        <record id="group_shiningace_quizer_user" model="res.groups">
+            <field name="name">User</field>
+            <field name="sequence">10</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="privilege_id" ref="privilege_shiningace_education"/>
+            <field name="description">Can view questions, exams, and homework. Can create their own questions.</field>
+        </record>
+
+        <record id="group_shiningace_quizer_manager" model="res.groups">
+            <field name="name">Manager</field>
+            <field name="sequence">20</field>
+            <field name="implied_ids" eval="[(4, ref('group_shiningace_quizer_user'))]"/>
+            <field name="privilege_id" ref="privilege_shiningace_education"/>
+            <field name="description">Can manage all questions, exams, homework, subjects, and tags.</field>
+        </record>
+
+        <record id="group_shiningace_quizer_approver" model="res.groups">
+            <field name="name">Approver</field>
+            <field name="sequence">30</field>
+            <field name="implied_ids" eval="[(4, ref('group_shiningace_quizer_manager'))]"/>
+            <field name="privilege_id" ref="privilege_shiningace_education"/>
+            <field name="description">Can approve questions for use in exams/homework.</field>
+        </record>
+    </data>
+
+    <data noupdate="1">
+        <!-- Rules -->
+        <!-- Question: User can see all approved questions, but only own drafts -->
+        <record id="rule_shiningace_question_user" model="ir.rule">
+            <field name="name">Question: User Access</field>
+            <field name="model_id" ref="model_shiningace_question"/>
+            <field name="groups" eval="[(4, ref('group_shiningace_quizer_user'))]"/>
+            <field name="domain_force">[
+                '|',
+                ('state', '=', 'approved'),
+                ('create_uid', '=', user.id)
+            ]</field>
+        </record>
+
+        <!-- Manager can see all -->
+        <record id="rule_shiningace_question_manager" model="ir.rule">
+            <field name="name">Question: Manager Full Access</field>
+            <field name="model_id" ref="model_shiningace_question"/>
+            <field name="groups" eval="[(4, ref('group_shiningace_quizer_manager'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Exam: User can see ready/completed exams, but only own drafts -->
+        <record id="rule_shiningace_exam_user" model="ir.rule">
+            <field name="name">Exam: User Access</field>
+            <field name="model_id" ref="model_shiningace_exam"/>
+            <field name="groups" eval="[(4, ref('group_shiningace_quizer_user'))]"/>
+            <field name="domain_force">[
+                '|',
+                ('state', 'in', ('ready', 'completed', 'graded')),
+                ('create_uid', '=', user.id)
+            ]</field>
+        </record>
+
+        <!-- Manager full access to exams -->
+        <record id="rule_shiningace_exam_manager" model="ir.rule">
+            <field name="name">Exam: Manager Full Access</field>
+            <field name="model_id" ref="model_shiningace_exam"/>
+            <field name="groups" eval="[(4, ref('group_shiningace_quizer_manager'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <!-- Homework: User can see own and assigned -->
+        <record id="rule_shiningace_homework_user" model="ir.rule">
+            <field name="name">Homework: User Access</field>
+            <field name="model_id" ref="model_shiningace_homework"/>
+            <field name="groups" eval="[(4, ref('group_shiningace_quizer_user'))]"/>
+            <field name="domain_force">[
+                '|',
+                ('create_uid', '=', user.id),
+                ('state', 'in', ('assigned', 'submitted', 'graded'))
+            ]</field>
+        </record>
+
+        <!-- Manager full access to homework -->
+        <record id="rule_shiningace_homework_manager" model="ir.rule">
+            <field name="name">Homework: Manager Full Access</field>
+            <field name="model_id" ref="model_shiningace_homework"/>
+            <field name="groups" eval="[(4, ref('group_shiningace_quizer_manager'))]"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+        </record>
+    </data>
+</odoo>
+

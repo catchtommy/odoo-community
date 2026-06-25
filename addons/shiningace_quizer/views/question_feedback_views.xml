@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_shiningace_question_feedback_tree" model="ir.ui.view">
+        <field name="name">shiningace.question.feedback.tree</field>
+        <field name="model">shiningace.question.feedback</field>
+        <field name="arch" type="xml">
+            <list string="Feedback">
+                <field name="feedback_type"/>
+                <field name="feedback_text" string="Feedback"/>
+                <field name="has_images"/>
+                <field name="has_latex"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_shiningace_question_feedback_form" model="ir.ui.view">
+        <field name="name">shiningace.question.feedback.form</field>
+        <field name="model">shiningace.question.feedback</field>
+        <field name="arch" type="xml">
+            <form string="Feedback">
+                <group>
+                    <field name="feedback_type"/>
+                    <field name="answer_id"/>
+                    <field name="feedback_text"/>
+                    <field name="feedback_latex"/>
+                </group>
+            </form>
+        </field>
+    </record>
+</odoo>

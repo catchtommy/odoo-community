@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_shiningace_question_type_tree" model="ir.ui.view">
+        <field name="name">shiningace.question.type.tree</field>
+        <field name="model">shiningace.question.type</field>
+        <field name="arch" type="xml">
+            <list string="Question Types">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="has_choices"/>
+                <field name="has_text_answer"/>
+                <field name="has_numerical_answer"/>
+                <field name="has_matching"/>
+                <field name="has_drag_drop"/>
+                <field name="has_cloze"/>
+                <field name="has_essay"/>
+                <field name="has_calculated"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_shiningace_question_type_form" model="ir.ui.view">
+        <field name="name">shiningace.question.type.form</field>
+        <field name="model">shiningace.question.type</field>
+        <field name="arch" type="xml">
+            <form string="Question Type">
+                <sheet>
+                    <widget name="web_ribbon" text="Inactive" bg_color="bg-danger"/>
+                    <field name="active" invisible="1"/>
+
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="code"/>
+                            <field name="sequence"/>
+                            <field name="icon"/>
+                            <field name="description"/>
+                        </group>
+                        <group>
+                            <field name="has_choices"/>
+                            <field name="allow_multiple_answers"/>
+                            <field name="has_text_answer"/>
+                            <field name="has_numerical_answer"/>
+                            <field name="has_matching"/>
+                            <field name="has_drag_drop"/>
+                            <field name="has_cloze"/>
+                            <field name="has_essay"/>
+                            <field name="has_calculated"/>
+                        </group>
+                    </group>
+
+                    <group string="Rich Content Support">
+                        <group>
+                            <field name="supports_images"/>
+                            <field name="supports_latex"/>
+                            <field name="supports_feedback"/>
+                        </group>
+                    </group>
+
+                    <group string="LLM Integration" groups="group_shiningace_quizer_manager">
+                        <field name="llm_prompt_template" colspan="4"/>
+                        <field name="llm_eval_template" colspan="4"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

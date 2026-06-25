@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="demo_homework_english_1" model="shiningace.homework">
+        <field name="name">English Grammar Homework - Week 1</field>
+        <field name="subject_id" ref="subject_english"/>
+        <field name="description">Practice identifying correct grammar and verb tenses.</field>
+        <field name="instructions">Complete all questions. This homework is auto-graded.</field>
+        <field name="assigned_date">2025-01-06</field>
+        <field name="due_date">2025-01-13</field>
+        <field name="auto_grade">True</field>
+        <field name="state">assigned</field>
+    </record>
+
+    <record id="demo_homework_english_1_q1" model="shiningace.homework.question">
+        <field name="homework_id" ref="demo_homework_english_1"/>
+        <field name="question_id" ref="demo_question_eng_mc_1"/>
+        <field name="sequence">10</field>
+        <field name="mark">1.0</field>
+    </record>
+
+    <record id="demo_homework_english_1_q2" model="shiningace.homework.question">
+        <field name="homework_id" ref="demo_homework_english_1"/>
+        <field name="question_id" ref="demo_question_eng_sa_1"/>
+        <field name="sequence">20</field>
+        <field name="mark">1.0</field>
+    </record>
+
+    <record id="demo_homework_math_1" model="shiningace.homework">
+        <field name="name">Math Practice - Equations &amp; Geometry</field>
+        <field name="subject_id" ref="subject_mathematics"/>
+        <field name="description">Homework on quadratic equations and circle geometry.</field>
+        <field name="assigned_date">2025-01-07</field>
+        <field name="due_date">2025-01-14</field>
+        <field name="auto_grade">True</field>
+        <field name="state">draft</field>
+    </record>
+
+    <record id="demo_homework_math_1_q1" model="shiningace.homework.question">
+        <field name="homework_id" ref="demo_homework_math_1"/>
+        <field name="question_id" ref="demo_question_math_mc_1"/>
+        <field name="sequence">10</field>
+        <field name="mark">2.0</field>
+    </record>
+
+    <record id="demo_homework_math_1_q2" model="shiningace.homework.question">
+        <field name="homework_id" ref="demo_homework_math_1"/>
+        <field name="question_id" ref="demo_question_math_num_1"/>
+        <field name="sequence">20</field>
+        <field name="mark">2.0</field>
+    </record>
+</odoo>

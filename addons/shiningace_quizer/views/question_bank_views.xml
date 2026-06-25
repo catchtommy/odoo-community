@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Question Tree View -->
+    <record id="view_shiningace_question_tree" model="ir.ui.view">
+        <field name="name">shiningace.question.tree</field>
+        <field name="model">shiningace.question</field>
+        <field name="arch" type="xml">
+            <list string="Questions" decoration-success="state=='approved'" decoration-warning="state=='draft'" decoration-info="state=='review'" decoration-muted="state=='archived'">
+                <field name="name" string="Question"/>
+                <field name="question_type_id" optional="show"/>
+                <field name="subject_id" optional="show"/>
+                <field name="difficulty_level" optional="hide"/>
+                <field name="state" optional="show"/>
+                <field name="default_mark" optional="hide"/>
+                <field name="usage_count" optional="hide"/>
+                <field name="create_uid" optional="hide"/>
+                <field name="create_date" optional="hide"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Question Form View (Main) -->
+    <record id="view_shiningace_question_form" model="ir.ui.view">
+        <field name="name">shiningace.question.form</field>
+        <field name="model">shiningace.question</field>
+        <field name="arch" type="xml">
+            <form string="Question">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,review,approved" clickable="True"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_increment_usage"
+                                type="object"
+                                class="oe_stat_button"
+                                icon="fa-line-chart">
+                            <field name="usage_count"/>
+                            <span class="o_stat_text">Times Used</span>
+                        </button>
+                        <button name="%(action_shiningace_exam)d"
+                                type="action"
+                                class="oe_stat_button"
+                                icon="fa-file-text"
+                                context="{'default_subject_id': subject_id}">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Used in Exams</span>
+                            </div>
+                        </button>
+                    </div>
+
+                    <widget name="web_ribbon" text="Archived" bg_color="bg-danger"/>
+
+                    <field name="active" invisible="1"/>
+                    <field name="version" invisible="1"/>
+
+                    <group>
+                        <group>
+                            <field name="name" placeholder="e.g. Solve quadratic equation x² + 2x - 3 = 0"/>
+                            <field name="question_type_id" options="{'no_create': True}"/>
+                            <field name="subject_id" options="{'no_create': True}"/>
+                            <field name="difficulty_level"/>
+                            <field name="difficulty_score" widget="progressbar" options="{'max': 10}"/>
+                        </group>
+                        <group>
+                            <field name="topic" placeholder="e.g. Quadratic Equations"/>
+                            <field name="bloom_taxonomy"/>
+                            <field name="estimated_time"/>
+                            <field name="default_mark"/>
+                            <field name="reference"/>
+                        </group>
+                    </group>
+
+                    <!-- Question Text - Main area -->
+                    <group string="Question Content">
+                        <field name="question_text" placeholder="Enter your question here... Use $$...$$ for LaTeX equations. Example: Solve $$x^2 + 2x - 3 = 0$$"/>
+                        <field name="has_latex" invisible="1"/>
+                        <field name="has_images" invisible="1"/>
+                    </group>
+
+                    <!-- Tags -->
+                    <group string="Tags">
+                        <field name="tags" widget="many2many_tags"/>
+                    </group>
+
+                    <notebook>
+                        <!-- Answers Tab -->
+                        <page name="answers" string="Answers">
+                            <group>
+                                <field name="total_answer_count" string="Total Choices"/>
+                                <field name="correct_answer_count" string="Correct Choices"/>
+                            </group>
+                            <field name="answer_ids">
+                                <list string="Answer Choices" editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="answer_text" string="Answer/Choice"/>
+                                    <field name="is_correct" string="Correct?"/>
+                                    <field name="fraction" string="Grade Fraction"/>
+                                    <field name="feedback" string="Feedback"/>
+                                </list>
+                                <form string="Answer">
+                                    <group>
+                                        <field name="answer_text"/>
+                                        <field name="is_correct"/>
+                                        <field name="fraction"/>
+                                        <field name="numerical_answer"/>
+                                        <field name="numerical_tolerance"/>
+                                    </group>
+                                    <group string="Answer Feedback">
+                                        <field name="feedback"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+
+                        <!-- Numerical Answer Tab -->
+                        <page name="numerical" string="Numerical Answer">
+                            <group>
+                                <field name="numerical_answer"/>
+                                <field name="numerical_tolerance"/>
+                            </group>
+                        </page>
+
+                        <!-- Text Answer Tab -->
+                        <page name="text_answer" string="Text Answer">
+                            <group>
+                                <field name="text_answer"/>
+                                <field name="text_answer_format"/>
+                            </group>
+                        </page>
+
+                        <!-- Matching Tab -->
+                        <page name="matching" string="Matching Pairs">
+                            <field name="matching_pairs">
+                                <list string="Matching Pairs" editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="question_text" string="Question/Stimulus"/>
+                                    <field name="answer_text" string="Match"/>
+                                </list>
+                                <form string="Matching Pair">
+                                    <group>
+                                        <field name="question_text"/>
+                                        <field name="answer_text"/>
+                                        <field name="feedback"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+
+                        <!-- Drag & Drop Tab -->
+                        <page name="dragdrop" string="Drag &amp; Drop Items">
+                            <field name="drag_items">
+                                <list string="Drag Items" editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="item_type"/>
+                                    <field name="item_text"/>
+                                    <field name="drop_zone"/>
+                                    <field name="drop_zone_label"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Calculated Tab -->
+                        <page name="calculated" string="Calculated">
+                            <group string="Formula">
+                                <field name="calculated_formula" placeholder="e.g. {a} * {b}"/>
+                                <field name="calculated_answer_format"/>
+                            </group>
+                            <group string="Variables (JSON)">
+                                <field name="calculated_vars" placeholder='[{"name": "a", "min": 1, "max": 10}, {"name": "b", "min": 1, "max": 10}]'/>
+                            </group>
+                        </page>
+
+                        <!-- Cloze Tab -->
+                        <page name="cloze" string="Cloze/Gap-fill">
+                            <group>
+                                <field name="cloze_text" placeholder="Use Moodle-compatible cloze syntax: The capital of France is {1:MC:Paris~London~Berlin}"/>
+                            </group>
+                        </page>
+
+                        <!-- Feedback Tab -->
+                        <page name="feedback" string="Feedback">
+                            <group string="General Feedback">
+                                <field name="general_feedback" placeholder="Feedback shown after answering the question..."/>
+                            </group>
+                            <field name="feedback_ids">
+                                <list string="Specific Feedback" editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="feedback_type"/>
+                                    <field name="feedback_text" string="Feedback"/>
+                                    <field name="answer_id" string="For Answer"/>
+                                </list>
+                            </field>
+                        </page>
+
+                        <!-- Images Tab -->
+                        <page name="images" string="Images">
+                            <field name="image_ids">
+                                <list string="Images" editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="image_data" widget="image"/>
+                                    <field name="is_inline"/>
+                                </list>
+                                <form string="Image">
+                                    <group>
+                                        <field name="name"/>
+                                        <field name="image_data" widget="image"/>
+                                        <field name="image_alt_text"/>
+                                        <field name="mime_type"/>
+                                        <field name="is_inline"/>
+                                        <field name="url"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+
+                        <!-- Moodle Import Info Tab -->
+                        <page name="moodle" string="Moodle Info" groups="group_shiningace_quizer_manager">
+                            <group>
+                                <field name="moodle_id" string="Original Moodle ID"/>
+                                <field name="reference"/>
+                            </group>
+                            <field name="moodle_xml" readonly="1"/>
+                        </page>
+
+                        <!-- LLM Metadata Tab -->
+                        <page name="llm" string="LLM Data" groups="group_shiningace_quizer_manager">
+                            <group string="Question Metadata for LLM">
+                                <field name="question_text_plain" readonly="1"/>
+                            </group>
+                            <group string="LLM Metadata (JSON)">
+                                <field name="llm_metadata" placeholder='{"concepts": ["quadratic", "algebra"], "keywords": ["equation", "solve"], "prerequisites": ["linear equations"], "learning_objectives": ["solve quadratic equations"]}'/>
+                            </group>
+                        </page>
+                    </notebook>
+                </sheet>
+                <field name="message_follower_ids" widget="mail_followers"/>
+                <field name="activity_ids" widget="mail_activity"/>
+                <field name="message_ids" widget="mail_thread"/>
+            </form>
+        </field>
+    </record>
+
+    <!-- Question Search View -->
+    <record id="view_shiningace_question_search" model="ir.ui.view">
+        <field name="name">shiningace.question.search</field>
+        <field name="model">shiningace.question</field>
+        <field name="arch" type="xml">
+            <search string="Search Questions">
+                <field name="name" string="Question Name"/>
+                <field name="question_text_plain" string="Question Text"/>
+                <field name="topic"/>
+
+                <filter name="filter_approved" string="Approved" domain="[('state', '=', 'approved')]"/>
+                <filter name="filter_draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_review" string="Under Review" domain="[('state', '=', 'review')]"/>
+
+                <separator/>
+                <filter name="group_by_subject" string="Subject" context="{'group_by': 'subject_id'}"/>
+                <filter name="group_by_type" string="Type" context="{'group_by': 'question_type_id'}"/>
+                <filter name="group_by_difficulty" string="Difficulty" context="{'group_by': 'difficulty_level'}"/>
+                <filter name="group_by_state" string="Status" context="{'group_by': 'state'}"/>
+                <filter name="group_by_bloom" string="Bloom's Level" context="{'group_by': 'bloom_taxonomy'}"/>
+
+                <separator/>
+                <filter name="filter_has_latex" string="Has LaTeX" domain="[('has_latex', '=', True)]"/>
+                <filter name="filter_has_images" string="Has Images" domain="[('has_images', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- Question Kanban View -->
+    <record id="view_shiningace_question_kanban" model="ir.ui.view">
+        <field name="name">shiningace.question.kanban</field>
+        <field name="model">shiningace.question</field>
+        <field name="arch" type="xml">
+            <kanban class="o_kanban_mobile">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="question_type_id"/>
+                <field name="subject_id"/>
+                <field name="difficulty_level"/>
+                <field name="state"/>
+                <field name="default_mark"/>
+                <field name="has_latex"/>
+                <field name="has_images"/>
+                <templates>
+                    <t t-name="card">
+                        <field name="name"/>
+                        <footer>
+                            <field name="question_type_id"/>
+                            <field name="subject_id"/>
+                            <field name="difficulty_level"/>
+                            <field name="state"/>
+                            <field name="default_mark"/>
+                        </footer>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- Actions -->
+
+    <!-- Server Actions -->
+</odoo>

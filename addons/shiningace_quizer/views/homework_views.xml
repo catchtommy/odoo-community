@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_shiningace_homework_tree" model="ir.ui.view">
+        <field name="name">shiningace.homework.tree</field>
+        <field name="model">shiningace.homework</field>
+        <field name="arch" type="xml">
+            <list string="Homework" decoration-success="state=='graded'" decoration-warning="state=='assigned'" decoration-info="state=='submitted'" decoration-muted="state=='cancelled'">
+                <field name="name"/>
+                <field name="subject_id"/>
+                <field name="assigned_date"/>
+                <field name="due_date"/>
+                <field name="total_marks"/>
+                <field name="question_count"/>
+                <field name="state"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_shiningace_homework_form" model="ir.ui.view">
+        <field name="name">shiningace.homework.form</field>
+        <field name="model">shiningace.homework</field>
+        <field name="arch" type="xml">
+            <form string="Homework">
+                <header>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,assigned,submitted,graded" clickable="True"/>
+                    <button name="action_assign" string="Assign" type="object" invisible="state != 'draft'" class="btn-primary"/>
+                    <button name="action_submit" string="Mark Submitted" type="object" invisible="state != 'assigned'" class="btn-warning"/>
+                    <button name="action_grade" string="Grade" type="object" invisible="state != 'submitted'" class="btn-success"/>
+                    <button name="action_draft" string="Reset to Draft" type="object" invisible="state != 'cancelled'" class="btn-secondary"/>
+                    <button name="action_cancel" string="Cancel" type="object" invisible="state != 'draft' and state != 'assigned'" class="btn-danger"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="subject_id" options="{'no_create': True}"/>
+                            <field name="description" placeholder="Homework description..."/>
+                            <field name="instructions" placeholder="Instructions for students..."/>
+                        </group>
+                        <group>
+                            <field name="assigned_date"/>
+                            <field name="due_date"/>
+                            <field name="submission_deadline"/>
+                            <field name="total_marks"/>
+                            <field name="auto_grade"/>
+                            <field name="allow_multiple_attempts"/>
+                            <field name="max_attempts"/>
+                        </group>
+                    </group>
+
+                    <group string="Question Selection">
+                        <field name="selection_method"/>
+                        <field name="random_question_count"/>
+                        <field name="random_tag_ids" widget="many2many_tags"/>
+                        <button name="action_generate_random_questions" string="Generate Random Questions" type="object" class="btn-secondary"/>
+                    </group>
+
+                    <notebook>
+                        <page name="questions" string="Questions">
+                            <field name="question_ids">
+                                <list string="Questions" editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="question_id" options="{'no_create': True}"/>
+                                    <field name="mark"/>
+                                    <field name="is_required"/>
+                                    <field name="question_type_name"/>
+                                    <field name="difficulty"/>
+                                    <field name="is_answered"/>
+                                    <field name="obtained_mark"/>
+                                </list>
+                                <form string="Homework Question">
+                                    <group>
+                                        <field name="homework_id"/>
+                                        <field name="question_id"/>
+                                        <field name="mark"/>
+                                        <field name="is_required"/>
+                                    </group>
+                                    <group string="Grading">
+                                        <field name="is_answered"/>
+                                        <field name="is_correct"/>
+                                        <field name="obtained_mark"/>
+                                        <field name="student_answer"/>
+                                        <field name="feedback_given"/>
+                                        <field name="grader_notes"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <field name="message_follower_ids" widget="mail_followers"/>
+                <field name="activity_ids" widget="mail_activity"/>
+                <field name="message_ids" widget="mail_thread"/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_shiningace_homework_search" model="ir.ui.view">
+        <field name="name">shiningace.homework.search</field>
+        <field name="model">shiningace.homework</field>
+        <field name="arch" type="xml">
+            <search string="Search Homework">
+                <field name="name"/>
+                <field name="subject_id"/>
+                <filter name="filter_assigned" string="Assigned" domain="[('state', '=', 'assigned')]"/>
+                <filter name="filter_submitted" string="Submitted" domain="[('state', '=', 'submitted')]"/>
+                <filter name="filter_graded" string="Graded" domain="[('state', '=', 'graded')]"/>
+                <filter name="filter_overdue" string="Overdue" domain="[('due_date', '&lt;', context_today().to_string()), ('state', 'in', ('assigned',))]"/>
+                <separator/>
+                <filter name="group_by_subject" string="Subject" context="{'group_by': 'subject_id'}"/>
+                <filter name="group_by_state" string="Status" context="{'group_by': 'state'}"/>
+            </search>
+        </field>
+    </record>
+</odoo>
