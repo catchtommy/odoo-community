@@ -175,16 +175,63 @@
 
         <div style="margin-bottom:16px;">
             <h5 style="margin:0 0 12px;font-weight:700;"><i class="fa fa-calendar"/> My Schedule</h5>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+
+            <!-- Quick-pick week presets -->
+            <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;">
                 <a href="/my/tutor/schedule?week=this" t-attf-class="tm-btn tm-btn-sm #{current_week == 'this' and 'tm-btn-primary' or 'tm-btn-outline'}">This Week</a>
                 <a href="/my/tutor/schedule?week=next" t-attf-class="tm-btn tm-btn-sm #{current_week == 'next' and 'tm-btn-primary' or 'tm-btn-outline'}">Next Week</a>
                 <a href="/my/tutor/schedule?week=all" t-attf-class="tm-btn tm-btn-sm #{current_week == 'all' and 'tm-btn-primary' or 'tm-btn-outline'}">All Upcoming</a>
                 <a href="/my/tutor/schedule?week=past" t-attf-class="tm-btn tm-btn-sm #{current_week == 'past' and 'tm-btn-primary' or 'tm-btn-outline'}">Past (30 days)</a>
             </div>
+
+            <!-- Date range + filters -->
+            <form method="get" action="/my/tutor/schedule">
+                <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:14px 16px;background:var(--tm-bg-light,#f8f9fa);border:1px solid var(--tm-border,#e0e0e0);border-radius:8px;">
+                    <div style="flex:1;min-width:140px;">
+                        <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;"><i class="fa fa-calendar-o"/> From Date</label>
+                        <input type="date" name="from_date" class="form-control form-control-sm" style="border-radius:6px;" t-att-value="filter_from_date"/>
+                    </div>
+                    <div style="flex:1;min-width:140px;">
+                        <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;"><i class="fa fa-calendar-o"/> To Date</label>
+                        <input type="date" name="to_date" class="form-control form-control-sm" style="border-radius:6px;" t-att-value="filter_to_date"/>
+                    </div>
+                    <div style="flex:1;min-width:150px;">
+                        <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;"><i class="fa fa-user"/> Student Name</label>
+                        <input type="text" name="student_name" class="form-control form-control-sm" style="border-radius:6px;" placeholder="Search student..." t-att-value="filter_student"/>
+                    </div>
+                    <div style="flex:1;min-width:140px;">
+                        <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;"><i class="fa fa-info-circle"/> Lesson Status</label>
+                        <select name="status" class="form-select form-select-sm" style="border-radius:6px;">
+                            <option value="">All Statuses</option>
+                            <option value="scheduled" t-att-selected="filter_status == 'scheduled' and 'selected' or None">Scheduled</option>
+                            <option value="completed" t-att-selected="filter_status == 'completed' and 'selected' or None">Completed</option>
+                            <option value="cancelled" t-att-selected="filter_status == 'cancelled' and 'selected' or None">Cancelled</option>
+                            <option value="under_review" t-att-selected="filter_status == 'under_review' and 'selected' or None">Under Review</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;min-width:140px;">
+                        <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;"><i class="fa fa-check-square-o"/> Attendance</label>
+                        <select name="attendance" class="form-select form-select-sm" style="border-radius:6px;">
+                            <option value="">Any</option>
+                            <option value="marked" t-att-selected="filter_attendance == 'marked' and 'selected' or None">Marked</option>
+                            <option value="pending" t-att-selected="filter_attendance == 'pending' and 'selected' or None">Pending</option>
+                        </select>
+                    </div>
+                    <div style="display:flex;gap:6px;flex-shrink:0;padding-bottom:1px;">
+                        <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-search"/> Search</button>
+                        <a href="/my/tutor/schedule" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-times"/> Clear</a>
+                    </div>
+                </div>
+            </form>
         </div>
 
         <div class="tm-card">
-            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> Sessions</div></div>
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-list"/> Sessions</div>
+                <t t-if="occ_data">
+                    <span class="tm-badge tm-badge-blue" style="font-size:11px;"><t t-esc="len(occ_data)"/> session(s)</span>
+                </t>
+            </div>
             <t t-if="vc_error">
                 <div class="alert alert-warning" style="margin:12px 16px;"><t t-esc="vc_error"/></div>
             </t>
@@ -199,7 +246,6 @@
                                 <td><t t-esc="od['time_str']"/></td>
                                 <td><t t-esc="od['occ'].course_id.name or '—'"/></td>
                                 <td>
-                                    <!-- Provider badge — read-only, inherited from course -->
                                     <t t-set="_prov" t-value="od['occ'].course_id.virtual_provider_default or 'bbb'"/>
                                     <span t-attf-class="tm-badge #{_prov == 'bbb' and 'tm-badge-blue' or _prov == 'zoom' and 'tm-badge-purple' or 'tm-badge-green'}" style="margin-right:6px;" title="Provider is set at course level">
                                         <i class="fa fa-video-camera"/> <t t-if="_prov == 'bbb'">BBB</t><t t-elif="_prov == 'zoom'">Zoom</t><t t-else="">Meet</t>
@@ -247,6 +293,48 @@
                 </div>
             </div>
         </div>
+
+        <!-- Filter Bar -->
+        <form method="get" action="/my/tutor/all-assignments" style="margin-bottom:16px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:14px 16px;background:var(--tm-bg-light,#f8f9fa);border:1px solid var(--tm-border,#e0e0e0);border-radius:8px;">
+                <div style="flex:1;min-width:160px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;">Course</label>
+                    <select name="course_id" class="form-select form-select-sm" style="border-radius:6px;">
+                        <option value="">All Courses</option>
+                        <t t-foreach="tutor_courses" t-as="c">
+                            <option t-att-value="c.id" t-att-selected="str(c.id) == filter_course_id and 'selected' or None"><t t-esc="c.name"/></option>
+                        </t>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:140px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;">Status</label>
+                    <select name="status" class="form-select form-select-sm" style="border-radius:6px;">
+                        <option value="">All Statuses</option>
+                        <option value="draft" t-att-selected="filter_status == 'draft' and 'selected' or None">Draft</option>
+                        <option value="assigned" t-att-selected="filter_status == 'assigned' and 'selected' or None">Assigned</option>
+                        <option value="pending_review" t-att-selected="filter_status == 'pending_review' and 'selected' or None">Pending Review</option>
+                        <option value="completed" t-att-selected="filter_status == 'completed' and 'selected' or None">Completed</option>
+                        <option value="cancelled" t-att-selected="filter_status == 'cancelled' and 'selected' or None">Cancelled</option>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:140px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;">Submissions</label>
+                    <select name="submission" class="form-select form-select-sm" style="border-radius:6px;">
+                        <option value="">Any</option>
+                        <option value="has" t-att-selected="filter_submission == 'has' and 'selected' or None">Has Submissions</option>
+                        <option value="none" t-att-selected="filter_submission == 'none' and 'selected' or None">No Submissions</option>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:160px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;">Student Name</label>
+                    <input type="text" name="student_name" class="form-control form-control-sm" style="border-radius:6px;" placeholder="Search by student..." t-att-value="filter_student"/>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-search"/> Filter</button>
+                    <a href="/my/tutor/all-assignments" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-times"/> Clear</a>
+                </div>
+            </div>
+        </form>
 
         <div class="tm-card">
             <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> Assignments</div></div>
@@ -298,11 +386,34 @@
             </div>
         </div>
 
+        <!-- Filter Bar -->
+        <form method="get" action="/my/tutor/progress" style="margin-bottom:16px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:14px 16px;background:var(--tm-bg-light,#f8f9fa);border:1px solid var(--tm-border,#e0e0e0);border-radius:8px;">
+                <div style="flex:1;min-width:180px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;">Course</label>
+                    <select name="course_id" class="form-select form-select-sm" style="border-radius:6px;">
+                        <option value="">All Courses</option>
+                        <t t-foreach="tutor_courses" t-as="c">
+                            <option t-att-value="c.id" t-att-selected="str(c.id) == filter_course_id and 'selected' or None"><t t-esc="c.name"/></option>
+                        </t>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:180px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;">Student Name</label>
+                    <input type="text" name="student_name" class="form-control form-control-sm" style="border-radius:6px;" placeholder="Search by student..." t-att-value="filter_student"/>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-search"/> Filter</button>
+                    <a href="/my/tutor/progress" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-times"/> Clear</a>
+                </div>
+            </div>
+        </form>
+
         <div class="tm-card">
             <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> All Reports</div></div>
             <t t-if="reports">
                 <table class="tm-table">
-                    <thead><tr><th>Date</th><th>Student</th><th>Course</th><th>Title</th><th>Rating</th><th>Score</th></tr></thead>
+                    <thead><tr><th>Date</th><th>Student</th><th>Course</th><th>Title</th><th>Rating</th><th>Score</th><th></th></tr></thead>
                     <tbody>
                         <t t-foreach="reports" t-as="rpt">
                             <tr>
@@ -319,12 +430,140 @@
                                     <t t-else="">—</t>
                                 </td>
                                 <td><t t-esc="rpt.score and ('%.0f / %.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
+                                <td style="white-space:nowrap;">
+                                    <a t-attf-href="/my/tutor/progress/#{rpt.id}/edit" class="tm-btn tm-btn-outline tm-btn-sm" style="margin-right:4px;"><i class="fa fa-pencil"/> Edit</a>
+                                    <form t-attf-action="/my/tutor/progress/#{rpt.id}/delete" method="post" style="display:inline-block;" onsubmit="return confirm('Delete this progress report? This cannot be undone.');">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <button type="submit" class="tm-btn tm-btn-sm" style="background:#fdeaea;color:#c62828;border:1px solid #f5c6c6;"><i class="fa fa-trash"/> Delete</button>
+                                    </form>
+                                </td>
                             </tr>
                         </t>
                     </tbody>
                 </table>
             </t>
             <t t-else=""><div class="tm-empty"><i class="fa fa-line-chart"/><p>No progress reports yet.</p></div></t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: EDIT PROGRESS REPORT                     -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_progress_edit">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_progress</t>
+
+        <div style="margin-bottom:16px;">
+            <a href="/my/tutor/progress" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Progress Reports</a>
+        </div>
+
+        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-pencil"/> Edit Progress Report — <t t-esc="course.name"/></h5>
+
+        <div class="tm-card">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Report Details</div></div>
+            <div class="tm-card-body" style="padding:24px;">
+                <form t-attf-action="/my/tutor/progress/#{report.id}/update" method="POST">
+                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+
+                    <!-- Title -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Title <span style="color:#e53935;">*</span></label>
+                        <input type="text" name="name" class="form-control" required="required"
+                               style="font-size:15px;padding:10px 14px;border-radius:8px;"
+                               t-att-value="report.name"/>
+                    </div>
+
+                    <!-- Student + Date -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Student <span style="color:#e53935;">*</span></label>
+                            <select name="student_id" class="form-select" required="required"
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:auto;">
+                                <t t-foreach="enrolled_students" t-as="enr">
+                                    <option t-att-value="enr.student_id.id" t-att-selected="enr.student_id.id == report.student_id.id and 'selected' or None">
+                                        <t t-esc="enr.student_id.name"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Date</label>
+                            <input type="date" name="report_date" class="form-control"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"
+                                   t-att-value="report.report_date and str(report.report_date) or ''"/>
+                        </div>
+                    </div>
+
+                    <!-- Overall Rating -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Overall Rating</label>
+                        <select name="overall_rating" class="form-select"
+                                style="font-size:15px;padding:10px 14px;border-radius:8px;height:auto;">
+                            <option value="">Select rating...</option>
+                            <option value="excellent" t-att-selected="report.overall_rating == 'excellent' and 'selected' or None">⭐ Excellent</option>
+                            <option value="good" t-att-selected="report.overall_rating == 'good' and 'selected' or None">👍 Good</option>
+                            <option value="satisfactory" t-att-selected="report.overall_rating == 'satisfactory' and 'selected' or None">✔ Satisfactory</option>
+                            <option value="needs_improvement" t-att-selected="report.overall_rating == 'needs_improvement' and 'selected' or None">⚠ Needs Improvement</option>
+                        </select>
+                    </div>
+
+                    <!-- Score + Max Score -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Score</label>
+                            <input type="number" name="score" class="form-control" step="0.1" min="0"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"
+                                   t-att-value="report.score or ''"/>
+                        </div>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Max Score</label>
+                            <input type="number" name="max_score" class="form-control" step="0.1" min="0"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"
+                                   t-att-value="report.max_score or 100"/>
+                        </div>
+                    </div>
+
+                    <hr style="border-color:var(--tm-border);margin:0 0 24px;"/>
+
+                    <!-- Strengths -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-thumbs-up" style="color:var(--tm-success);margin-right:6px;"/>Strengths</label>
+                        <textarea name="strengths" class="form-control"
+                                  placeholder="What does the student excel at? Note specific skills, topics, or behaviours..."
+                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.strengths or ''"/></textarea>
+                    </div>
+
+                    <!-- Areas for Improvement -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-arrow-up" style="color:var(--tm-warning);margin-right:6px;"/>Areas for Improvement</label>
+                        <textarea name="areas_for_improvement" class="form-control"
+                                  placeholder="Where does the student need to focus? Be specific and constructive..."
+                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.areas_for_improvement or ''"/></textarea>
+                    </div>
+
+                    <!-- Homework / Next Steps -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-pencil-square-o" style="color:var(--tm-primary);margin-right:6px;"/>Homework / Next Steps</label>
+                        <textarea name="homework_notes" class="form-control"
+                                  placeholder="Homework assigned and what the student should prepare or focus on next..."
+                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.homework_notes or ''"/></textarea>
+                    </div>
+
+                    <!-- Comments -->
+                    <div class="tm-form-group" style="margin-bottom:24px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-comment" style="color:var(--tm-primary);margin-right:6px;"/>Additional Comments</label>
+                        <textarea name="comments" class="form-control"
+                                  placeholder="Any general comments, context, or notes for the parent/student..."
+                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.comments or ''"/></textarea>
+                    </div>
+
+                    <div style="display:flex;justify-content:flex-end;gap:12px;">
+                        <a href="/my/tutor/progress" class="tm-btn tm-btn-outline" style="padding:10px 22px;font-size:14px;"><i class="fa fa-times"/> Cancel</a>
+                        <button type="submit" class="tm-btn tm-btn-green" style="padding:10px 22px;font-size:14px;"><i class="fa fa-save"/> Save Changes</button>
+                    </div>
+                </form>
+            </div>
         </div>
     </t>
 </template>
@@ -344,17 +583,23 @@
 
         <div class="tm-card">
             <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Report Details</div></div>
-            <div class="tm-card-body">
+            <div class="tm-card-body" style="padding:24px;">
                 <form t-attf-action="/my/tutor/courses/#{course.id}/progress/create" method="POST">
                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;">
+
+                    <!-- Row 1: Title (full width) -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Title <span style="color:#e53935;">*</span></label>
+                        <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Monthly Progress Report"
+                               style="font-size:15px;padding:10px 14px;border-radius:8px;"/>
+                    </div>
+
+                    <!-- Row 2: Student + Date -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
                         <div class="tm-form-group" style="margin-bottom:0;">
-                            <label class="tm-form-label">Title *</label>
-                            <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Monthly Progress"/>
-                        </div>
-                        <div class="tm-form-group" style="margin-bottom:0;">
-                            <label class="tm-form-label">Student *</label>
-                            <select name="student_id" class="form-select" required="required">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Student <span style="color:#e53935;">*</span></label>
+                            <select name="student_id" class="form-select" required="required"
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:auto;">
                                 <option value="">Select student...</option>
                                 <t t-foreach="enrolled_students" t-as="enr">
                                     <option t-att-value="enr.student_id.id"><t t-esc="enr.student_id.name"/></option>
@@ -362,43 +607,72 @@
                             </select>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
-                            <label class="tm-form-label">Report Date</label>
-                            <input type="date" name="report_date" class="form-control"/>
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Date</label>
+                            <input type="date" name="report_date" class="form-control"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"/>
+                        </div>
+                    </div>
+
+                    <!-- Row 3: Overall Rating (full width with visual pills) -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Overall Rating</label>
+                        <select name="overall_rating" class="form-select"
+                                style="font-size:15px;padding:10px 14px;border-radius:8px;height:auto;">
+                            <option value="">Select rating...</option>
+                            <option value="excellent">⭐ Excellent</option>
+                            <option value="good">👍 Good</option>
+                            <option value="satisfactory">✔ Satisfactory</option>
+                            <option value="needs_improvement">⚠ Needs Improvement</option>
+                        </select>
+                    </div>
+
+                    <!-- Row 4: Score + Max Score -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Score</label>
+                            <input type="number" name="score" class="form-control" step="0.1" min="0" placeholder="e.g. 85"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"/>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
-                            <label class="tm-form-label">Overall Rating</label>
-                            <select name="overall_rating" class="form-select">
-                                <option value="">Select...</option>
-                                <option value="excellent">Excellent</option>
-                                <option value="good">Good</option>
-                                <option value="satisfactory">Satisfactory</option>
-                                <option value="needs_improvement">Needs Improvement</option>
-                            </select>
-                        </div>
-                        <div class="tm-form-group" style="margin-bottom:0;">
-                            <label class="tm-form-label">Score</label>
-                            <input type="number" name="score" class="form-control" step="0.1" min="0" placeholder="0"/>
-                        </div>
-                        <div class="tm-form-group" style="margin-bottom:0;">
-                            <label class="tm-form-label">Max Score</label>
-                            <input type="number" name="max_score" class="form-control" step="0.1" min="0" value="100"/>
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Max Score</label>
+                            <input type="number" name="max_score" class="form-control" step="0.1" min="0" value="100"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"/>
                         </div>
                     </div>
-                    <div class="tm-form-group" style="margin-top:18px;">
-                        <label class="tm-form-label">Strengths</label>
-                        <textarea name="strengths" class="form-control" rows="3" placeholder="What the student excels at..."/>
+
+                    <hr style="border-color:var(--tm-border);margin:0 0 24px;"/>
+
+                    <!-- Strengths -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-thumbs-up" style="color:var(--tm-success);margin-right:6px;"/>Strengths</label>
+                        <textarea name="strengths" class="form-control" placeholder="What does the student excel at? Note specific skills, topics, or behaviours..."
+                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
                     </div>
-                    <div class="tm-form-group">
-                        <label class="tm-form-label">Areas to Improve</label>
-                        <textarea name="areas_to_improve" class="form-control" rows="3" placeholder="Where improvement is needed..."/>
+
+                    <!-- Areas for Improvement -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-arrow-up" style="color:var(--tm-warning);margin-right:6px;"/>Areas for Improvement</label>
+                        <textarea name="areas_for_improvement" class="form-control" placeholder="Where does the student need to focus? Be specific and constructive..."
+                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
                     </div>
-                    <div class="tm-form-group">
-                        <label class="tm-form-label">Comments</label>
-                        <textarea name="comments" class="form-control" rows="3" placeholder="General comments..."/>
+
+                    <!-- Homework / Next Steps -->
+                    <div class="tm-form-group" style="margin-bottom:20px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-pencil-square-o" style="color:var(--tm-primary);margin-right:6px;"/>Homework / Next Steps</label>
+                        <textarea name="homework_notes" class="form-control" placeholder="Homework assigned and what the student should prepare or focus on next..."
+                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
                     </div>
-                    <div style="margin-top:24px;display:flex;justify-content:flex-end;gap:10px;">
-                        <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline">Cancel</a>
-                        <button type="submit" class="tm-btn tm-btn-green"><i class="fa fa-save"/> Save Report</button>
+
+                    <!-- Comments -->
+                    <div class="tm-form-group" style="margin-bottom:24px;">
+                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-comment" style="color:var(--tm-primary);margin-right:6px;"/>Additional Comments</label>
+                        <textarea name="comments" class="form-control" placeholder="Any general comments, context, or notes for the parent/student..."
+                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
+                    </div>
+
+                    <div style="display:flex;justify-content:flex-end;gap:12px;">
+                        <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline" style="padding:10px 22px;font-size:14px;"><i class="fa fa-times"/> Cancel</a>
+                        <button type="submit" class="tm-btn tm-btn-green" style="padding:10px 22px;font-size:14px;"><i class="fa fa-save"/> Save Report</button>
                     </div>
                 </form>
             </div>
@@ -503,49 +777,81 @@
 
         <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-book"/> My Courses</h5>
 
-        <t t-if="not courses">
-            <div class="tm-card">
+        <!-- Search Filter -->
+        <form method="get" action="/my/tutor/courses" style="margin-bottom:16px;">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;padding:14px 16px;background:var(--tm-bg-light,#f8f9fa);border:1px solid var(--tm-border,#e0e0e0);border-radius:8px;">
+                <div style="flex:1;min-width:180px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;"><i class="fa fa-book"/> Course</label>
+                    <select name="course_id" class="form-select form-select-sm" style="border-radius:6px;">
+                        <option value="">All Courses</option>
+                        <t t-foreach="all_tutor_courses" t-as="c">
+                            <option t-att-value="c.id" t-att-selected="str(c.id) == filter_course_id and 'selected' or None"><t t-esc="c.name"/></option>
+                        </t>
+                    </select>
+                </div>
+                <div style="flex:1;min-width:180px;">
+                    <label style="font-size:11px;font-weight:600;color:var(--tm-text-light);display:block;margin-bottom:4px;"><i class="fa fa-user"/> Student Name</label>
+                    <input type="text" name="student_name" class="form-control form-control-sm" style="border-radius:6px;" placeholder="Search by student name..." t-att-value="filter_student_name"/>
+                </div>
+                <div style="display:flex;gap:6px;flex-shrink:0;">
+                    <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-search"/> Search</button>
+                    <a href="/my/tutor/courses" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-times"/> Clear</a>
+                </div>
+            </div>
+        </form>
+
+        <div class="tm-card">
+            <t t-if="not courses">
                 <div class="tm-empty">
                     <i class="fa fa-book"/>
                     <p>You have no courses assigned yet.</p>
                 </div>
-            </div>
-        </t>
-        <t t-if="courses">
-            <t t-foreach="courses" t-as="c">
-                <div class="tm-card" style="margin-bottom:16px;">
-                    <div class="tm-card-header">
-                        <div class="tm-card-title">
-                            <i class="fa fa-book"/>
-                            <t t-esc="c.name"/>
-                            <t t-if="c.subject_id">
-                                <span class="tm-badge tm-badge-purple" style="font-size:11px;margin-left:8px;">
-                                    <t t-esc="c.subject_id.name"/>
-                                </span>
-                            </t>
-                            <t t-if="c.grade_id">
-                                <span class="tm-badge tm-badge-blue" style="font-size:11px;margin-left:4px;">
-                                    <t t-esc="c.grade_id.name"/>
-                                </span>
-                            </t>
-                        </div>
-                        <a t-attf-href="/my/tutor/courses/#{c.id}" class="tm-card-action">View Course</a>
-                    </div>
-                    <div class="tm-card-body">
-                        <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:12px;color:var(--tm-text-light);">
-                            <div><i class="fa fa-users" style="margin-right:4px;"/> <strong><t t-esc="c.student_count or 0"/></strong> Students</div>
-                            <div><i class="fa fa-tasks" style="margin-right:4px;"/> <strong><t t-esc="len(c.assignment_ids) if c.assignment_ids else 0"/></strong> Assignments</div>
-                            <t t-if="c.start_date">
-                                <div><i class="fa fa-calendar" style="margin-right:4px;"/>
-                                    <t t-esc="c.start_date" t-options='{"widget": "date"}'/>
-                                    <t t-if="c.end_date"> — <t t-esc="c.end_date" t-options='{"widget": "date"}'/></t>
-                                </div>
-                            </t>
-                        </div>
-                    </div>
-                </div>
             </t>
-        </t>
+            <t t-if="courses">
+                <table class="tm-table">
+                    <thead>
+                        <tr>
+                            <th style="background:#4A7CC9;color:#fff;">Course Name</th>
+                            <th style="background:#4A7CC9;color:#fff;">Subject</th>
+                            <th style="background:#4A7CC9;color:#fff;">Grade</th>
+                            <th style="background:#4A7CC9;color:#fff;">Students</th>
+                            <th style="background:#4A7CC9;color:#fff;">Assignments</th>
+                            <th style="background:#4A7CC9;color:#fff;">Dates</th>
+                            <th style="background:#4A7CC9;color:#fff;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-foreach="courses" t-as="c">
+                            <tr>
+                                <td class="fw-bold"><i class="fa fa-book" style="margin-right:6px;color:var(--tm-primary);"/><t t-esc="c.name"/></td>
+                                <td>
+                                    <t t-if="c.subject_id">
+                                        <span class="tm-badge tm-badge-purple"><t t-esc="c.subject_id.name"/></span>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td>
+                                    <t t-if="c.grade_id">
+                                        <span class="tm-badge tm-badge-blue"><t t-esc="c.grade_id.name"/></span>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td><span class="tm-badge tm-badge-green"><t t-esc="c.student_count or 0"/> students</span></td>
+                                <td><span class="tm-badge tm-badge-grey"><t t-esc="len(c.assignment_ids) if c.assignment_ids else 0"/> tasks</span></td>
+                                <td style="white-space:nowrap;font-size:12px;color:var(--tm-text-light);">
+                                    <t t-if="c.start_date">
+                                        <t t-esc="c.start_date" t-options='{"widget": "date"}'/>
+                                        <t t-if="c.end_date"> — <t t-esc="c.end_date" t-options='{"widget": "date"}'/></t>
+                                    </t>
+                                    <t t-else="">—</t>
+                                </td>
+                                <td><a t-attf-href="/my/tutor/courses/#{c.id}" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-eye"/> View</a></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+        </div>
     </t>
 </template>
 

@@ -24,12 +24,28 @@ class TutorPortal(http.Controller, PortalMixin):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
-        # Show courses where this tutor is the primary tutor OR in the supporting tutors set
-        courses = request.env['course.master'].sudo().search([
+
+        filter_course_id = kw.get('course_id', '').strip()
+        filter_student_name = kw.get('student_name', '').strip()
+
+        tutor_domain = [
             '|',
             ('tutor_id', '=', tutor.id),
             ('tutor_ids', 'in', tutor.id),
-        ])
+        ]
+        all_tutor_courses = request.env['course.master'].sudo().search(tutor_domain)
+
+        domain = list(tutor_domain)
+        if filter_course_id:
+            try:
+                domain.append(('id', '=', int(filter_course_id)))
+            except (ValueError, TypeError):
+                pass
+        if filter_student_name:
+            domain.append(('enrollment_ids.student_id.name', 'ilike', filter_student_name))
+
+        courses = request.env['course.master'].sudo().search(domain)
+
         today = fields.Date.today()
         start_of_week = today - timedelta(days=today.weekday())
         end_of_week = start_of_week + timedelta(days=6)
@@ -50,10 +66,13 @@ class TutorPortal(http.Controller, PortalMixin):
             'is_tutor': True, 'is_student': False, 'is_parent': False,
             'tutor': tutor,
             'courses': courses,
+            'all_tutor_courses': all_tutor_courses,
             'course_data': course_data,
             'lesson_count': lesson_count,
             'user_tz': self._get_user_tz(),
             'page_name': 'tutor_courses',
+            'filter_course_id': filter_course_id,
+            'filter_student_name': filter_student_name,
         })
 
     @http.route(['/my/tutor/courses/<int:course_id>'], type='http', auth='user', website=True)
@@ -145,9 +164,26 @@ class TutorPortal(http.Controller, PortalMixin):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
+
         today = fields.Date.today()
         start_of_week = today - timedelta(days=today.weekday())
-        if week == 'next':
+
+        # Date range params override the week preset
+        from_date_str = kw.get('from_date', '').strip()
+        to_date_str = kw.get('to_date', '').strip()
+        using_custom_range = bool(from_date_str or to_date_str)
+
+        if using_custom_range:
+            week = 'custom'
+            try:
+                start_date = fields.Date.from_string(from_date_str) if from_date_str else today - timedelta(days=30)
+            except (ValueError, TypeError):
+                start_date = today - timedelta(days=30)
+            try:
+                end_date = fields.Date.from_string(to_date_str) if to_date_str else today + timedelta(days=90)
+            except (ValueError, TypeError):
+                end_date = today + timedelta(days=90)
+        elif week == 'next':
             start_date = start_of_week + timedelta(days=7)
             end_date = start_date + timedelta(days=6)
         elif week == 'all':
@@ -160,11 +196,28 @@ class TutorPortal(http.Controller, PortalMixin):
             week = 'this'
             start_date = start_of_week
             end_date = start_of_week + timedelta(days=6)
-        occurrences = request.env['class.schedule.occurrence'].sudo().search([
+
+        domain = [
             ('tutor_id', '=', tutor.id),
             ('start_datetime', '>=', datetime.combine(start_date, datetime.min.time())),
             ('start_datetime', '<=', datetime.combine(end_date, datetime.max.time())),
-        ], order='start_datetime asc')
+        ]
+
+        # Extra filters
+        filter_student = kw.get('student_name', '').strip()
+        filter_status = kw.get('status', '').strip()
+        filter_attendance = kw.get('attendance', '').strip()
+
+        if filter_student:
+            domain.append(('attendance_ids.student_id.name', 'ilike', filter_student))
+        if filter_status:
+            domain.append(('lesson_status', '=', filter_status))
+        if filter_attendance == 'marked':
+            domain.append(('attendance_marked', '=', True))
+        elif filter_attendance == 'pending':
+            domain.append(('attendance_marked', '=', False))
+
+        occurrences = request.env['class.schedule.occurrence'].sudo().search(domain, order='start_datetime asc')
         occ_data = []
         for occ in occurrences:
             local_dt = self._to_user_tz(occ.start_datetime)
@@ -184,6 +237,11 @@ class TutorPortal(http.Controller, PortalMixin):
             'page_title': 'My Schedule',
             'csrf_token': request.csrf_token(),
             'vc_error': kw.get('vc_error'),
+            'filter_from_date': from_date_str,
+            'filter_to_date': to_date_str,
+            'filter_student': filter_student,
+            'filter_status': filter_status,
+            'filter_attendance': filter_attendance,
         })
 
     # ──────────────────────────────────────────────
@@ -537,9 +595,25 @@ class TutorPortal(http.Controller, PortalMixin):
         courses = request.env['course.master'].sudo().search([
             '|', ('tutor_id', '=', tutor.id), ('tutor_ids', 'in', tutor.id),
         ])
-        assignments = request.env['course.assignment'].sudo().search([
-            ('course_id', 'in', courses.ids),
-        ], order='due_date desc')
+        domain = [('course_id', 'in', courses.ids)]
+        filter_course_id = kw.get('course_id', '')
+        filter_status = kw.get('status', '')
+        filter_submission = kw.get('submission', '')
+        filter_student = kw.get('student_name', '').strip()
+        if filter_course_id:
+            try:
+                domain.append(('course_id', '=', int(filter_course_id)))
+            except (ValueError, TypeError):
+                pass
+        if filter_status:
+            domain.append(('status', '=', filter_status))
+        if filter_submission == 'has':
+            domain.append(('submission_ids', '!=', False))
+        elif filter_submission == 'none':
+            domain.append(('submission_ids', '=', False))
+        if filter_student:
+            domain.append(('submission_ids.student_id.name', 'ilike', filter_student))
+        assignments = request.env['course.assignment'].sudo().search(domain, order='due_date desc')
         return request.render('tuition_management.portal_tutor_all_assignments', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,
@@ -548,6 +622,10 @@ class TutorPortal(http.Controller, PortalMixin):
             'tutor_courses': courses,
             'page_name': 'tutor_all_assignments',
             'page_title': 'All Assignments',
+            'filter_course_id': filter_course_id,
+            'filter_status': filter_status,
+            'filter_submission': filter_submission,
+            'filter_student': filter_student,
         })
 
     # ──────────────────────────────────────────────
@@ -562,9 +640,17 @@ class TutorPortal(http.Controller, PortalMixin):
         courses = request.env['course.master'].sudo().search([
             '|', ('tutor_id', '=', tutor.id), ('tutor_ids', 'in', tutor.id),
         ])
-        reports = request.env['progress.report'].sudo().search([
-            ('course_id', 'in', courses.ids),
-        ], order='report_date desc')
+        domain = [('course_id', 'in', courses.ids)]
+        filter_course_id = kw.get('course_id', '')
+        filter_student = kw.get('student_name', '').strip()
+        if filter_course_id:
+            try:
+                domain.append(('course_id', '=', int(filter_course_id)))
+            except (ValueError, TypeError):
+                pass
+        if filter_student:
+            domain.append(('student_id.name', 'ilike', filter_student))
+        reports = request.env['progress.report'].sudo().search(domain, order='report_date desc')
         return request.render('tuition_management.portal_tutor_all_progress', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,
@@ -573,6 +659,8 @@ class TutorPortal(http.Controller, PortalMixin):
             'tutor_courses': courses,
             'page_name': 'tutor_progress',
             'page_title': 'Progress Reports',
+            'filter_course_id': filter_course_id,
+            'filter_student': filter_student,
         })
 
     @http.route(['/my/tutor/courses/<int:course_id>/progress/new'], type='http', auth='user', website=True)
@@ -609,14 +697,81 @@ class TutorPortal(http.Controller, PortalMixin):
             'course_id': course.id,
             'student_id': int(kw.get('student_id', 0)),
             'report_date': kw.get('report_date') or fields.Date.today(),
-            'overall_rating': kw.get('overall_rating', ''),
+            'overall_rating': kw.get('overall_rating', '') or False,
             'score': float(kw.get('score', 0) or 0),
             'max_score': float(kw.get('max_score', 100) or 100),
             'comments': kw.get('comments', ''),
             'strengths': kw.get('strengths', ''),
+            'areas_for_improvement': kw.get('areas_for_improvement', ''),
+            'homework_notes': kw.get('homework_notes', ''),
+            'tutor_id': tutor.id,
         }
         request.env['progress.report'].sudo().create(vals)
         return request.redirect(f'/my/tutor/courses/{course_id}?progress_created=1')
+
+    def _tutor_has_report_access(self, tutor, report):
+        """True if the tutor created the report or teaches the course it belongs to."""
+        if report.tutor_id and report.tutor_id == tutor:
+            return True
+        return self._tutor_has_course_access(tutor, report.course_id)
+
+    @http.route(['/my/tutor/progress/<int:report_id>/edit'], type='http', auth='user', website=True)
+    def portal_tutor_progress_edit(self, report_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        report = request.env['progress.report'].sudo().browse(report_id)
+        if not report.exists() or not self._tutor_has_report_access(tutor, report):
+            return request.redirect('/my/tutor/progress')
+        course = report.course_id
+        enrolled_students = course.enrollment_ids.filtered(lambda e: e.status == 'active')
+        return request.render('tuition_management.portal_tutor_progress_edit', {
+            'user': request.env.user,
+            'is_tutor': True, 'is_student': False, 'is_parent': False,
+            'tutor': tutor,
+            'report': report,
+            'course': course,
+            'enrolled_students': enrolled_students,
+            'page_name': 'tutor_progress',
+            'page_title': 'Edit Progress Report',
+            'csrf_token': request.csrf_token(),
+        })
+
+    @http.route(['/my/tutor/progress/<int:report_id>/update'], type='http',
+                auth='user', website=True, methods=['POST'], csrf=True)
+    def portal_tutor_progress_update(self, report_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        report = request.env['progress.report'].sudo().browse(report_id)
+        if not report.exists() or not self._tutor_has_report_access(tutor, report):
+            return request.redirect('/my/tutor/progress')
+        vals = {
+            'name': kw.get('name', report.name),
+            'student_id': int(kw.get('student_id', report.student_id.id)),
+            'report_date': kw.get('report_date') or fields.Date.today(),
+            'overall_rating': kw.get('overall_rating', '') or False,
+            'score': float(kw.get('score', 0) or 0),
+            'max_score': float(kw.get('max_score', 100) or 100),
+            'comments': kw.get('comments', ''),
+            'strengths': kw.get('strengths', ''),
+            'areas_for_improvement': kw.get('areas_for_improvement', ''),
+            'homework_notes': kw.get('homework_notes', ''),
+        }
+        report.sudo().write(vals)
+        return request.redirect('/my/tutor/progress?updated=1')
+
+    @http.route(['/my/tutor/progress/<int:report_id>/delete'], type='http',
+                auth='user', website=True, methods=['POST'], csrf=True)
+    def portal_tutor_progress_delete(self, report_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        report = request.env['progress.report'].sudo().browse(report_id)
+        if not report.exists() or not self._tutor_has_report_access(tutor, report):
+            return request.redirect('/my/tutor/progress')
+        report.sudo().unlink()
+        return request.redirect('/my/tutor/progress?deleted=1')
 
     # ──────────────────────────────────────────────
     # PAYMENTS
