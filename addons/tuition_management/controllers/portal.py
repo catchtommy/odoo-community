@@ -198,24 +198,18 @@ class TuitionPortal(CustomerPortal, PortalMixin):
         student = self._get_student()
         tutor = self._get_tutor()
         parent = self._get_parent()
-        profile = student or tutor or parent
-        role = 'Student' if student else ('Tutor' if tutor else ('Parent' if parent else 'User'))
-        back_url = '/my/tutor/courses' if tutor else ('/my/courses' if student else ('/my/parent/children' if parent else '/my'))
+        countries = request.env['res.country'].sudo().search([], order='name asc')
         return request.render('tuition_management.portal_user_profile', {
             'user': user,
             'is_student': bool(student),
             'is_tutor': bool(tutor),
             'is_parent': bool(parent),
             'partner': partner,
-            'profile': profile,
-            'role': role,
+            'countries': countries,
             'success': kw.get('success'),
             'error': kw.get('error'),
-            'page_name': 'profile',
-            'back_url': back_url,
+            'page_name': 'settings',
             'csrf_token': request.csrf_token(),
-            'timezones': sorted(pytz.all_timezones),
-            'current_timezone': profile.timezone if profile and hasattr(profile, 'timezone') and profile.timezone else 'UTC',
         })
 
     @http.route(['/my/profile/save'], type='http', auth='user', website=True,
@@ -223,37 +217,34 @@ class TuitionPortal(CustomerPortal, PortalMixin):
     def portal_profile_save(self, **kw):
         user = request.env.user
         partner = user.partner_id
-        student = self._get_student()
-        tutor = self._get_tutor()
-        parent = self._get_parent()
-        profile = student or tutor or parent
 
-        name = (kw.get('name') or '').strip()
-        email = (kw.get('email') or '').strip()
-        phone = (kw.get('phone') or '').strip()
-        new_password = (kw.get('new_password') or '').strip()
+        email    = (kw.get('email')    or '').strip()
+        phone    = (kw.get('phone')    or '').strip()
+        street   = (kw.get('street')   or '').strip()
+        street2  = (kw.get('street2')  or '').strip()
+        city     = (kw.get('city')     or '').strip()
+        zip_code = (kw.get('zip')      or '').strip()
+        new_password     = (kw.get('new_password')     or '').strip()
         confirm_password = (kw.get('confirm_password') or '').strip()
 
-        if not name:
-            return request.redirect('/my/profile?error=Name is required.')
-
-        if profile:
-            write_vals = {'name': name}
-            if email:
-                write_vals['email'] = email
-            if hasattr(profile, 'phone') and phone:
-                write_vals['phone'] = phone
-            tz = (kw.get('timezone') or '').strip()
-            if tz and hasattr(profile, 'timezone'):
-                write_vals['timezone'] = tz
-            profile.sudo().write(write_vals)
-
-        partner_vals = {'name': name}
+        # Build partner update dict from submitted fields
+        partner_vals = {}
         if email:
             partner_vals['email'] = email
         if phone:
             partner_vals['phone'] = phone
-        partner.sudo().write(partner_vals)
+        partner_vals['street']  = street
+        partner_vals['street2'] = street2
+        partner_vals['city']    = city
+        partner_vals['zip']     = zip_code
+        country_id = kw.get('country_id')
+        if country_id:
+            try:
+                partner_vals['country_id'] = int(country_id)
+            except (ValueError, TypeError):
+                pass
+        if partner_vals:
+            partner.sudo().write(partner_vals)
 
         if new_password:
             if len(new_password) < 6:

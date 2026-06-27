@@ -228,9 +228,14 @@
         <div class="tm-card">
             <div class="tm-card-header">
                 <div class="tm-card-title"><i class="fa fa-list"/> Sessions</div>
-                <t t-if="occ_data">
-                    <span class="tm-badge tm-badge-blue" style="font-size:11px;"><t t-esc="len(occ_data)"/> session(s)</span>
-                </t>
+                <div style="display:flex;align-items:center;gap:8px;">
+                    <span class="tm-badge" style="background:#e8f4fd;color:#1565c0;font-size:11px;border-radius:6px;padding:2px 8px;">
+                        <i class="fa fa-clock-o"/> <t t-esc="user_tz"/>
+                    </span>
+                    <t t-if="occ_data">
+                        <span class="tm-badge tm-badge-blue" style="font-size:11px;"><t t-esc="len(occ_data)"/> session(s)</span>
+                    </t>
+                </div>
             </div>
             <t t-if="vc_error">
                 <div class="alert alert-warning" style="margin:12px 16px;"><t t-esc="vc_error"/></div>
@@ -1184,7 +1189,7 @@
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
             <div>
                 <h5 style="margin:0 0 4px;font-weight:700;"><i class="fa fa-check-square-o"/> Mark Attendance</h5>
-                <p style="margin:0;font-size:12px;color:var(--tm-text-light);"><t t-esc="occurrence.name"/> · <t t-esc="occurrence.start_datetime and occurrence.start_datetime.strftime('%a, %d %b %Y %H:%M') or ''"/></p>
+                <p style="margin:0;font-size:12px;color:var(--tm-text-light);"><t t-esc="occurrence.name"/> · <t t-esc="occurrence_dt_str"/></p>
             </div>
             <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
         </div>
@@ -2087,7 +2092,12 @@
         </div>
 
         <div class="tm-card">
-            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> Schedule</div></div>
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-list"/> Schedule</div>
+                <span class="tm-badge" style="background:#e8f4fd;color:#1565c0;font-size:11px;border-radius:6px;padding:2px 8px;">
+                    <i class="fa fa-clock-o"/> <t t-esc="user_tz"/>
+                </span>
+            </div>
             <t t-if="vc_error">
                 <div class="alert alert-warning" style="margin:12px 16px;"><t t-esc="vc_error"/></div>
             </t>

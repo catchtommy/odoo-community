@@ -29,14 +29,14 @@ class PortalMixin:
     def _get_user_tz(self):
         """
         Return the user's timezone string.
-        Priority: Odoo user tz (Settings → Users → Calendar tab)
-                  → profile timezone field → UTC.
+        Priority: profile timezone field (Users → <role> → Timezone)
+                  → Odoo system user tz → UTC.
         """
-        if request.env.user.tz:
-            return request.env.user.tz
         profile = self._get_student() or self._get_tutor() or self._get_parent()
         if profile and hasattr(profile, 'timezone') and profile.timezone:
             return profile.timezone
+        if request.env.user.tz:
+            return request.env.user.tz
         return 'UTC'
 
     def _user_pytz(self):

@@ -122,8 +122,8 @@
                         </t>
 
                         <div class="tm-sidebar-section">Account</div>
-                        <a href="/my/account"
-                           t-attf-class="tm-nav-item #{page_name == 'my_details' and 'active' or ''}">
+                        <a href="/my/profile"
+                           t-attf-class="tm-nav-item #{page_name == 'settings' and 'active' or ''}">
                             <i class="fa fa-cog"/>
                             Settings
                         </a>
@@ -154,7 +154,7 @@
                     <header class="tm-header">
                         <h1 class="tm-header-title"><t t-esc="page_title or 'Portal'"/></h1>
                         <div class="tm-header-right">
-                            <a href="/my/account" class="tm-header-user">
+                            <a href="/my/profile" class="tm-header-user">
                                 <div class="tm-header-avatar">
                                     <t t-esc="(user.name or 'U')[:1].upper()"/>
                                 </div>

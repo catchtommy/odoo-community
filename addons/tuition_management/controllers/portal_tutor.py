@@ -352,15 +352,18 @@ class TutorPortal(http.Controller, PortalMixin):
                 'remarks': att.remarks if att else '',
             })
 
+        occurrence_dt_str = self._fmt_dt(occurrence.start_datetime, '%a, %d %b %Y %H:%M %Z')
         return request.render('tuition_management.portal_tutor_attendance', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,
             'tutor': tutor,
             'occurrence': occurrence,
+            'occurrence_dt_str': occurrence_dt_str,
             'course': occurrence.course_id,
             'student_data': student_data,
             'back_url': f'/my/tutor/courses/{occurrence.course_id.id}',
             'page_name': 'tutor_attendance',
+            'user_tz': self._get_user_tz(),
             'csrf_token': request.csrf_token(),
             'technical_issue_types': [
                 ('tutor_issue', "Tutor's Issue"),

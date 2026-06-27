@@ -563,7 +563,14 @@ class ClassSchedule(models.Model):
 
     @api.model
     def get_user_timezone(self):
-        """Return the authenticated user's timezone (from their Odoo profile). Falls back to UTC."""
+        """Return the user's timezone from their role profile (student/tutor/parent),
+        falling back to Odoo user tz, then UTC."""
+        partner = self.env.user.partner_id
+        for model in ('student.profile', 'tutor.profile', 'parent.profile'):
+            profile = self.env[model].sudo().search(
+                [('partner_id', '=', partner.id)], limit=1)
+            if profile and profile.timezone:
+                return profile.timezone
         return self.env.user.tz or 'UTC'
 
     @api.model_create_multi
