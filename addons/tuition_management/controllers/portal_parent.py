@@ -101,21 +101,16 @@ class ParentPortal(http.Controller, PortalMixin):
             ('student_id', 'in', child_ids), ('status', '=', 'active'),
         ]).mapped('course_id').ids
 
-        today = fields.Date.today()
         try:
             week_offset = int(kw.get('week_offset', 0))
         except (ValueError, TypeError):
             week_offset = 0
-        start_of_week = today - timedelta(days=today.weekday()) + timedelta(weeks=week_offset)
-        end_of_week = start_of_week + timedelta(days=6)
-        week_label = '%s — %s' % (start_of_week.strftime('%d %b'), end_of_week.strftime('%d %b %Y'))
-        if week_offset == 0:
-            week_label = 'This Week (%s)' % week_label
+        start_utc, end_utc, start_of_week, end_of_week, week_label = self._tz_week_bounds(week_offset)
 
         occurrences = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', 'in', course_ids),
-            ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
-            ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
+            ('start_datetime', '>=', start_utc),
+            ('start_datetime', '<=', end_utc),
         ], order='start_datetime asc')
 
         attendance = request.env['attendance.record'].sudo().search([

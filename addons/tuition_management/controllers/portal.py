@@ -92,6 +92,10 @@ class TuitionPortal(CustomerPortal, PortalMixin):
             ], order='start_datetime asc', limit=1)
             next_session_live = bool(next_session and next_session.virtual_meeting_id
                                      and next_session.virtual_meeting_id.state == 'ready')
+            next_session_dt_str = (
+                self._fmt_dt(next_session.start_datetime, '%a %d %b %Y, %H:%M %Z')
+                if next_session else '—'
+            )
             values.update({
                 'student': student,
                 'course_count': len(enrollments),
@@ -104,6 +108,7 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 'today': today,
                 'next_session': next_session,
                 'next_session_live': next_session_live,
+                'next_session_dt_str': next_session_dt_str,
             })
             return request.render('tuition_management.portal_student_dashboard', values)
 

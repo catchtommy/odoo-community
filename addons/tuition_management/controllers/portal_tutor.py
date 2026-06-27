@@ -46,13 +46,11 @@ class TutorPortal(http.Controller, PortalMixin):
 
         courses = request.env['course.master'].sudo().search(domain)
 
-        today = fields.Date.today()
-        start_of_week = today - timedelta(days=today.weekday())
-        end_of_week = start_of_week + timedelta(days=6)
+        start_utc, end_utc, _mon, _sun, _lbl = self._tz_week_bounds(0)
         lesson_count = request.env['class.schedule.occurrence'].sudo().search_count([
             ('tutor_id', '=', tutor.id),
-            ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
-            ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
+            ('start_datetime', '>=', start_utc),
+            ('start_datetime', '<=', end_utc),
         ])
         course_data = []
         for c in courses:
@@ -85,15 +83,13 @@ class TutorPortal(http.Controller, PortalMixin):
         if not course.exists() or (course.tutor_id != tutor and tutor not in course.tutor_ids):
             return request.redirect('/my/tutor/courses')
 
-        today = fields.Date.today()
-        start_of_week = today - timedelta(days=today.weekday())
-        end_of_week = start_of_week + timedelta(days=6)
+        start_utc, end_utc, _mon, _sun, _lbl = self._tz_week_bounds(0)
         # Only show this tutor's assigned lessons for this week
         this_week_lessons = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', '=', course.id),
             ('tutor_id', '=', tutor.id),
-            ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
-            ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
+            ('start_datetime', '>=', start_utc),
+            ('start_datetime', '<=', end_utc),
         ], order='start_datetime asc')
 
         # Fetch the very next upcoming session for this course (any tutor) so
@@ -174,7 +170,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not tutor:
             return request.redirect('/my')
 
-        today = fields.Date.today()
+        today = self._tz_today()
         start_of_week = today - timedelta(days=today.weekday())
 
         # Date range params override the week preset
@@ -206,10 +202,11 @@ class TutorPortal(http.Controller, PortalMixin):
             start_date = start_of_week
             end_date = start_of_week + timedelta(days=6)
 
+        start_utc, end_utc = self._tz_date_bounds(start_date, end_date)
         domain = [
             ('tutor_id', '=', tutor.id),
-            ('start_datetime', '>=', datetime.combine(start_date, datetime.min.time())),
-            ('start_datetime', '<=', datetime.combine(end_date, datetime.max.time())),
+            ('start_datetime', '>=', start_utc),
+            ('start_datetime', '<=', end_utc),
         ]
 
         # Extra filters
@@ -269,7 +266,7 @@ class TutorPortal(http.Controller, PortalMixin):
         if not self._tutor_has_course_access(tutor, course):
             return request.redirect('/my/tutor/courses')
 
-        today = fields.Date.today()
+        today = self._tz_today()
         start_of_week = today - timedelta(days=today.weekday())
         if week == 'next':
             start_date = start_of_week + timedelta(days=7)
@@ -284,12 +281,13 @@ class TutorPortal(http.Controller, PortalMixin):
             week = 'this'
             start_date = start_of_week
             end_date = start_of_week + timedelta(days=6)
+        start_utc, end_utc = self._tz_date_bounds(start_date, end_date)
 
         occurrences = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', '=', course.id),
             ('tutor_id', '=', tutor.id),
-            ('start_datetime', '>=', datetime.combine(start_date, datetime.min.time())),
-            ('start_datetime', '<=', datetime.combine(end_date, datetime.max.time())),
+            ('start_datetime', '>=', start_utc),
+            ('start_datetime', '<=', end_utc),
         ], order='start_datetime asc')
 
         occ_data = []
