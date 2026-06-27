@@ -3,7 +3,7 @@ from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from datetime import datetime, time, timedelta
 import pytz
-from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
+from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE, COMMON_TIMEZONES
 
 
 class ClassSchedule(models.Model):
@@ -555,6 +555,16 @@ class ClassSchedule(models.Model):
             if plan and plan.classes_per_week:
                 allowances.append(plan.classes_per_week)
         return min(allowances) if allowances else False
+
+    @api.model
+    def get_common_timezones(self):
+        """Return the same timezone list used in the schedule form, as [[value, label], ...]."""
+        return COMMON_TIMEZONES
+
+    @api.model
+    def get_user_timezone(self):
+        """Return the authenticated user's timezone (from their Odoo profile). Falls back to UTC."""
+        return self.env.user.tz or 'UTC'
 
     @api.model_create_multi
     def create(self, vals_list):

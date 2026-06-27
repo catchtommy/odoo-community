@@ -252,6 +252,58 @@
                     color: #adb5bd;
                     font-size: 14px;
                 }
+                /* Timezone searchable dropdown */
+                .tm-tz-picker {
+                    position: relative;
+                    min-width: 240px;
+                }
+                .tm-tz-picker input {
+                    width: 100%;
+                    border: 1px solid #dee2e6;
+                    border-radius: 6px;
+                    padding: 5px 10px;
+                    font-size: 12px;
+                    color: #495057;
+                    background: #fff;
+                    outline: none;
+                    cursor: pointer;
+                }
+                .tm-tz-picker input:focus {
+                    border-color: #4361ee;
+                    box-shadow: 0 0 0 2px rgba(67,97,238,0.12);
+                }
+                .tm-tz-dropdown {
+                    position: absolute;
+                    top: calc(100% + 2px);
+                    left: 0;
+                    right: 0;
+                    background: #fff;
+                    border: 1px solid #dee2e6;
+                    border-radius: 6px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+                    max-height: 200px;
+                    overflow-y: auto;
+                    z-index: 1000;
+                }
+                .tm-tz-option {
+                    padding: 7px 10px;
+                    font-size: 12px;
+                    color: #495057;
+                    cursor: pointer;
+                }
+                .tm-tz-option:hover { background: #f0f4ff; }
+                .tm-tz-option.tm-tz-selected { background: #e8f0fe; color: #4361ee; font-weight: 600; }
+                .tm-tz-no-results { padding: 7px 10px; color: #adb5bd; font-size: 12px; }
+                .tm-tz-badge {
+                    display: inline-block;
+                    background: #e8f0fe;
+                    color: #4361ee;
+                    border-radius: 4px;
+                    padding: 2px 7px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    margin-left: 8px;
+                }
             </style>
 
             <div class="tm-dash-header">
@@ -313,13 +365,43 @@
             <div class="tm-schedule-section">
                 <div class="tm-schedule-header">
                     <h4><i class="fa fa-calendar" style="margin-right:6px;color:#4361ee;"/> Lesson Schedule</h4>
-                    <div class="tm-schedule-nav">
-                        <button t-on-click="prevDay"><i class="fa fa-chevron-left"/></button>
-                        <button class="tm-today-btn" t-on-click="goToday">Today</button>
-                        <button t-on-click="nextDay"><i class="fa fa-chevron-right"/></button>
+                    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <!-- Timezone searchable dropdown -->
+                        <div class="tm-tz-picker">
+                            <input type="text"
+                                   placeholder="Search timezone…"
+                                   t-att-value="state.tzDropdownOpen ? state.tzSearch : selectedTzLabel"
+                                   t-on-input="onTzSearchInput"
+                                   t-on-focus="onTzFocus"
+                                   t-on-blur="onTzBlur"/>
+                            <div t-if="state.tzDropdownOpen" class="tm-tz-dropdown">
+                                <t t-if="filteredTimezones.length == 0">
+                                    <div class="tm-tz-no-results">No timezones found</div>
+                                </t>
+                                <t t-foreach="filteredTimezones" t-as="tzOpt" t-key="tzOpt.value">
+                                    <div t-attf-class="tm-tz-option {{tzOpt.value === state.tz ? 'tm-tz-selected' : ''}}"
+                                         t-att-data-value="tzOpt.value"
+                                         t-on-mousedown="onTzSelect">
+                                        <t t-esc="tzOpt.label"/>
+                                    </div>
+                                </t>
+                            </div>
+                        </div>
+                        <!-- Day navigation -->
+                        <div class="tm-schedule-nav">
+                            <button t-on-click="prevDay"><i class="fa fa-chevron-left"/></button>
+                            <button class="tm-today-btn" t-on-click="goToday">Today</button>
+                            <button t-on-click="nextDay"><i class="fa fa-chevron-right"/></button>
+                        </div>
                     </div>
                 </div>
-                <div class="tm-schedule-date" t-esc="state.schedule_label"/>
+                <div class="tm-schedule-date">
+                    <t t-esc="state.schedule_label"/>
+                    <span class="tm-tz-badge">
+                        <i class="fa fa-clock-o" style="margin-right:3px;"/>
+                        <t t-esc="state.tz"/>
+                    </span>
+                </div>
                 <table class="tm-schedule-table" t-if="state.schedule_rows.length > 0">
                     <thead>
                         <tr>

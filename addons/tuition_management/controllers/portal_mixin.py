@@ -44,3 +44,10 @@ class PortalMixin:
             user_tz = pytz.UTC
         utc_dt = pytz.UTC.localize(dt) if dt.tzinfo is None else dt
         return utc_dt.astimezone(user_tz)
+
+    def _fmt_dt(self, dt, fmt='%a %d %b %Y, %H:%M %Z'):
+        """Convert UTC datetime to user timezone and return a formatted string."""
+        local = self._to_user_tz(dt)
+        if not local:
+            return '—'
+        return local.strftime(fmt)

@@ -1,0 +1,385 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="tuition_management.ScheduleViewer">
+        <div class="tm-sv-wrap">
+            <style>
+                .tm-sv-wrap {
+                    padding: 24px;
+                    background: #f1f3f5;
+                    min-height: 100%;
+                    font-family: Inter, -apple-system, sans-serif;
+                    overflow-y: auto;
+                    height: calc(100vh - 50px);
+                }
+                .tm-sv-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 20px;
+                    flex-wrap: wrap;
+                    gap: 12px;
+                }
+                .tm-sv-title {
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: #1a1a2e;
+                    margin: 0;
+                }
+                /* View mode toggle (Today / Week / Month) */
+                .tm-sv-view-toggle {
+                    display: flex;
+                    border: 1px solid #dee2e6;
+                    border-radius: 6px;
+                    overflow: hidden;
+                }
+                .tm-sv-view-toggle button {
+                    border: none;
+                    border-right: 1px solid #dee2e6;
+                    background: #fff;
+                    padding: 7px 18px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #495057;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                }
+                .tm-sv-view-toggle button:last-child { border-right: none; }
+                .tm-sv-view-toggle button:hover { background: #f0f4ff; color: #4361ee; }
+                .tm-sv-view-toggle button.tm-sv-active { background: #4361ee; color: #fff; }
+                /* Period navigation */
+                .tm-sv-nav {
+                    display: flex;
+                    align-items: center;
+                    gap: 6px;
+                }
+                .tm-sv-nav button {
+                    border: 1px solid #dee2e6;
+                    background: #fff;
+                    border-radius: 6px;
+                    padding: 7px 12px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    color: #495057;
+                    transition: all 0.15s;
+                }
+                .tm-sv-nav button:hover { background: #4361ee; color: #fff; border-color: #4361ee; }
+                .tm-sv-nav .tm-sv-today-btn { background: #4361ee; color: #fff; border-color: #4361ee; }
+                .tm-sv-nav .tm-sv-today-btn:hover { background: #3a56d4; }
+                .tm-sv-period-label {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #343a40;
+                    min-width: 220px;
+                    text-align: center;
+                }
+                /* Controls bar */
+                .tm-sv-controls {
+                    background: #fff;
+                    border-radius: 10px;
+                    border: 1px solid #e9ecef;
+                    padding: 16px 20px;
+                    margin-bottom: 20px;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 16px;
+                    align-items: flex-end;
+                }
+                .tm-sv-ctrl-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    min-width: 200px;
+                }
+                .tm-sv-ctrl-group label {
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    color: #6c757d;
+                }
+                .tm-sv-ctrl-group select,
+                .tm-sv-ctrl-group input {
+                    border: 1px solid #dee2e6;
+                    border-radius: 6px;
+                    padding: 7px 10px;
+                    font-size: 13px;
+                    color: #495057;
+                    background: #fff;
+                    outline: none;
+                }
+                .tm-sv-ctrl-group select:focus,
+                .tm-sv-ctrl-group input:focus {
+                    border-color: #4361ee;
+                    box-shadow: 0 0 0 2px rgba(67,97,238,0.12);
+                }
+                .tm-sv-ctrl-group .tm-sv-search-row {
+                    display: flex;
+                    gap: 6px;
+                }
+                .tm-sv-ctrl-group .tm-sv-search-row input { flex: 1; }
+                .tm-sv-search-btn {
+                    background: #4361ee;
+                    color: #fff;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 7px 14px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    white-space: nowrap;
+                }
+                .tm-sv-search-btn:hover { background: #3a56d4; }
+                /* Timezone searchable dropdown */
+                .tm-sv-tz-picker { position: relative; }
+                .tm-sv-tz-picker input { width: 100%; cursor: pointer; }
+                .tm-sv-tz-dropdown {
+                    position: absolute;
+                    top: calc(100% + 2px);
+                    left: 0;
+                    right: 0;
+                    background: #fff;
+                    border: 1px solid #dee2e6;
+                    border-radius: 6px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+                    max-height: 220px;
+                    overflow-y: auto;
+                    z-index: 1000;
+                }
+                .tm-sv-tz-option {
+                    padding: 8px 12px;
+                    font-size: 13px;
+                    color: #495057;
+                    cursor: pointer;
+                }
+                .tm-sv-tz-option:hover { background: #f0f4ff; }
+                .tm-sv-tz-option.tm-sv-tz-selected { background: #e8f0fe; color: #4361ee; font-weight: 600; }
+                .tm-sv-tz-no-results { padding: 8px 12px; color: #adb5bd; font-size: 13px; }
+                /* Table card */
+                .tm-sv-card {
+                    background: #fff;
+                    border-radius: 10px;
+                    border: 1px solid #e9ecef;
+                    overflow: hidden;
+                }
+                .tm-sv-card-header {
+                    padding: 14px 20px;
+                    background: #f8f9fa;
+                    border-bottom: 1px solid #e9ecef;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                }
+                .tm-sv-card-header span {
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #6c757d;
+                }
+                .tm-sv-table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    font-size: 13px;
+                }
+                .tm-sv-table th {
+                    background: #4A7CC9;
+                    color: #fff;
+                    padding: 10px 14px;
+                    text-align: left;
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .tm-sv-table td {
+                    padding: 10px 14px;
+                    border-bottom: 1px solid #f1f3f5;
+                    color: #495057;
+                    vertical-align: middle;
+                }
+                .tm-sv-table tbody tr { cursor: pointer; transition: background 0.15s; }
+                .tm-sv-table tbody tr:hover { background: #f0f4ff; }
+                .tm-sv-badge {
+                    display: inline-block;
+                    padding: 3px 10px;
+                    border-radius: 20px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: capitalize;
+                }
+                .tm-sv-badge.scheduled { background: #e3f2fd; color: #1565c0; }
+                .tm-sv-badge.completed { background: #e8f5e9; color: #2e7d32; }
+                .tm-sv-badge.cancelled { background: #fce4ec; color: #c62828; }
+                .tm-sv-badge.no_show   { background: #fff3e0; color: #e65100; }
+                .tm-sv-tz-badge {
+                    display: inline-block;
+                    background: #e8f0fe;
+                    color: #4361ee;
+                    border-radius: 4px;
+                    padding: 2px 8px;
+                    font-size: 11px;
+                    font-weight: 600;
+                }
+                .tm-sv-empty {
+                    text-align: center;
+                    padding: 48px 20px;
+                    color: #adb5bd;
+                    font-size: 14px;
+                }
+                .tm-sv-loading {
+                    text-align: center;
+                    padding: 32px;
+                    color: #6c757d;
+                }
+            </style>
+
+            <!-- Page Header -->
+            <div class="tm-sv-header">
+                <h2 class="tm-sv-title">
+                    <i class="fa fa-calendar" style="margin-right:8px;color:#4361ee;"/>
+                    Schedule Calendar
+                </h2>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <!-- View mode toggle -->
+                    <div class="tm-sv-view-toggle">
+                        <button data-mode="today"
+                                t-att-class="state.viewMode === 'today' ? 'tm-sv-active' : ''"
+                                t-on-click="onViewModeClick">Today</button>
+                        <button data-mode="week"
+                                t-att-class="state.viewMode === 'week' ? 'tm-sv-active' : ''"
+                                t-on-click="onViewModeClick">Week</button>
+                        <button data-mode="month"
+                                t-att-class="state.viewMode === 'month' ? 'tm-sv-active' : ''"
+                                t-on-click="onViewModeClick">Month</button>
+                    </div>
+                    <!-- Period navigation -->
+                    <div class="tm-sv-nav">
+                        <button t-on-click="prevPeriod"><i class="fa fa-chevron-left"/></button>
+                        <span class="tm-sv-period-label">
+                            <i class="fa fa-calendar-o" style="margin-right:6px;color:#6c757d;"/>
+                            <t t-esc="periodLabel"/>
+                        </span>
+                        <button t-on-click="nextPeriod"><i class="fa fa-chevron-right"/></button>
+                        <button class="tm-sv-today-btn" t-on-click="goToday">Today</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters / Controls -->
+            <div class="tm-sv-controls">
+                <!-- Timezone: single searchable dropdown -->
+                <div class="tm-sv-ctrl-group tm-sv-tz-picker" style="min-width:280px;">
+                    <label><i class="fa fa-globe" style="margin-right:4px;"/>View Timezone</label>
+                    <input type="text"
+                           placeholder="Search timezone…"
+                           t-att-value="state.tzDropdownOpen ? state.tzSearch : selectedTzLabel"
+                           t-on-input="onTzSearchInput"
+                           t-on-focus="onTzFocus"
+                           t-on-blur="onTzBlur"/>
+                    <div t-if="state.tzDropdownOpen" class="tm-sv-tz-dropdown">
+                        <t t-if="filteredTimezones.length == 0">
+                            <div class="tm-sv-tz-no-results">No timezones found</div>
+                        </t>
+                        <t t-foreach="filteredTimezones" t-as="tzOpt" t-key="tzOpt.value">
+                            <div t-attf-class="tm-sv-tz-option {{tzOpt.value === state.tz ? 'tm-sv-tz-selected' : ''}}"
+                                 t-att-data-value="tzOpt.value"
+                                 t-on-mousedown="onTzSelect">
+                                <t t-esc="tzOpt.label"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+
+                <!-- Tutor filter -->
+                <div class="tm-sv-ctrl-group">
+                    <label><i class="fa fa-user" style="margin-right:4px;"/>Filter by Tutor</label>
+                    <select t-on-change="onTutorChange">
+                        <option value="">All Tutors</option>
+                        <t t-foreach="state.tutors" t-as="t" t-key="t.id">
+                            <option t-att-value="t.id" t-att-selected="t.id == state.tutor_id ? 'selected' : undefined">
+                                <t t-esc="t.name"/>
+                            </option>
+                        </t>
+                    </select>
+                </div>
+
+                <!-- Student filter -->
+                <div class="tm-sv-ctrl-group">
+                    <label><i class="fa fa-graduation-cap" style="margin-right:4px;"/>Filter by Student</label>
+                    <div class="tm-sv-search-row">
+                        <input type="text" placeholder="Student name…"
+                               t-att-value="state.student_name"
+                               t-on-input="onStudentInput"
+                               t-on-keydown="onStudentKeydown"/>
+                        <button class="tm-sv-search-btn" t-on-click="searchStudent">
+                            <i class="fa fa-search"/>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Schedule Table -->
+            <div class="tm-sv-card">
+                <div class="tm-sv-card-header">
+                    <span>
+                        <t t-esc="state.rows.length"/> lesson(s) found
+                    </span>
+                    <span class="tm-sv-tz-badge">
+                        <i class="fa fa-clock-o" style="margin-right:4px;"/>
+                        Times in: <t t-esc="selectedTzLabel"/>
+                    </span>
+                </div>
+
+                <div t-if="state.loading" class="tm-sv-loading">
+                    <i class="fa fa-spinner fa-spin" style="font-size:24px;"/>
+                    <div style="margin-top:8px;">Loading…</div>
+                </div>
+
+                <t t-elif="state.rows.length > 0">
+                    <table class="tm-sv-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Lesson</th>
+                                <th>Course</th>
+                                <th>Tutor</th>
+                                <th>Status</th>
+                                <th>Attendance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="state.rows" t-as="row" t-key="row.id"
+                                t-on-click="openOccurrence" t-att-data-id="row.id">
+                                <td style="white-space:nowrap;font-weight:600;color:#343a40;">
+                                    <t t-esc="row.display_date"/>
+                                </td>
+                                <td style="white-space:nowrap;">
+                                    <strong><t t-esc="row.display_start"/></strong>
+                                    <span style="color:#adb5bd;"> — </span>
+                                    <span><t t-esc="row.display_stop"/></span>
+                                </td>
+                                <td><t t-esc="row.name"/></td>
+                                <td><t t-esc="row.course_name"/></td>
+                                <td><t t-esc="row.tutor_name"/></td>
+                                <td>
+                                    <span t-attf-class="tm-sv-badge {{row.lesson_status}}">
+                                        <t t-esc="row.lesson_status"/>
+                                    </span>
+                                </td>
+                                <td>
+                                    <i t-if="row.attendance_marked" class="fa fa-check-circle" style="color:#2e7d32;"/>
+                                    <span t-else="" style="color:#adb5bd;">—</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+
+                <div t-else="" class="tm-sv-empty">
+                    <i class="fa fa-calendar-o" style="font-size:28px;display:block;margin-bottom:10px;"/>
+                    No lessons scheduled for this period
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

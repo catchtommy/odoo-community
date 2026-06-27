@@ -116,6 +116,13 @@ class TutorPortal(http.Controller, PortalMixin):
 
         vc_provider_labels = {'bbb': 'BigBlueButton', 'zoom': 'Zoom', 'google_meet': 'Google Meet'}
 
+        # Pre-format datetimes in tutor's timezone
+        next_session_dt_str = self._fmt_dt(next_session.start_datetime) if next_session else '—'
+        week_lesson_times = {
+            l.id: self._fmt_dt(l.start_datetime, '%a %d %b, %H:%M %Z')
+            for l in this_week_lessons
+        }
+
         return request.render('tuition_management.portal_tutor_course_detail', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,
@@ -136,6 +143,8 @@ class TutorPortal(http.Controller, PortalMixin):
             'vc_provider_labels': vc_provider_labels,
             'vc_error': kw.get('vc_error'),
             'vc_success': kw.get('vc_success'),
+            'next_session_dt_str': next_session_dt_str,
+            'week_lesson_times': week_lesson_times,
         })
 
     @http.route(['/my/tutor/courses/<int:course_id>/update-provider'], type='http',

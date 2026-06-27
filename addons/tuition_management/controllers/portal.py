@@ -129,6 +129,10 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 ('start_datetime', '>=', fields.Datetime.now()),
                 ('start_datetime', '<=', datetime.combine(today + timedelta(days=7), datetime.max.time())),
             ], order='start_datetime asc', limit=10)
+            # Pre-format lesson times in the tutor's timezone for the template
+            lesson_times = {}
+            for lesson in upcoming_lessons:
+                lesson_times[lesson.id] = self._fmt_dt(lesson.start_datetime, '%a %d %b %Y, %H:%M %Z')
             values.update({
                 'tutor': tutor,
                 'tutor_course_count': len(courses),
@@ -137,6 +141,8 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 'tutor_courses': courses,
                 'this_week_lesson_count': this_week_lesson_count,
                 'upcoming_lessons': upcoming_lessons,
+                'lesson_times': lesson_times,
+                'user_tz': self._get_user_tz(),
             })
             return request.render('tuition_management.portal_tutor_home_dashboard', values)
 

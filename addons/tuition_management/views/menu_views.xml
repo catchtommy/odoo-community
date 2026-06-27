@@ -15,7 +15,7 @@
     <menuitem id="menu_tuition_courses" name="Courses" parent="menu_tuition_scheduling" action="action_course_masters"/>
     <menuitem id="menu_tuition_enrollments" name="Enrollments" parent="menu_tuition_scheduling" action="action_course_enrollments"/>
     <menuitem id="menu_tuition_class_schedules" name="Class Schedules" parent="menu_tuition_scheduling" action="action_class_schedules"/>
-    <menuitem id="menu_tuition_schedule_calendar" name="Schedule Calendar" parent="menu_tuition_scheduling" action="action_class_schedule_calendar"/>
+    <menuitem id="menu_tuition_schedule_calendar" name="Schedule Calendar" parent="menu_tuition_scheduling" action="action_schedule_viewer"/>
     <menuitem id="menu_tuition_demo_sessions" name="Demo Sessions" parent="menu_tuition_scheduling" action="action_demo_sessions"/>
     <menuitem id="menu_tuition_attendance" name="Attendance" parent="menu_tuition_scheduling" action="action_attendance_records"/>
     <menuitem id="menu_tuition_progress_reports" name="Progress Reports" parent="menu_tuition_scheduling" action="action_progress_reports"/>
