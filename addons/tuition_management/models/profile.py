@@ -4,6 +4,99 @@ from odoo.exceptions import UserError, ValidationError
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
 from .user_permission import require_permission, user_has_permission
 
+COUNTRY_PHONE_CODES = [
+    ('+1',   '+1 (US / Canada)'),
+    ('+7',   '+7 (Russia / Kazakhstan)'),
+    ('+20',  '+20 (Egypt)'),
+    ('+27',  '+27 (South Africa)'),
+    ('+30',  '+30 (Greece)'),
+    ('+31',  '+31 (Netherlands)'),
+    ('+32',  '+32 (Belgium)'),
+    ('+33',  '+33 (France)'),
+    ('+34',  '+34 (Spain)'),
+    ('+36',  '+36 (Hungary)'),
+    ('+39',  '+39 (Italy)'),
+    ('+40',  '+40 (Romania)'),
+    ('+41',  '+41 (Switzerland)'),
+    ('+43',  '+43 (Austria)'),
+    ('+44',  '+44 (UK)'),
+    ('+45',  '+45 (Denmark)'),
+    ('+46',  '+46 (Sweden)'),
+    ('+47',  '+47 (Norway)'),
+    ('+48',  '+48 (Poland)'),
+    ('+49',  '+49 (Germany)'),
+    ('+51',  '+51 (Peru)'),
+    ('+52',  '+52 (Mexico)'),
+    ('+53',  '+53 (Cuba)'),
+    ('+54',  '+54 (Argentina)'),
+    ('+55',  '+55 (Brazil)'),
+    ('+56',  '+56 (Chile)'),
+    ('+57',  '+57 (Colombia)'),
+    ('+58',  '+58 (Venezuela)'),
+    ('+60',  '+60 (Malaysia)'),
+    ('+61',  '+61 (Australia)'),
+    ('+62',  '+62 (Indonesia)'),
+    ('+63',  '+63 (Philippines)'),
+    ('+64',  '+64 (New Zealand)'),
+    ('+65',  '+65 (Singapore)'),
+    ('+66',  '+66 (Thailand)'),
+    ('+81',  '+81 (Japan)'),
+    ('+82',  '+82 (South Korea)'),
+    ('+84',  '+84 (Vietnam)'),
+    ('+86',  '+86 (China)'),
+    ('+90',  '+90 (Turkey)'),
+    ('+91',  '+91 (India)'),
+    ('+92',  '+92 (Pakistan)'),
+    ('+93',  '+93 (Afghanistan)'),
+    ('+94',  '+94 (Sri Lanka)'),
+    ('+95',  '+95 (Myanmar)'),
+    ('+98',  '+98 (Iran)'),
+    ('+212', '+212 (Morocco)'),
+    ('+213', '+213 (Algeria)'),
+    ('+216', '+216 (Tunisia)'),
+    ('+218', '+218 (Libya)'),
+    ('+220', '+220 (Gambia)'),
+    ('+221', '+221 (Senegal)'),
+    ('+223', '+223 (Mali)'),
+    ('+225', '+225 (Ivory Coast)'),
+    ('+233', '+233 (Ghana)'),
+    ('+234', '+234 (Nigeria)'),
+    ('+254', '+254 (Kenya)'),
+    ('+255', '+255 (Tanzania)'),
+    ('+256', '+256 (Uganda)'),
+    ('+260', '+260 (Zambia)'),
+    ('+263', '+263 (Zimbabwe)'),
+    ('+351', '+351 (Portugal)'),
+    ('+352', '+352 (Luxembourg)'),
+    ('+353', '+353 (Ireland)'),
+    ('+354', '+354 (Iceland)'),
+    ('+355', '+355 (Albania)'),
+    ('+356', '+356 (Malta)'),
+    ('+358', '+358 (Finland)'),
+    ('+370', '+370 (Lithuania)'),
+    ('+371', '+371 (Latvia)'),
+    ('+372', '+372 (Estonia)'),
+    ('+380', '+380 (Ukraine)'),
+    ('+381', '+381 (Serbia)'),
+    ('+385', '+385 (Croatia)'),
+    ('+386', '+386 (Slovenia)'),
+    ('+420', '+420 (Czech Republic)'),
+    ('+421', '+421 (Slovakia)'),
+    ('+966', '+966 (Saudi Arabia)'),
+    ('+971', '+971 (UAE)'),
+    ('+972', '+972 (Israel)'),
+    ('+973', '+973 (Bahrain)'),
+    ('+974', '+974 (Qatar)'),
+    ('+975', '+975 (Bhutan)'),
+    ('+976', '+976 (Mongolia)'),
+    ('+977', '+977 (Nepal)'),
+    ('+992', '+992 (Tajikistan)'),
+    ('+994', '+994 (Azerbaijan)'),
+    ('+995', '+995 (Georgia)'),
+    ('+996', '+996 (Kyrgyzstan)'),
+    ('+998', '+998 (Uzbekistan)'),
+]
+
 
 class TutorAvailability(models.Model):
     _name = 'tutor.availability'
@@ -285,7 +378,7 @@ class TutorProfile(models.Model):
 
     name = fields.Char(string='Full Name', required=True)
     email = fields.Char(string='Email')
-    country_code = fields.Char(string='Country Code', default='+1')
+    country_code = fields.Selection(COUNTRY_PHONE_CODES, string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
     timezone = fields.Selection(selection=get_tz_selection, string='Timezone', default=DEFAULT_TIMEZONE)
     status = fields.Selection(
@@ -313,11 +406,26 @@ class TutorProfile(models.Model):
         store=False,
     )
     partner_id = fields.Many2one('res.partner', string='Contact')
+    employee_id = fields.Many2one(
+        'hr.employee',
+        string='Employee',
+        ondelete='set null',
+        help="Link to the HR employee record for this tutor.",
+    )
     active = fields.Boolean(default=True)
     portal_user_id = fields.Many2one('res.users', string='Portal User', compute='_compute_portal_access', store=False)
     portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
     can_edit_tutor = fields.Boolean(string='Can Edit Tutor', compute='_compute_can_edit_tutor')
+
+    @api.onchange('employee_id')
+    def _onchange_employee_id(self):
+        if self.employee_id:
+            self.name = self.employee_id.name or self.name
+            self.email = self.employee_id.work_email or self.email
+            self.phone = self.employee_id.work_phone or self.phone
+            self.timezone = self.employee_id.tz or self.timezone
+
 
     @api.depends_context('uid')
     def _compute_can_edit_tutor(self):
@@ -455,8 +563,12 @@ class TutorProfile(models.Model):
         return records
 
     def write(self, vals):
-        require_permission(self.env.user, 'tutor_edit')
+        syncing = self.env.context.get('syncing_tutor_employee')
+        if not syncing:
+            require_permission(self.env.user, 'tutor_edit')
         res = super().write(vals)
+        _emp_sync = [('name', 'name'), ('email', 'work_email'), ('phone', 'work_phone'), ('timezone', 'tz')]
+        emp_vals = {ef: vals[tf] for tf, ef in _emp_sync if tf in vals}
         for rec in self:
             if rec.partner_id:
                 partner_vals = {}
@@ -466,6 +578,8 @@ class TutorProfile(models.Model):
                     partner_vals['phone'] = '%s%s' % (rec.country_code or '', rec.phone or '')
                 if partner_vals:
                     rec.partner_id.write(partner_vals)
+            if emp_vals and rec.employee_id and not syncing:
+                rec.employee_id.with_context(syncing_tutor_employee=True).write(emp_vals)
         return res
 
     def unlink(self):
@@ -481,7 +595,7 @@ class StudentProfile(models.Model):
     name = fields.Char(string='Full Name', required=True)
     partner_id = fields.Many2one('res.partner', string='Contact', required=True, ondelete='cascade')
     email = fields.Char(string='Email')
-    country_code = fields.Char(string='Country Code', default='+1')
+    country_code = fields.Selection(COUNTRY_PHONE_CODES, string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
     age = fields.Integer(string='Age')
     grade_id = fields.Many2one('grade.master', string='Grade', required=True)
@@ -599,7 +713,7 @@ class ParentProfile(models.Model):
     partner_id = fields.Many2one('res.partner', string='Contact', required=True, ondelete='cascade')
     email = fields.Char(string='Email')
     phone = fields.Char(string='Phone')
-    country_code = fields.Char(string='Country Code', default='+1')
+    country_code = fields.Selection(COUNTRY_PHONE_CODES, string='Country Code', default='+1')
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=True)
     can_edit_parent = fields.Boolean(string='Can Edit Parent', compute='_compute_can_edit_parent')
 

@@ -14,6 +14,7 @@
         "account",
         "sale",
         "base_setup",
+        "hr",
     ],
     "data": [
         "security/virtual_classroom_security.xml",
@@ -22,6 +23,7 @@
         "data/ir_sequence_data.xml",
         "views/master_views.xml",
         "views/profile_views.xml",
+        "views/hr_employee_views.xml",
         "views/tutor_import_views.xml",
         "views/master_import_views.xml",
         "views/course_views.xml",

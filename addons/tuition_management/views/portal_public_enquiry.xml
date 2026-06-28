@@ -61,9 +61,99 @@
                             <div class="row mb-3">
                                 <div class="col-4">
                                     <label class="form-label fw-bold" style="font-size:12px;">Country Code</label>
-                                    <input type="text" name="country_code" class="form-control"
-                                           style="border-radius:8px;font-size:13px;" placeholder="+44"
-                                           t-att-value="form_data.get('country_code', '') if form_data else ''"/>
+                                    <select name="country_code" class="form-control" style="border-radius:8px;font-size:13px;">
+                                        <option value="">-- Select --</option>
+                                        <option value="+1"   t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+1'   else None">+1 (US / Canada)</option>
+                                        <option value="+7"   t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+7'   else None">+7 (Russia / Kazakhstan)</option>
+                                        <option value="+20"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+20'  else None">+20 (Egypt)</option>
+                                        <option value="+27"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+27'  else None">+27 (South Africa)</option>
+                                        <option value="+30"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+30'  else None">+30 (Greece)</option>
+                                        <option value="+31"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+31'  else None">+31 (Netherlands)</option>
+                                        <option value="+32"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+32'  else None">+32 (Belgium)</option>
+                                        <option value="+33"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+33'  else None">+33 (France)</option>
+                                        <option value="+34"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+34'  else None">+34 (Spain)</option>
+                                        <option value="+36"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+36'  else None">+36 (Hungary)</option>
+                                        <option value="+39"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+39'  else None">+39 (Italy)</option>
+                                        <option value="+40"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+40'  else None">+40 (Romania)</option>
+                                        <option value="+41"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+41'  else None">+41 (Switzerland)</option>
+                                        <option value="+43"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+43'  else None">+43 (Austria)</option>
+                                        <option value="+44"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+44'  else None">+44 (UK)</option>
+                                        <option value="+45"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+45'  else None">+45 (Denmark)</option>
+                                        <option value="+46"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+46'  else None">+46 (Sweden)</option>
+                                        <option value="+47"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+47'  else None">+47 (Norway)</option>
+                                        <option value="+48"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+48'  else None">+48 (Poland)</option>
+                                        <option value="+49"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+49'  else None">+49 (Germany)</option>
+                                        <option value="+51"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+51'  else None">+51 (Peru)</option>
+                                        <option value="+52"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+52'  else None">+52 (Mexico)</option>
+                                        <option value="+53"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+53'  else None">+53 (Cuba)</option>
+                                        <option value="+54"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+54'  else None">+54 (Argentina)</option>
+                                        <option value="+55"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+55'  else None">+55 (Brazil)</option>
+                                        <option value="+56"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+56'  else None">+56 (Chile)</option>
+                                        <option value="+57"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+57'  else None">+57 (Colombia)</option>
+                                        <option value="+58"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+58'  else None">+58 (Venezuela)</option>
+                                        <option value="+60"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+60'  else None">+60 (Malaysia)</option>
+                                        <option value="+61"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+61'  else None">+61 (Australia)</option>
+                                        <option value="+62"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+62'  else None">+62 (Indonesia)</option>
+                                        <option value="+63"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+63'  else None">+63 (Philippines)</option>
+                                        <option value="+64"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+64'  else None">+64 (New Zealand)</option>
+                                        <option value="+65"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+65'  else None">+65 (Singapore)</option>
+                                        <option value="+66"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+66'  else None">+66 (Thailand)</option>
+                                        <option value="+81"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+81'  else None">+81 (Japan)</option>
+                                        <option value="+82"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+82'  else None">+82 (South Korea)</option>
+                                        <option value="+84"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+84'  else None">+84 (Vietnam)</option>
+                                        <option value="+86"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+86'  else None">+86 (China)</option>
+                                        <option value="+90"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+90'  else None">+90 (Turkey)</option>
+                                        <option value="+91"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+91'  else None">+91 (India)</option>
+                                        <option value="+92"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+92'  else None">+92 (Pakistan)</option>
+                                        <option value="+93"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+93'  else None">+93 (Afghanistan)</option>
+                                        <option value="+94"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+94'  else None">+94 (Sri Lanka)</option>
+                                        <option value="+95"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+95'  else None">+95 (Myanmar)</option>
+                                        <option value="+98"  t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+98'  else None">+98 (Iran)</option>
+                                        <option value="+212" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+212' else None">+212 (Morocco)</option>
+                                        <option value="+213" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+213' else None">+213 (Algeria)</option>
+                                        <option value="+216" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+216' else None">+216 (Tunisia)</option>
+                                        <option value="+218" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+218' else None">+218 (Libya)</option>
+                                        <option value="+220" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+220' else None">+220 (Gambia)</option>
+                                        <option value="+221" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+221' else None">+221 (Senegal)</option>
+                                        <option value="+223" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+223' else None">+223 (Mali)</option>
+                                        <option value="+225" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+225' else None">+225 (Ivory Coast)</option>
+                                        <option value="+233" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+233' else None">+233 (Ghana)</option>
+                                        <option value="+234" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+234' else None">+234 (Nigeria)</option>
+                                        <option value="+254" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+254' else None">+254 (Kenya)</option>
+                                        <option value="+255" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+255' else None">+255 (Tanzania)</option>
+                                        <option value="+256" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+256' else None">+256 (Uganda)</option>
+                                        <option value="+260" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+260' else None">+260 (Zambia)</option>
+                                        <option value="+263" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+263' else None">+263 (Zimbabwe)</option>
+                                        <option value="+351" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+351' else None">+351 (Portugal)</option>
+                                        <option value="+352" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+352' else None">+352 (Luxembourg)</option>
+                                        <option value="+353" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+353' else None">+353 (Ireland)</option>
+                                        <option value="+354" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+354' else None">+354 (Iceland)</option>
+                                        <option value="+355" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+355' else None">+355 (Albania)</option>
+                                        <option value="+356" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+356' else None">+356 (Malta)</option>
+                                        <option value="+358" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+358' else None">+358 (Finland)</option>
+                                        <option value="+370" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+370' else None">+370 (Lithuania)</option>
+                                        <option value="+371" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+371' else None">+371 (Latvia)</option>
+                                        <option value="+372" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+372' else None">+372 (Estonia)</option>
+                                        <option value="+380" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+380' else None">+380 (Ukraine)</option>
+                                        <option value="+381" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+381' else None">+381 (Serbia)</option>
+                                        <option value="+385" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+385' else None">+385 (Croatia)</option>
+                                        <option value="+386" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+386' else None">+386 (Slovenia)</option>
+                                        <option value="+420" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+420' else None">+420 (Czech Republic)</option>
+                                        <option value="+421" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+421' else None">+421 (Slovakia)</option>
+                                        <option value="+966" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+966' else None">+966 (Saudi Arabia)</option>
+                                        <option value="+971" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+971' else None">+971 (UAE)</option>
+                                        <option value="+972" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+972' else None">+972 (Israel)</option>
+                                        <option value="+973" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+973' else None">+973 (Bahrain)</option>
+                                        <option value="+974" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+974' else None">+974 (Qatar)</option>
+                                        <option value="+975" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+975' else None">+975 (Bhutan)</option>
+                                        <option value="+976" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+976' else None">+976 (Mongolia)</option>
+                                        <option value="+977" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+977' else None">+977 (Nepal)</option>
+                                        <option value="+992" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+992' else None">+992 (Tajikistan)</option>
+                                        <option value="+994" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+994' else None">+994 (Azerbaijan)</option>
+                                        <option value="+995" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+995' else None">+995 (Georgia)</option>
+                                        <option value="+996" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+996' else None">+996 (Kyrgyzstan)</option>
+                                        <option value="+998" t-att-selected="'selected' if (form_data.get('country_code') if form_data else '') == '+998' else None">+998 (Uzbekistan)</option>
+                                    </select>
                                 </div>
                                 <div class="col-8">
                                     <label class="form-label fw-bold" style="font-size:12px;">Phone Number</label>

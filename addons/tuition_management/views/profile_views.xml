@@ -49,8 +49,11 @@
                         <group string="Student Information">
                             <field name="age"/>
                             <field name="email"/>
-                            <field name="country_code" string="Country Code"/>
-                            <field name="phone"/>
+                            <label for="phone" string="Phone"/>
+                            <div class="d-flex gap-2">
+                                <field name="country_code" nolabel="1" style="max-width:130px;"/>
+                                <field name="phone" nolabel="1"/>
+                            </div>
                             <field name="timezone" required="1"/>
                             <field name="status"/>
                             <field name="partner_id" invisible="1"/>
@@ -129,9 +132,13 @@
                     </div>
                     <group readonly="not can_edit_tutor">
                         <group string="Contact Information">
+                            <field name="employee_id" options="{'no_create': True}"/>
                             <field name="email"/>
-                            <field name="country_code" string="Country Code"/>
-                            <field name="phone"/>
+                            <label for="phone" string="Phone"/>
+                            <div class="d-flex gap-2">
+                                <field name="country_code" nolabel="1" style="max-width:130px;"/>
+                                <field name="phone" nolabel="1"/>
+                            </div>
                             <field name="timezone"/>
                             <field name="status"/>
                             <field name="partner_id"/>
@@ -296,8 +303,11 @@
                     <group readonly="not can_edit_parent">
                         <group string="Contact Information">
                             <field name="email"/>
-                            <field name="country_code" string="Country Code"/>
-                            <field name="phone"/>
+                            <label for="phone" string="Phone"/>
+                            <div class="d-flex gap-2">
+                                <field name="country_code" nolabel="1" style="max-width:130px;"/>
+                                <field name="phone" nolabel="1"/>
+                            </div>
                             <field name="timezone"/>
                             <field name="status"/>
                             <field name="partner_id" invisible="1"/>
