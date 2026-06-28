@@ -67,7 +67,7 @@
                                        decoration-muted="state == 'expired'"/>
                                 <field name="notes"/>
                                 <button name="action_approve" type="object"
-                                        icon="fa-check" title="Approve"
+                                        string="Approve" class="btn-primary btn-sm"
                                         invisible="state != 'pending_approval'"
                                         groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
                                 <button name="action_set_draft" type="object"
