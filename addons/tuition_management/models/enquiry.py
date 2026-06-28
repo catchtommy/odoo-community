@@ -452,8 +452,9 @@ class Enquiry(models.Model):
             'grade_id': self.grade_id.id if self.grade_id else False,
             'partner_id': student_partner.id,
             'parent_id': parent.id if parent else False,
+            'subjects_ids': [(4, self.subject_id.id)] if self.subject_id else False,
         }
-            
+
         student = Student.create(student_vals)
         return student
 
