@@ -39,6 +39,12 @@
         <field name="privilege_id" ref="privilege_tuition_management"/>
     </record>
 
+    <!-- — Scheduling / Attendance — -->
+    <record id="group_tuition_attendance_approve" model="res.groups">
+        <field name="name">Tuition / Approve Attendance</field>
+        <field name="privilege_id" ref="privilege_tuition_management"/>
+    </record>
+
     <!-- — Finance — -->
     <record id="group_tuition_parent_invoice_view" model="res.groups">
         <field name="name">Tuition / View Parent Invoices</field>
@@ -191,6 +197,7 @@
             (4, ref('group_tuition_enquiry_delete')),
             (4, ref('group_tuition_course_delete')),
             (4, ref('group_tuition_course_cancel')),
+            (4, ref('group_tuition_attendance_approve')),
             (4, ref('group_tuition_settings_access')),
             (4, ref('group_tuition_reports_access')),
         ]"/>

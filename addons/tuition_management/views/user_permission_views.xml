@@ -144,6 +144,8 @@
                                                widget="boolean_toggle"/>
                                         <field name="course_cancel"
                                                widget="boolean_toggle"/>
+                                        <field name="attendance_approve"
+                                               widget="boolean_toggle"/>
                                     </group>
                                 </div>
                             </div>

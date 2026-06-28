@@ -48,6 +48,7 @@ PERMISSION_GROUP_MAP = {
     'enquiry_delete':             'group_tuition_enquiry_delete',
     'course_delete':              'group_tuition_course_delete',
     'course_cancel':              'group_tuition_course_cancel',
+    'attendance_approve':         'group_tuition_attendance_approve',
     'settings_access':            'group_tuition_settings_access',
     'reports_access':             'group_tuition_reports_access',
 }
@@ -85,6 +86,7 @@ PERMISSION_LABELS = {
     'enquiry_delete':             'Delete Enquiries',
     'course_delete':              'Delete Courses',
     'course_cancel':              'Cancel Courses',
+    'attendance_approve':         'Approve Attendance',
     'settings_access':            'Access Settings',
     'reports_access':             'Access Reports',
 }
@@ -257,6 +259,9 @@ class UserPermissionGroup(models.Model):
     course_cancel = fields.Boolean(
         string='Cancel Courses', tracking=True,
         help='Can cancel active course records.')
+    attendance_approve = fields.Boolean(
+        string='Approve Attendance', tracking=True,
+        help='Can view and action the Attendance Approvals menu (lessons under review).')
 
     # ── System ────────────────────────────────────────────────────────────
     settings_access = fields.Boolean(

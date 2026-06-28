@@ -1,0 +1,265 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ATTENDANCE APPROVALS  (lesson_status = 'under_review')
+═══════════════════════════════════════════════════════════════ -->
+<record id="view_approval_attendance_search" model="ir.ui.view">
+    <field name="name">approval.attendance.search</field>
+    <field name="model">class.schedule.occurrence</field>
+    <field name="arch" type="xml">
+        <search string="Search Attendance Approvals">
+            <field name="tutor_id" string="Tutor"/>
+            <field name="course_id" string="Course"/>
+            <field name="attendance_ids" string="Student"
+                   filter_domain="[('attendance_ids.student_id', 'child_of', self)]"/>
+            <filter string="Under Review" name="under_review"
+                    domain="[('lesson_status', '=', 'under_review')]"/>
+            <separator/>
+            <filter string="Date From" name="date_from"
+                    domain="[('start_datetime', '&gt;=', context_today().strftime('%Y-%m-%d'))]"/>
+            <filter string="This Week" name="this_week"
+                    domain="[('start_datetime', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d')),
+                              ('start_datetime', '&lt;=', (context_today() - datetime.timedelta(days=context_today().weekday() - 6)).strftime('%Y-%m-%d'))]"/>
+            <separator/>
+            <filter string="Group by Tutor" name="by_tutor" context="{'group_by': 'tutor_id'}"/>
+            <filter string="Group by Course" name="by_course" context="{'group_by': 'course_id'}"/>
+            <filter string="Group by Date" name="by_date" context="{'group_by': 'start_datetime:day'}"/>
+        </search>
+    </field>
+</record>
+
+<record id="view_approval_attendance_list" model="ir.ui.view">
+    <field name="name">approval.attendance.list</field>
+    <field name="model">class.schedule.occurrence</field>
+    <field name="arch" type="xml">
+        <list string="Attendance Approvals" create="false" delete="false"
+              decoration-warning="lesson_status == 'under_review'">
+            <field name="name" string="Lesson"/>
+            <field name="course_id"/>
+            <field name="tutor_id"/>
+            <field name="start_datetime" string="Lesson Time"/>
+            <field name="lesson_status" string="Status" widget="badge"
+                   decoration-warning="lesson_status == 'under_review'"
+                   decoration-success="lesson_status == 'completed'"/>
+            <field name="attendance_marked" string="Attendance Marked"/>
+            <button name="action_mark_attendance" type="object"
+                    string="Review Attendance" class="btn-primary btn-sm"
+                    icon="fa-check-square-o"/>
+        </list>
+    </field>
+</record>
+
+<record id="action_approval_attendance" model="ir.actions.act_window">
+    <field name="name">Attendance Approvals</field>
+    <field name="res_model">class.schedule.occurrence</field>
+    <field name="view_mode">list,form</field>
+    <field name="domain">[('lesson_status', '=', 'under_review')]</field>
+    <field name="view_ids" eval="[(5, 0, 0),
+        (0, 0, {'view_mode': 'list', 'view_id': ref('view_approval_attendance_list')}),
+        (0, 0, {'view_mode': 'form', 'view_id': ref('view_class_schedule_occurrence_form')})]"/>
+    <field name="search_view_id" ref="view_approval_attendance_search"/>
+    <field name="context">{'search_default_under_review': 1}</field>
+</record>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     SUBSCRIPTION (PLAN) APPROVALS  (tuition.plan.line pending_approval)
+═══════════════════════════════════════════════════════════════ -->
+<record id="view_approval_plan_line_list" model="ir.ui.view">
+    <field name="name">approval.plan.line.list</field>
+    <field name="model">tuition.plan.line</field>
+    <field name="arch" type="xml">
+        <list string="Subscription Approvals" create="false" delete="false"
+              decoration-warning="state == 'pending_approval'">
+            <field name="student_id" string="Student"/>
+            <field name="subscription_id" string="Subscription"/>
+            <field name="product_id" string="Plan"/>
+            <field name="price" string="Monthly Price"/>
+            <field name="classes_per_week" string="Classes/Week"/>
+            <field name="start_date"/>
+            <field name="end_date"/>
+            <field name="notes"/>
+            <field name="state" widget="badge"
+                   decoration-warning="state == 'pending_approval'"
+                   decoration-success="state == 'active'"
+                   decoration-info="state == 'scheduled'"
+                   decoration-muted="state == 'expired'"/>
+            <button name="action_approve" type="object"
+                    string="Approve" class="btn-primary btn-sm"
+                    invisible="state != 'pending_approval'"
+                    groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
+        </list>
+    </field>
+</record>
+
+<record id="view_approval_plan_line_search" model="ir.ui.view">
+    <field name="name">approval.plan.line.search</field>
+    <field name="model">tuition.plan.line</field>
+    <field name="arch" type="xml">
+        <search string="Search Subscription Approvals">
+            <field name="student_id" string="Student"/>
+            <field name="subscription_id" string="Subscription"/>
+            <field name="product_id" string="Plan"/>
+            <filter string="Pending Approval" name="pending"
+                    domain="[('state', '=', 'pending_approval')]"/>
+            <separator/>
+            <filter string="Group by Student" name="by_student" context="{'group_by': 'student_id'}"/>
+        </search>
+    </field>
+</record>
+
+<record id="action_approval_plan_lines" model="ir.actions.act_window">
+    <field name="name">Subscription Approvals</field>
+    <field name="res_model">tuition.plan.line</field>
+    <field name="view_mode">list</field>
+    <field name="domain">[('state', '=', 'pending_approval')]</field>
+    <field name="view_ids" eval="[(5, 0, 0),
+        (0, 0, {'view_mode': 'list', 'view_id': ref('view_approval_plan_line_list')})]"/>
+    <field name="search_view_id" ref="view_approval_plan_line_search"/>
+    <field name="context">{'search_default_pending': 1}</field>
+</record>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     DISCOUNT APPROVALS  (tuition.discount pending_approval)
+═══════════════════════════════════════════════════════════════ -->
+<record id="view_approval_discount_list" model="ir.ui.view">
+    <field name="name">approval.discount.list</field>
+    <field name="model">tuition.discount</field>
+    <field name="arch" type="xml">
+        <list string="Discount Approvals" create="false" delete="false"
+              decoration-warning="state == 'pending_approval'">
+            <field name="student_id" string="Student"/>
+            <field name="subscription_id" string="Subscription"/>
+            <field name="name" string="Discount Name"/>
+            <field name="discount_type" string="Type"/>
+            <field name="value" string="Value"/>
+            <field name="date_start" string="From"/>
+            <field name="date_end" string="Until"/>
+            <field name="state" widget="badge"
+                   decoration-warning="state == 'pending_approval'"
+                   decoration-success="state == 'active'"
+                   decoration-muted="state == 'inactive'"/>
+            <button name="action_approve" type="object"
+                    string="Approve" class="btn-primary btn-sm"
+                    invisible="state != 'pending_approval'"
+                    groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
+        </list>
+    </field>
+</record>
+
+<record id="view_approval_discount_search" model="ir.ui.view">
+    <field name="name">approval.discount.search</field>
+    <field name="model">tuition.discount</field>
+    <field name="arch" type="xml">
+        <search string="Search Discount Approvals">
+            <field name="student_id" string="Student"/>
+            <field name="subscription_id" string="Subscription"/>
+            <field name="name" string="Discount Name"/>
+            <filter string="Pending Approval" name="pending"
+                    domain="[('state', '=', 'pending_approval')]"/>
+            <separator/>
+            <filter string="Group by Student" name="by_student" context="{'group_by': 'student_id'}"/>
+            <filter string="Group by Type" name="by_type" context="{'group_by': 'discount_type'}"/>
+        </search>
+    </field>
+</record>
+
+<record id="action_approval_discounts" model="ir.actions.act_window">
+    <field name="name">Discount Approvals</field>
+    <field name="res_model">tuition.discount</field>
+    <field name="view_mode">list</field>
+    <field name="domain">[('state', '=', 'pending_approval')]</field>
+    <field name="view_ids" eval="[(5, 0, 0),
+        (0, 0, {'view_mode': 'list', 'view_id': ref('view_approval_discount_list')})]"/>
+    <field name="search_view_id" ref="view_approval_discount_search"/>
+    <field name="context">{'search_default_pending': 1}</field>
+</record>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     ADJUSTMENT APPROVALS  (tuition.adjustment pending_approval)
+═══════════════════════════════════════════════════════════════ -->
+<record id="view_approval_adjustment_list" model="ir.ui.view">
+    <field name="name">approval.adjustment.list</field>
+    <field name="model">tuition.adjustment</field>
+    <field name="arch" type="xml">
+        <list string="Adjustment Approvals" create="false" delete="false"
+              decoration-warning="state == 'pending_approval'">
+            <field name="student_id" string="Student"/>
+            <field name="subscription_id" string="Subscription"/>
+            <field name="date"/>
+            <field name="adjustment_type" string="Type"/>
+            <field name="description"/>
+            <field name="amount"/>
+            <field name="signed_amount" string="Net Amount"/>
+            <field name="state" widget="badge"
+                   decoration-warning="state == 'pending_approval'"
+                   decoration-success="state == 'approved'"
+                   decoration-muted="state == 'applied'"/>
+            <button name="action_approve" type="object"
+                    string="Approve" class="btn-primary btn-sm"
+                    invisible="state != 'pending_approval'"
+                    groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
+        </list>
+    </field>
+</record>
+
+<record id="view_approval_adjustment_search" model="ir.ui.view">
+    <field name="name">approval.adjustment.search</field>
+    <field name="model">tuition.adjustment</field>
+    <field name="arch" type="xml">
+        <search string="Search Adjustment Approvals">
+            <field name="student_id" string="Student"/>
+            <field name="subscription_id" string="Subscription"/>
+            <field name="adjustment_type" string="Type"/>
+            <filter string="Pending Approval" name="pending"
+                    domain="[('state', '=', 'pending_approval')]"/>
+            <separator/>
+            <filter string="Group by Student" name="by_student" context="{'group_by': 'student_id'}"/>
+            <filter string="Group by Type" name="by_type" context="{'group_by': 'adjustment_type'}"/>
+        </search>
+    </field>
+</record>
+
+<record id="action_approval_adjustments" model="ir.actions.act_window">
+    <field name="name">Adjustment Approvals</field>
+    <field name="res_model">tuition.adjustment</field>
+    <field name="view_mode">list</field>
+    <field name="domain">[('state', '=', 'pending_approval')]</field>
+    <field name="view_ids" eval="[(5, 0, 0),
+        (0, 0, {'view_mode': 'list', 'view_id': ref('view_approval_adjustment_list')})]"/>
+    <field name="search_view_id" ref="view_approval_adjustment_search"/>
+    <field name="context">{'search_default_pending': 1}</field>
+</record>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     TUTOR PAYROLL APPROVALS  (tutor.payment.run run_status = 'preview')
+═══════════════════════════════════════════════════════════════ -->
+<record id="action_approval_tutor_payroll" model="ir.actions.act_window">
+    <field name="name">Tutor Payroll Approvals</field>
+    <field name="res_model">tutor.payment.run</field>
+    <field name="view_mode">list,form</field>
+    <field name="domain">[('run_status', '=', 'preview')]</field>
+    <field name="view_ids" eval="[(5, 0, 0),
+        (0, 0, {'view_mode': 'list', 'view_id': ref('view_tutor_payment_run_list')}),
+        (0, 0, {'view_mode': 'form', 'view_id': ref('view_tutor_payment_run_form')})]"/>
+</record>
+
+
+<!-- ═══════════════════════════════════════════════════════════════
+     PARENT INVOICE APPROVALS  (parent.billing.run state = 'preview')
+═══════════════════════════════════════════════════════════════ -->
+<record id="action_approval_parent_invoice" model="ir.actions.act_window">
+    <field name="name">Parent Invoice Approvals</field>
+    <field name="res_model">parent.billing.run</field>
+    <field name="view_mode">list,form</field>
+    <field name="domain">[('state', '=', 'preview')]</field>
+    <field name="view_ids" eval="[(5, 0, 0),
+        (0, 0, {'view_mode': 'list', 'view_id': ref('view_parent_billing_run_list')}),
+        (0, 0, {'view_mode': 'form', 'view_id': ref('view_parent_billing_run_form')})]"/>
+</record>
+
+</odoo>

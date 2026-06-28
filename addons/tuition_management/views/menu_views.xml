@@ -25,6 +25,28 @@
     <!-- Enquiries -->
     <menuitem id="menu_tuition_enquiries" name="Enquiries" parent="menu_tuition_root" sequence="20" action="action_enquiry"/>
 
+    <!-- Approvals -->
+    <menuitem id="menu_tuition_approvals" name="Approvals" parent="menu_tuition_root" sequence="22"
+              groups="tuition_management.group_tuition_attendance_approve,tuition_management.group_tuition_subscription_approve,tuition_management.group_tuition_tutor_payroll_approve,tuition_management.group_tuition_parent_invoice_approve,base.group_system"/>
+    <menuitem id="menu_tuition_approval_attendance" name="Attendance Approvals"
+              parent="menu_tuition_approvals" action="action_approval_attendance"
+              groups="tuition_management.group_tuition_attendance_approve,base.group_system"/>
+    <menuitem id="menu_tuition_approval_subscription" name="Subscription Approvals"
+              parent="menu_tuition_approvals" action="action_approval_plan_lines"
+              groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
+    <menuitem id="menu_tuition_approval_discounts" name="Discount Approvals"
+              parent="menu_tuition_approvals" action="action_approval_discounts"
+              groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
+    <menuitem id="menu_tuition_approval_adjustments" name="Adjustment Approvals"
+              parent="menu_tuition_approvals" action="action_approval_adjustments"
+              groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
+    <menuitem id="menu_tuition_approval_payroll" name="Tutor Payroll Approvals"
+              parent="menu_tuition_approvals" action="action_approval_tutor_payroll"
+              groups="tuition_management.group_tuition_tutor_payroll_approve,base.group_system"/>
+    <menuitem id="menu_tuition_approval_parent_invoice" name="Parent Invoice Approvals"
+              parent="menu_tuition_approvals" action="action_approval_parent_invoice"
+              groups="tuition_management.group_tuition_parent_invoice_approve,base.group_system"/>
+
     <!-- Payroll -->
     <menuitem id="menu_tuition_payroll" name="Payroll" parent="menu_tuition_root" sequence="25"
               groups="tuition_management.group_tuition_payroll_view,base.group_system"/>

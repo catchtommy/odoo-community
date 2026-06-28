@@ -195,6 +195,7 @@ class TuitionDiscount(models.Model):
     _order = 'date_start desc'
 
     subscription_id = fields.Many2one('tuition.subscription', required=True, ondelete='cascade')
+    student_id = fields.Many2one('student.profile', related='subscription_id.student_id', store=True, readonly=True)
     name = fields.Char(string='Discount Name', required=True)
     discount_type = fields.Selection([('percentage', 'Percentage (%)'), ('amount', 'Fixed Amount')],
                                      string='Type', required=True, default='percentage')
@@ -246,6 +247,7 @@ class TuitionPlanLine(models.Model):
     _order = 'start_date desc'
 
     subscription_id = fields.Many2one('tuition.subscription', required=True, ondelete='cascade')
+    student_id = fields.Many2one('student.profile', related='subscription_id.student_id', store=True, readonly=True)
     product_id = fields.Many2one('product.product', string='Plan Product', required=True)
     price = fields.Float(string='Monthly Price', required=True)
     classes_per_week = fields.Integer(string='Classes per Week', required=True, default=1)
