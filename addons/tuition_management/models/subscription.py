@@ -42,6 +42,14 @@ class TuitionSubscription(models.Model):
         string='Can Edit Billing Date',
         compute='_compute_can_edit_billing_date',
     )
+    can_add_plan = fields.Boolean(
+        string='Can Add Plan',
+        compute='_compute_can_add_plan',
+    )
+    can_edit_plan = fields.Boolean(
+        string='Can Edit Plan',
+        compute='_compute_can_edit_plan',
+    )
 
     @api.depends('student_id', 'enrollment_id')
     def _compute_name(self):
@@ -88,6 +96,24 @@ class TuitionSubscription(models.Model):
         )
         for rec in self:
             rec.can_edit_billing_date = can_edit
+
+    @api.depends_context('uid')
+    def _compute_can_add_plan(self):
+        can_add = (
+            self.env.user.has_group('base.group_system') or
+            user_has_permission(self.env.user, 'subscription_add_plan')
+        )
+        for rec in self:
+            rec.can_add_plan = can_add
+
+    @api.depends_context('uid')
+    def _compute_can_edit_plan(self):
+        can_edit = (
+            self.env.user.has_group('base.group_system') or
+            user_has_permission(self.env.user, 'subscription_edit_plan')
+        )
+        for rec in self:
+            rec.can_edit_plan = can_edit
 
     @api.depends('invoice_ids', 'invoice_ids.state')
     def _compute_invoice_count(self):
@@ -268,6 +294,11 @@ class TuitionPlanLine(models.Model):
             "UPDATE tuition_plan_line SET approval_state = 'approved' WHERE approval_state IS NULL"
         )
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        require_permission(self.env.user, 'subscription_add_plan')
+        return super().create(vals_list)
+
     def action_approve(self):
         require_permission(self.env.user, 'subscription_approve')
         self.write({'approval_state': 'approved'})
@@ -344,6 +375,27 @@ class TuitionPlanLine(models.Model):
                     )
 
     def write(self, vals):
+        # Content fields: editable only when plan is pending approval.
+        # end_date: also editable when scheduled (e.g. to set an expiry early).
+        # approval_state and end_date (wizard close) are excluded from the
+        # state gate so approve/reject and plan-change wizard flows are unaffected.
+        CONTENT_FIELDS = {'product_id', 'price', 'classes_per_week', 'notes', 'start_date'}
+        if vals.keys() & CONTENT_FIELDS:
+            require_permission(self.env.user, 'subscription_edit_plan')
+            for rec in self:
+                if rec.state != 'pending_approval':
+                    raise UserError(
+                        "Plan details can only be edited when status is 'Pending Approval'. "
+                        "'%s' is currently '%s'." % (rec.product_id.name or 'plan', rec.state)
+                    )
+        if 'end_date' in vals and not self.env.user.has_group('base.group_system'):
+            require_permission(self.env.user, 'subscription_edit_plan')
+            for rec in self:
+                if rec.state not in ('pending_approval', 'scheduled'):
+                    raise UserError(
+                        "End date can only be changed when the plan is 'Pending Approval' or 'Scheduled'. "
+                        "'%s' is currently '%s'." % (rec.product_id.name or 'plan', rec.state)
+                    )
         if 'start_date' in vals:
             for rec in self:
                 if self.env['account.move'].sudo().search([('tuition_plan_line_id', '=', rec.id), ('state', '!=', 'cancel')], limit=1):
@@ -455,9 +507,9 @@ class TuitionPlanChangeWizard(models.TransientModel):
         today = fields.Date.today()
         end_prev = self.start_date - relativedelta(days=1)
         current = sub.plan_line_ids.filtered(lambda p: p.state == 'active' and (not p.end_date or p.end_date >= today))
-        if current: current[0].write({'end_date': end_prev})
+        if current: current[0].sudo().write({'end_date': end_prev})
         scheduled = sub.plan_line_ids.filtered(lambda p: p.state == 'scheduled')
-        if scheduled: scheduled.write({'end_date': end_prev})
+        if scheduled: scheduled.sudo().write({'end_date': end_prev})
         self.env['tuition.plan.line'].create({'subscription_id': sub.id, 'product_id': self.product_id.id,
                                               'price': self.price, 'classes_per_week': self.classes_per_week,
                                               'start_date': self.start_date, 'notes': self.notes or ''})

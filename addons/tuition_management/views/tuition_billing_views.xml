@@ -49,23 +49,25 @@
                 </group>
                 <notebook>
                     <page string="Plan History" name="plan_history">
-                        <field name="plan_line_ids">
+                        <field name="can_add_plan" invisible="1"/>
+                        <field name="can_edit_plan" invisible="1"/>
+                        <field name="plan_line_ids" options="{'create': [['can_add_plan', '=', True]]}">
                             <list editable="bottom" delete="0"
                                   decoration-success="state == 'active'"
                                   decoration-info="state == 'scheduled'"
                                   decoration-muted="state == 'expired'"
                                   decoration-warning="state == 'pending_approval'">
-                                <field name="product_id"/>
-                                <field name="price"/>
-                                <field name="classes_per_week"/>
-                                <field name="start_date"/>
-                                <field name="end_date"/>
+                                <field name="product_id"       readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"/>
+                                <field name="price"            readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"/>
+                                <field name="classes_per_week" readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"/>
+                                <field name="start_date"       readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"/>
+                                <field name="end_date"         readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state not in ('pending_approval', 'scheduled')))"/>
                                 <field name="state" readonly="1" widget="badge"
                                        decoration-warning="state == 'pending_approval'"
                                        decoration-success="state == 'active'"
                                        decoration-info="state == 'scheduled'"
                                        decoration-muted="state == 'expired'"/>
-                                <field name="notes"/>
+                                <field name="notes"            readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"/>
                                 <button name="action_approve" type="object"
                                         string="Approve" class="btn-primary btn-sm"
                                         invisible="state != 'pending_approval'"
@@ -76,6 +78,7 @@
                                         groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
                                 <button name="unlink" type="object"
                                         icon="fa-trash" title="Delete plan line"
+                                        confirm="Are you sure you want to delete this plan? This action cannot be undone."
                                         groups="tuition_management.group_tuition_subscription_plan_delete,base.group_system"/>
                             </list>
                         </field>

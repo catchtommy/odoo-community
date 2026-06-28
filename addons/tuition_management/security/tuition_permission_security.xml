@@ -80,6 +80,10 @@
         <field name="name">Tuition / Subscription Add Plan</field>
         <field name="privilege_id" ref="privilege_tuition_management"/>
     </record>
+    <record id="group_tuition_subscription_plan_edit" model="res.groups">
+        <field name="name">Tuition / Subscription Edit Plan</field>
+        <field name="privilege_id" ref="privilege_tuition_management"/>
+    </record>
     <record id="group_tuition_subscription_adjustment" model="res.groups">
         <field name="name">Tuition / Subscription Add Adjustment</field>
         <field name="privilege_id" ref="privilege_tuition_management"/>
@@ -181,6 +185,7 @@
             (4, ref('group_tuition_parent_invoice_approve')),
             (4, ref('group_tuition_subscription_access')),
             (4, ref('group_tuition_subscription_plan')),
+            (4, ref('group_tuition_subscription_plan_edit')),
             (4, ref('group_tuition_subscription_adjustment')),
             (4, ref('group_tuition_subscription_discount')),
             (4, ref('group_tuition_subscription_plan_delete')),

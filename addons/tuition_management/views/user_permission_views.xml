@@ -116,6 +116,8 @@
                                                widget="boolean_toggle"/>
                                         <field name="subscription_add_plan"
                                                widget="boolean_toggle"/>
+                                        <field name="subscription_edit_plan"
+                                               widget="boolean_toggle"/>
                                         <field name="subscription_add_adjustment"
                                                widget="boolean_toggle"/>
                                         <field name="subscription_add_discount"

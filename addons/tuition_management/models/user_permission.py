@@ -35,6 +35,7 @@ PERMISSION_GROUP_MAP = {
     'exclude_payroll_schedule':      'group_tuition_exclude_payroll_schedule',
     'subscription_access':        'group_tuition_subscription_access',
     'subscription_add_plan':      'group_tuition_subscription_plan',
+    'subscription_edit_plan':     'group_tuition_subscription_plan_edit',
     'subscription_add_adjustment':'group_tuition_subscription_adjustment',
     'subscription_add_discount':  'group_tuition_subscription_discount',
     'subscription_plan_delete':        'group_tuition_subscription_plan_delete',
@@ -73,6 +74,7 @@ PERMISSION_LABELS = {
     'exclude_payroll_schedule':      'Exclude Schedules from Payroll',
     'subscription_access':        'Access Billing',
     'subscription_add_plan':      'Add Subscription Plans',
+    'subscription_edit_plan':     'Edit Subscription Plans',
     'subscription_add_adjustment':'Add Adjustments',
     'subscription_add_discount':  'Add Discounts',
     'subscription_plan_delete':        'Delete Plan History Lines',
@@ -216,6 +218,9 @@ class UserPermissionGroup(models.Model):
     subscription_add_plan = fields.Boolean(
         string='Add Plan Products', tracking=True,
         help='Can add or change plan products in a subscription.')
+    subscription_edit_plan = fields.Boolean(
+        string='Edit Plan Products', tracking=True,
+        help='Can edit existing plan lines in a subscription.')
     subscription_add_adjustment = fields.Boolean(
         string='Add Adjustments', tracking=True,
         help='Can add manual adjustments to a subscription.')
