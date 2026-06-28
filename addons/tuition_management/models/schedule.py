@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from markupsafe import Markup
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from datetime import datetime, time, timedelta
@@ -580,7 +581,49 @@ class ClassSchedule(models.Model):
             record._generate_occurrences()
             record._sync_tutor_to_course()
             record._warn_missing_tutor_rate()
+            record._log_schedule_created()
         return records
+
+    def _log_schedule_created(self):
+        self.ensure_one()
+        if not self.course_id:
+            return
+
+        time_str = '%02d:%02d' % (self.schedule_hour, self.schedule_minute)
+        tz_str = self.timezone or 'UTC'
+
+        if self.schedule_type == 'one_time':
+            date_str = self.schedule_date.strftime('%d %b %Y') if self.schedule_date else '—'
+            schedule_str = '%s at %s (%s)' % (date_str, time_str, tz_str)
+        else:
+            day_names = [
+                d.capitalize() for d in
+                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+                if getattr(self, d)
+            ]
+            days_str = ', '.join(day_names) if day_names else '—'
+            date_range = ''
+            if self.start_date:
+                date_range = ' from %s' % self.start_date.strftime('%d %b %Y')
+                if self.end_date:
+                    date_range += ' to %s' % self.end_date.strftime('%d %b %Y')
+            schedule_str = '%s at %s (%s)%s' % (days_str, time_str, tz_str, date_range)
+
+        body = Markup(
+            '<b>Schedule Created</b><br/>'
+            'Created by: <b>%s</b><br/>'
+            'Tutor: <b>%s</b><br/>'
+            'Time: <b>%s</b>'
+        ) % (
+            self.env.user.name,
+            self.tutor_id.name if self.tutor_id else '—',
+            schedule_str,
+        )
+
+        self.course_id.message_post(
+            body=body,
+            subtype_xmlid='mail.mt_note',
+        )
 
     def _sync_tutor_to_course(self):
         """Auto-set course tutor from schedule if not set; warn if adding a new tutor to an already-managed course."""
@@ -665,7 +708,10 @@ class ClassSchedule(models.Model):
 
     def unlink(self):
         now = fields.Datetime.now()
+        deletion_logs = []
         for record in self:
+            if record.course_id:
+                deletion_logs.append((record.course_id, record._build_schedule_deleted_log()))
             all_occurrences = self.env['class.schedule.occurrence'].with_context(force_delete_lesson=True).sudo().search([
                 ('schedule_id', '=', record.id)
             ])
@@ -680,7 +726,43 @@ class ClassSchedule(models.Model):
             if past_occurrences:
                 past_occurrences.with_context(force_delete_lesson=True).sudo().write({'schedule_id': False})
 
-        return super(ClassSchedule, self).unlink()
+        result = super(ClassSchedule, self).unlink()
+        for course, body in deletion_logs:
+            course.message_post(body=body, subtype_xmlid='mail.mt_note')
+        return result
+
+    def _build_schedule_deleted_log(self):
+        self.ensure_one()
+        time_str = '%02d:%02d' % (self.schedule_hour, self.schedule_minute)
+        tz_str = self.timezone or 'UTC'
+
+        if self.schedule_type == 'one_time':
+            date_str = self.schedule_date.strftime('%d %b %Y') if self.schedule_date else '—'
+            schedule_str = '%s at %s (%s)' % (date_str, time_str, tz_str)
+        else:
+            day_names = [
+                d.capitalize() for d in
+                ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+                if getattr(self, d)
+            ]
+            days_str = ', '.join(day_names) if day_names else '—'
+            date_range = ''
+            if self.start_date:
+                date_range = ' from %s' % self.start_date.strftime('%d %b %Y')
+                if self.end_date:
+                    date_range += ' to %s' % self.end_date.strftime('%d %b %Y')
+            schedule_str = '%s at %s (%s)%s' % (days_str, time_str, tz_str, date_range)
+
+        return Markup(
+            '<b>Schedule Deleted</b><br/>'
+            'Deleted by: <b>%s</b><br/>'
+            'Tutor: <b>%s</b><br/>'
+            'Time: <b>%s</b>'
+        ) % (
+            self.env.user.name,
+            self.tutor_id.name if self.tutor_id else '—',
+            schedule_str,
+        )
 
     def action_delete_schedule(self):
         self.ensure_one()
@@ -751,6 +833,8 @@ class ClassScheduleOccurrence(models.Model):
         ('admin_issue', 'Admin Issue'), ('student_cancelled', 'Student Cancelled'),
     ], string='Cancellation Reason')
     cancellation_note = fields.Text(string='Cancellation Note')
+    cancellation_date = fields.Datetime(string='Cancelled On', readonly=True)
+    cancelled_by = fields.Many2one('res.users', string='Cancelled By', readonly=True)
     is_rescheduled = fields.Boolean(string='Rescheduled', default=False)
     rescheduled_from_id = fields.Many2one('class.schedule.occurrence', string='Rescheduled From')
     is_demo = fields.Boolean(string='Is Demo Session', default=False)
@@ -835,6 +919,61 @@ class ClassScheduleOccurrence(models.Model):
         for rec in self:
             rec.virtual_provider = rec.course_id.virtual_provider_default or 'bbb'
 
+    _LESSON_LOG_EXCLUDE = frozenset({'tutor_id', 'exclude_from_payroll'})
+
+    _LESSON_LOG_LABELS = {
+        'lesson_status': 'Lesson Status',
+        'cancellation_reason': 'Cancellation Reason',
+        'cancellation_note': 'Cancellation Note',
+        'start_datetime': 'Start Time',
+        'stop_datetime': 'End Time',
+        'topic_covered': 'What Was Taught',
+        'class_rating': 'Class Rating',
+        'next_steps': 'Next Steps',
+        'homework': 'Homework',
+        'tutor_comments': 'Tutor Comments',
+        'has_technical_issues': 'Technical Issues',
+        'technical_issue_type': 'Technical Issue Type',
+        'technical_issue_details': 'Technical Issue Details',
+    }
+
+    def _get_selection_label(self, field_name, value):
+        if value is False or value is None:
+            return '—'
+        field = self._fields.get(field_name)
+        if field and hasattr(field, 'selection'):
+            sel = field.selection
+            if callable(sel):
+                sel = sel(self)
+            for key, label in sel:
+                if key == value:
+                    return label
+        return str(value)
+
+    def _format_lesson_field(self, field_name, value):
+        if value is False or value is None:
+            return '—'
+        field = self._fields.get(field_name)
+        if not field:
+            return str(value)
+        if field.type == 'selection':
+            return self._get_selection_label(field_name, value)
+        if field.type == 'datetime':
+            tz_name = (self.schedule_id.timezone if self.schedule_id else None) or 'UTC'
+            try:
+                tz = pytz.timezone(tz_name)
+            except pytz.UnknownTimeZoneError:
+                tz = pytz.utc
+            if isinstance(value, str):
+                value = fields.Datetime.from_string(value)
+            local_dt = value.replace(tzinfo=pytz.utc).astimezone(tz)
+            return local_dt.strftime('%d %b %Y %H:%M') + ' (%s)' % tz_name
+        if field.type == 'boolean':
+            return 'Yes' if value else 'No'
+        if field.type == 'text' and value:
+            return (value[:80] + '…') if len(value) > 80 else value
+        return str(value) if value else '—'
+
     def write(self, vals):
         if vals.get('lesson_status') == 'cancelled':
             if not self.env.user.has_group('base.group_system') and not self.env.user.has_group('base.group_erp_manager'):
@@ -845,7 +984,42 @@ class ClassScheduleOccurrence(models.Model):
                 if rec.lesson_status == 'scheduled':
                     vals = dict(vals, is_rescheduled=True)
                     break
-        return super().write(vals)
+
+        is_cancellation = vals.get('lesson_status') == 'cancelled'
+        tracked = {} if is_cancellation else {
+            f: l for f, l in self._LESSON_LOG_LABELS.items()
+            if f in vals and f not in self._LESSON_LOG_EXCLUDE
+        }
+
+        old_vals = {}
+        if tracked:
+            for rec in self:
+                old_vals[rec.id] = {f: getattr(rec, f) for f in tracked}
+
+        result = super().write(vals)
+
+        if tracked:
+            for rec in self:
+                changes = []
+                for fname, label in tracked.items():
+                    old = old_vals.get(rec.id, {}).get(fname)
+                    new = getattr(rec, fname)
+                    if old != new:
+                        old_str = rec._format_lesson_field(fname, old)
+                        new_str = rec._format_lesson_field(fname, new)
+                        changes.append((label, old_str, new_str))
+                if changes and rec.course_id:
+                    lines = Markup('').join(
+                        Markup('<br/>• <b>%s:</b> %s → %s') % (label, old_str, new_str)
+                        for label, old_str, new_str in changes
+                    )
+                    body = Markup(
+                        '<b>Lesson Updated</b> — %s<br/>'
+                        'Updated by: <b>%s</b>%s'
+                    ) % (rec.name or '—', self.env.user.name, lines)
+                    rec.course_id.message_post(body=body, subtype_xmlid='mail.mt_note')
+
+        return result
 
     def unlink(self):
         if self.env.context.get('force_delete_lesson'):
@@ -885,6 +1059,20 @@ class ClassScheduleOccurrence(models.Model):
         wizard = self.env['cancel.lesson.wizard'].create({'occurrence_id': self.id})
         return {'type': 'ir.actions.act_window', 'name': 'Cancel Lesson',
                 'res_model': 'cancel.lesson.wizard', 'view_mode': 'form', 'res_id': wizard.id, 'target': 'new'}
+
+    def action_view_cancellation_details(self):
+        self.ensure_one()
+        view_id = self.env.ref('tuition_management.view_cancellation_details_form').id
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Cancellation Details',
+            'res_model': 'class.schedule.occurrence',
+            'res_id': self.id,
+            'view_mode': 'form',
+            'views': [(view_id, 'form')],
+            'target': 'new',
+            'flags': {'mode': 'readonly'},
+        }
 
     def action_start_virtual_class(self):
         self.ensure_one()
@@ -979,6 +1167,8 @@ class CancelLessonWizard(models.TransientModel):
             'lesson_status': 'cancelled',
             'cancellation_reason': self.reason,
             'cancellation_note': self.note,
+            'cancellation_date': fields.Datetime.now(),
+            'cancelled_by': self.env.uid,
         })
 
         # Mark all attendance as cancelled, create if not existing

@@ -165,6 +165,31 @@
             </calendar>
         </field>
     </record>
+    <record id="view_cancellation_details_form" model="ir.ui.view">
+        <field name="name">class.schedule.occurrence.cancellation.details.form</field>
+        <field name="model">class.schedule.occurrence</field>
+        <field name="arch" type="xml">
+            <form string="Cancellation Details" create="false" edit="false" delete="false">
+                <sheet>
+                    <group string="Lesson">
+                        <field name="name" readonly="1"/>
+                        <field name="course_id" readonly="1"/>
+                        <field name="start_local_display" string="Scheduled Time" readonly="1"/>
+                    </group>
+                    <group string="Cancellation Details">
+                        <field name="cancelled_by" readonly="1"/>
+                        <field name="cancellation_date" readonly="1"/>
+                        <field name="cancellation_reason" readonly="1"/>
+                        <field name="cancellation_note" readonly="1"/>
+                    </group>
+                </sheet>
+                <footer>
+                    <button string="Close" special="cancel" class="btn-secondary"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
     <record id="view_class_schedule_occurrence_list" model="ir.ui.view">
         <field name="name">class.schedule.occurrence.list</field>
         <field name="model">class.schedule.occurrence</field>
@@ -174,6 +199,10 @@
                 <field name="start_datetime" string="Start (UTC)"/><field name="stop_datetime" string="Stop (UTC)"/>
                 <field name="start_local_display" string="Local Time" optional="show"/>
                 <field name="lesson_status"/><field name="is_demo" string="Demo"/><field name="is_rescheduled" string="Rescheduled"/><field name="virtual_provider"/><field name="attendance_marked"/>
+                <button name="action_view_cancellation_details" type="object"
+                        string="View Cancellation" icon="fa-info-circle"
+                        class="btn-link text-danger"
+                        invisible="lesson_status != 'cancelled'"/>
                 <field name="payable_hours" optional="hide"/>
                 <field name="tutor_rate_used" optional="hide"/>
                 <field name="tutor_calculated_amount" optional="hide"/>
@@ -220,10 +249,11 @@
                             <field name="is_demo" string="Demo Session" readonly="id"/>
                         </group>
                     </group>
-                    <!-- Cancellation details — visible to admins when cancelled or under review -->
+                    <!-- Cancellation details — visible to all internal users when cancelled or under review -->
                     <group string="Cancellation Details"
-                           invisible="lesson_status not in ('cancelled', 'under_review')"
-                           groups="base.group_erp_manager">
+                           invisible="lesson_status not in ('cancelled', 'under_review')">
+                        <field name="cancelled_by" readonly="1"/>
+                        <field name="cancellation_date" readonly="1"/>
                         <field name="cancellation_reason" readonly="1"/>
                         <field name="cancellation_note" readonly="1"/>
                     </group>

@@ -73,10 +73,13 @@
                                        widget="confirm_boolean"
                                        optional="show" groups="tuition_management.group_tuition_exclude_payroll_schedule,base.group_system"/>
                                 <field name="is_rescheduled" string="Rescheduled" readonly="1"/>
-                                <field name="cancellation_reason" string="Cancel Reason" readonly="1" optional="hide"/>
                                 <field name="attendance_marked" string="Attendance Marked"/>
                                 <button name="action_mark_attendance" type="object" string="Mark Attendance" class="btn-link" icon="fa-check-square-o"/>
                                 <button name="action_cancel_lesson" type="object" string="Cancel Lesson" class="btn-link text-warning" icon="fa-ban" invisible="lesson_status == 'cancelled'"/>
+                                <button name="action_view_cancellation_details" type="object"
+                                        string="View Cancellation" icon="fa-info-circle"
+                                        class="btn-link text-danger"
+                                        invisible="lesson_status != 'cancelled'"/>
                             </list>
                         </field>
                     </page>

@@ -1,3 +1,4 @@
+from markupsafe import Markup
 from odoo import models, fields, api
 from odoo.exceptions import ValidationError
 from datetime import timedelta
@@ -745,13 +746,28 @@ class DemoSession(models.Model):
                 rec._create_or_update_schedule()
             if rec.course_id:
                 rec.course_id.message_post(
-                    body='Demo scheduled%s.' % (
-                        ' for %s' % fields.Datetime.to_string(rec.scheduled_datetime)
-                        if rec.scheduled_datetime else ''
-                    ),
+                    body=rec._build_demo_created_log(),
                     subtype_xmlid='mail.mt_note',
                 )
         return records
+
+    def _build_demo_created_log(self):
+        self.ensure_one()
+        if self.scheduled_datetime:
+            tz_str = self.timezone or 'UTC'
+            dt_str = self.scheduled_datetime.strftime('%d %b %Y %H:%M') + ' (%s)' % tz_str
+        else:
+            dt_str = '—'
+        return Markup(
+            '<b>Demo Session Created</b><br/>'
+            'Created by: <b>%s</b><br/>'
+            'Tutor: <b>%s</b><br/>'
+            'Scheduled: <b>%s</b>'
+        ) % (
+            self.env.user.name,
+            self.tutor_id.name if self.tutor_id else '—',
+            dt_str,
+        )
 
     def write(self, vals):
         old_statuses = {rec.id: rec.status for rec in self}
@@ -805,7 +821,10 @@ class DemoSession(models.Model):
         - If the linked occurrence has no attendance marked, force-delete it regardless of lesson status.
         Future lesson deletion is handled by ClassSchedule.unlink().
         """
+        deletion_logs = []
         for rec in self:
+            if rec.course_id:
+                deletion_logs.append((rec.course_id, rec._build_demo_deleted_log()))
             occ = rec.schedule_occurrence_id
             if not occ:
                 continue
@@ -816,7 +835,28 @@ class DemoSession(models.Model):
             else:
                 # No attendance — safe to delete regardless of lesson status
                 occ.with_context(force_delete_lesson=True).sudo().unlink()
-        return super(DemoSession, self).unlink()
+        result = super(DemoSession, self).unlink()
+        for course, body in deletion_logs:
+            course.message_post(body=body, subtype_xmlid='mail.mt_note')
+        return result
+
+    def _build_demo_deleted_log(self):
+        self.ensure_one()
+        if self.scheduled_datetime:
+            tz_str = self.timezone or 'UTC'
+            dt_str = self.scheduled_datetime.strftime('%d %b %Y %H:%M') + ' (%s)' % tz_str
+        else:
+            dt_str = '—'
+        return Markup(
+            '<b>Demo Session Deleted</b><br/>'
+            'Deleted by: <b>%s</b><br/>'
+            'Tutor: <b>%s</b><br/>'
+            'Scheduled: <b>%s</b>'
+        ) % (
+            self.env.user.name,
+            self.tutor_id.name if self.tutor_id else '—',
+            dt_str,
+        )
 
     def action_delete_demo(self):
         """Delete the demo session."""
