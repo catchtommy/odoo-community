@@ -57,59 +57,6 @@
         </field>
     </record>
 
-    <!-- Attendance Record Views -->
-    <record id="view_attendance_record_list" model="ir.ui.view">
-        <field name="name">attendance.record.list</field>
-        <field name="model">attendance.record</field>
-        <field name="arch" type="xml">
-            <list string="Attendance Records" create="true"
-                  decoration-danger="status == 'absent'"
-                  decoration-muted="status == 'cancelled'"
-                  decoration-success="status == 'present'">
-                <field name="class_schedule_occurrence_id"/>
-                <field name="student_id"/>
-                <field name="attendance_date"/>
-                <field name="status" widget="badge"
-                    decoration-success="status == 'present'"
-                    decoration-danger="status == 'absent'"
-                    decoration-muted="status == 'cancelled'"/>
-                <field name="billable"/>
-            </list>
-        </field>
-    </record>
-    <record id="view_attendance_record_search" model="ir.ui.view">
-        <field name="name">attendance.record.search</field>
-        <field name="model">attendance.record</field>
-        <field name="arch" type="xml">
-            <search string="Search Attendance">
-                <field name="student_id"/>
-                <field name="class_schedule_occurrence_id"/>
-                <field name="course_id"/>
-                <separator/>
-                <filter name="filter_present" string="Present" domain="[('status','=','present')]"/>
-                <filter name="filter_absent" string="Absent" domain="[('status','=','absent')]"/>
-                <filter name="filter_cancelled" string="Cancelled" domain="[('status','=','cancelled')]"/>
-                <filter name="filter_billable" string="Billable" domain="[('billable','=',True)]"/>
-            </search>
-        </field>
-    </record>
-    <record id="view_attendance_record_form" model="ir.ui.view">
-        <field name="name">attendance.record.form</field>
-        <field name="model">attendance.record</field>
-        <field name="arch" type="xml">
-            <form string="Attendance Record">
-                <sheet>
-                    <group>
-                        <field name="class_schedule_occurrence_id"/>
-                        <field name="course_id" readonly="1"/><field name="tutor_id" readonly="1"/>
-                        <field name="student_id"/><field name="attendance_date"/>
-                        <field name="status"/><field name="billable"/><field name="remarks"/>
-                    </group>
-                </sheet>
-            </form>
-        </field>
-    </record>
-
     <!-- Cancel Lesson Wizard -->
     <record id="view_cancel_lesson_wizard_form" model="ir.ui.view">
         <field name="name">cancel.lesson.wizard.form</field>
@@ -134,12 +81,4 @@
         </field>
     </record>
 
-    <!-- Actions -->
-    <record id="action_attendance_records" model="ir.actions.act_window">
-        <field name="name">Attendance</field>
-        <field name="res_model">attendance.record</field>
-        <field name="view_mode">list,form</field>
-        <field name="context">{'create': True}</field>
-        <!-- No domain filter so all statuses (including cancelled) are visible -->
-    </record>
 </odoo>
