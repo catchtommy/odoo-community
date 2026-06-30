@@ -1,4 +1,8 @@
 # -*- coding: utf-8 -*-
+import base64
+import io
+
+import xlsxwriter
 from markupsafe import Markup
 from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
@@ -824,6 +828,19 @@ class ClassScheduleOccurrence(models.Model):
     tutor_id = fields.Many2one('tutor.profile', string='Tutor', store=True)
     attendance_ids = fields.One2many('attendance.record', 'class_schedule_occurrence_id', string='Attendance')
     attendance_marked = fields.Boolean(string='Attendance Marked', compute='_compute_attendance_marked', store=True)
+    attendance_present_count = fields.Integer(string='Present', compute='_compute_attendance_counts', store=True)
+    attendance_absent_count = fields.Integer(string='Absent', compute='_compute_attendance_counts', store=True)
+    attendance_student_ids = fields.Many2many(
+        'student.profile', string='Students',
+        compute='_compute_attendance_student_ids',
+        search='_search_attendance_student_ids',
+    )
+    report_student_id = fields.Many2one(
+        'student.profile', string='Student',
+        compute='_compute_report_student_id',
+        search='_search_report_student_id',
+        store=False,
+    )
     lesson_status = fields.Selection([
         ('scheduled', 'Scheduled'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),
         ('under_review', 'Under Review'),
@@ -874,6 +891,27 @@ class ClassScheduleOccurrence(models.Model):
         string='Meeting State',
         readonly=True,
     )
+
+    @api.depends('attendance_ids.student_id')
+    def _compute_attendance_student_ids(self):
+        for rec in self:
+            rec.attendance_student_ids = rec.attendance_ids.mapped('student_id')
+
+    def _search_attendance_student_ids(self, operator, value):
+        return [('attendance_ids.student_id', operator, value)]
+
+    def _compute_report_student_id(self):
+        for rec in self:
+            rec.report_student_id = False
+
+    def _search_report_student_id(self, operator, value):
+        return [('attendance_ids.student_id', operator, value)]
+
+    @api.depends('attendance_ids.status')
+    def _compute_attendance_counts(self):
+        for rec in self:
+            rec.attendance_present_count = len(rec.attendance_ids.filtered(lambda a: a.status == 'present'))
+            rec.attendance_absent_count = len(rec.attendance_ids.filtered(lambda a: a.status == 'absent'))
 
     @api.depends('attendance_ids')
     def _compute_attendance_marked(self):
@@ -1053,6 +1091,51 @@ class ClassScheduleOccurrence(models.Model):
         if lines: wizard.write({'line_ids': lines})
         return {'type': 'ir.actions.act_window', 'name': f'Mark Attendance - {self.name}',
                 'res_model': 'mark.attendance.wizard', 'view_mode': 'form', 'res_id': wizard.id, 'target': 'new'}
+
+    def action_export_attendance_excel(self):
+        if not self:
+            raise UserError("Please select at least one record to export.")
+
+        output = io.BytesIO()
+        workbook = xlsxwriter.Workbook(output, {'in_memory': True})
+        sheet = workbook.add_worksheet('Attendance Report')
+
+        title_fmt = workbook.add_format({'bold': True, 'font_size': 13})
+        header_fmt = workbook.add_format({'bold': True, 'bg_color': '#2E86AB', 'font_color': '#FFFFFF', 'border': 1, 'align': 'center'})
+        text_fmt = workbook.add_format({'border': 1})
+        num_fmt = workbook.add_format({'num_format': '#,##0', 'border': 1, 'align': 'center'})
+
+        sheet.write(0, 0, 'Attendance Report', title_fmt)
+
+        lesson_status_labels = dict(self._fields['lesson_status'].selection)
+        headers = ['Date & Time', 'Course', 'Tutor', 'Lesson Status', 'Attendance Submitted', 'Present', 'Absent']
+        col_widths = [26, 22, 18, 14, 18, 10, 10]
+        for col, (h, w) in enumerate(zip(headers, col_widths)):
+            sheet.write(2, col, h, header_fmt)
+            sheet.set_column(col, col, w)
+
+        for row_idx, occ in enumerate(self.sorted('start_datetime'), start=3):
+            sheet.write(row_idx, 0, occ.start_local_display or '', text_fmt)
+            sheet.write(row_idx, 1, occ.course_id.name or '', text_fmt)
+            sheet.write(row_idx, 2, occ.tutor_id.name or '', text_fmt)
+            sheet.write(row_idx, 3, lesson_status_labels.get(occ.lesson_status, ''), text_fmt)
+            sheet.write(row_idx, 4, 'Yes' if occ.attendance_marked else 'No', text_fmt)
+            sheet.write(row_idx, 5, occ.attendance_present_count, num_fmt)
+            sheet.write(row_idx, 6, occ.attendance_absent_count, num_fmt)
+
+        workbook.close()
+        xlsx_data = output.getvalue()
+        attachment = self.env['ir.attachment'].create({
+            'name': f'Attendance_Report_{fields.Date.context_today(self)}.xlsx',
+            'type': 'binary',
+            'datas': base64.b64encode(xlsx_data),
+            'res_model': self._name,
+        })
+        return {
+            'type': 'ir.actions.act_url',
+            'url': f'/web/content/{attachment.id}?download=true',
+            'target': 'self',
+        }
 
     def action_cancel_lesson(self):
         self.ensure_one()

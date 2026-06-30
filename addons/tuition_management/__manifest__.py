@@ -42,6 +42,7 @@
         "views/report_subject_wise_views.xml",
         "views/report_tutor_wise_views.xml",
         "views/report_views.xml",
+        "views/report_attendance_views.xml",
         "views/tuition_billing_views.xml",
         "views/user_permission_views.xml",
         "views/portal_css.xml",

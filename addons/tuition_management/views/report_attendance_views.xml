@@ -1,0 +1,196 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         Attendance Report — List View (one row per lesson)
+         ============================================================ -->
+    <record id="view_attendance_report_list" model="ir.ui.view">
+        <field name="name">class.schedule.occurrence.attendance.report.list</field>
+        <field name="model">class.schedule.occurrence</field>
+        <field name="arch" type="xml">
+            <list string="Attendance Report" create="0" delete="0"
+                  decoration-muted="lesson_status == 'cancelled'"
+                  decoration-success="attendance_marked and lesson_status != 'cancelled'">
+                <field name="start_local_display" string="Date &amp; Time"/>
+                <field name="course_id"/>
+                <field name="tutor_id"/>
+                <field name="lesson_status" widget="badge"
+                       decoration-success="lesson_status == 'completed'"
+                       decoration-warning="lesson_status == 'scheduled'"
+                       decoration-muted="lesson_status == 'cancelled'"
+                       decoration-info="lesson_status == 'under_review'"/>
+                <field name="attendance_marked" string="Submitted" widget="boolean"/>
+                <field name="attendance_present_count" string="Present"/>
+                <field name="attendance_absent_count" string="Absent"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         Attendance Report — Form View (lesson detail + tutor submission)
+         ============================================================ -->
+    <record id="view_attendance_report_form" model="ir.ui.view">
+        <field name="name">class.schedule.occurrence.attendance.report.form</field>
+        <field name="model">class.schedule.occurrence</field>
+        <field name="arch" type="xml">
+            <form string="Attendance Detail" create="0">
+                <header>
+                    <button name="action_mark_attendance" string="Mark / Edit Attendance"
+                            type="object" class="btn-primary"
+                            invisible="lesson_status == 'cancelled'"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+
+                    <group>
+                        <group string="Lesson Details">
+                            <field name="start_local_display" string="Date &amp; Time" readonly="1"/>
+                            <field name="course_id" readonly="1"/>
+                            <field name="tutor_id" readonly="1"/>
+                            <field name="lesson_status" widget="badge" readonly="1"
+                                   decoration-success="lesson_status == 'completed'"
+                                   decoration-warning="lesson_status == 'scheduled'"
+                                   decoration-muted="lesson_status == 'cancelled'"
+                                   decoration-info="lesson_status == 'under_review'"/>
+                            <field name="attendance_marked" readonly="1"/>
+                        </group>
+                        <group string="Attendance Summary" invisible="not attendance_marked">
+                            <field name="attendance_present_count" string="Students Present" readonly="1"/>
+                            <field name="attendance_absent_count" string="Students Absent" readonly="1"/>
+                        </group>
+                    </group>
+
+                    <div class="alert alert-info" role="status" invisible="attendance_marked">
+                        <i class="fa fa-info-circle"/> Attendance has not been submitted for this lesson yet.
+                        Click <strong>Mark / Edit Attendance</strong> above to submit.
+                    </div>
+
+                    <separator string="Tutor Submission" invisible="not attendance_marked"/>
+                    <group invisible="not attendance_marked">
+                        <group>
+                            <field name="topic_covered" readonly="1"/>
+                            <field name="class_rating" widget="radio" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="next_steps" readonly="1"/>
+                            <field name="homework" readonly="1"/>
+                            <field name="tutor_comments" readonly="1"/>
+                        </group>
+                    </group>
+                    <group invisible="not attendance_marked">
+                        <field name="has_technical_issues" readonly="1"/>
+                        <field name="technical_issue_type" readonly="1"
+                               invisible="not has_technical_issues"/>
+                        <field name="technical_issue_details" readonly="1"
+                               invisible="not has_technical_issues"/>
+                    </group>
+
+                    <separator string="Student Attendance" invisible="not attendance_ids"/>
+                    <field name="attendance_ids" readonly="1" invisible="not attendance_ids">
+                        <list string="Student Attendance" create="0" delete="0" edit="0"
+                              decoration-success="status == 'present'"
+                              decoration-danger="status == 'absent'"
+                              decoration-muted="status == 'cancelled'">
+                            <field name="student_id"/>
+                            <field name="status" widget="badge"
+                                   decoration-success="status == 'present'"
+                                   decoration-danger="status == 'absent'"
+                                   decoration-muted="status == 'cancelled'"/>
+                            <field name="billable"/>
+                            <field name="remarks"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         Attendance Report — Search View
+         ============================================================ -->
+    <record id="view_attendance_report_search" model="ir.ui.view">
+        <field name="name">class.schedule.occurrence.attendance.report.search</field>
+        <field name="model">class.schedule.occurrence</field>
+        <field name="arch" type="xml">
+            <search string="Attendance Report">
+                <field name="course_id"/>
+                <field name="tutor_id"/>
+                <field name="report_student_id" string="Student"/>
+                <separator/>
+                <!-- Date range filters -->
+                <filter string="Today" name="today"
+                        domain="[('start_datetime', '&gt;=', context_today().strftime('%Y-%m-%d')), ('start_datetime', '&lt;', (context_today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="Last 7 Days" name="last_7_days"
+                        domain="[('start_datetime', '&gt;=', (context_today() - datetime.timedelta(days=6)).strftime('%Y-%m-%d')), ('start_datetime', '&lt;', (context_today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="This Month" name="this_month"
+                        domain="[('start_datetime', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <separator/>
+                <!-- Attendance submission status -->
+                <filter string="Attendance Submitted" name="submitted"
+                        domain="[('attendance_marked', '=', True)]"/>
+                <filter string="Attendance Pending" name="pending"
+                        domain="[('attendance_marked', '=', False), ('lesson_status', '!=', 'cancelled')]"/>
+                <separator/>
+                <!-- Lesson status -->
+                <filter string="Scheduled" name="scheduled"
+                        domain="[('lesson_status', '=', 'scheduled')]"/>
+                <filter string="Completed" name="completed"
+                        domain="[('lesson_status', '=', 'completed')]"/>
+                <filter string="Under Review" name="under_review"
+                        domain="[('lesson_status', '=', 'under_review')]"/>
+                <filter string="Cancelled" name="cancelled"
+                        domain="[('lesson_status', '=', 'cancelled')]"/>
+                <separator/>
+                <!-- Per-student attendance status -->
+                <filter string="Has Present Students" name="has_present"
+                        domain="[('attendance_ids.status', '=', 'present')]"/>
+                <filter string="Has Absent Students" name="has_absent"
+                        domain="[('attendance_ids.status', '=', 'absent')]"/>
+                <separator/>
+                <filter string="Group by Course" name="by_course" context="{'group_by': 'course_id'}"/>
+                <filter string="Group by Tutor" name="by_tutor" context="{'group_by': 'tutor_id'}"/>
+                <filter string="Group by Lesson Status" name="by_lesson_status" context="{'group_by': 'lesson_status'}"/>
+                <filter string="Group by Month" name="by_month" context="{'group_by': 'start_datetime:month'}"/>
+            </search>
+        </field>
+    </record>
+
+    <!-- ============================================================
+         Server action: Export to Excel — appears in the Action ▾ menu
+         of the Attendance Report list view (select rows, or "Select all").
+         ============================================================ -->
+    <record id="action_attendance_report_export_excel" model="ir.actions.server">
+        <field name="name">Export to Excel</field>
+        <field name="model_id" ref="tuition_management.model_class_schedule_occurrence"/>
+        <field name="binding_model_id" ref="tuition_management.model_class_schedule_occurrence"/>
+        <field name="binding_view_types">list</field>
+        <field name="binding_type">action</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_export_attendance_excel()</field>
+    </record>
+
+    <!-- ============================================================
+         Action: Attendance Report (default to today's lessons)
+         ============================================================ -->
+    <record id="action_attendance_report" model="ir.actions.act_window">
+        <field name="name">Attendance Report</field>
+        <field name="res_model">class.schedule.occurrence</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_ids" eval="[
+            (5, 0, 0),
+            (0, 0, {'view_mode': 'list', 'view_id': ref('view_attendance_report_list')}),
+            (0, 0, {'view_mode': 'form', 'view_id': ref('view_attendance_report_form')}),
+        ]"/>
+        <field name="search_view_id" ref="view_attendance_report_search"/>
+        <field name="context">{'search_default_today': 1}</field>
+    </record>
+
+    <!-- Menu: Reports → Attendance Report -->
+    <menuitem id="menu_tuition_attendance_report"
+              name="Attendance Report"
+              parent="menu_tuition_reports"
+              action="action_attendance_report"
+              sequence="5"
+              groups="tuition_management.group_tuition_reports_access,base.group_system"/>
+</odoo>
