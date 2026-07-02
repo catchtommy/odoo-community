@@ -345,14 +345,15 @@
             <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-list"/> Assignments</div></div>
             <t t-if="assignments">
                 <table class="tm-table">
-                    <thead><tr><th>Title</th><th>Course</th><th>Type</th><th>Due</th><th>Status</th><th>Submissions</th><th></th></tr></thead>
+                    <thead><tr><th>Title</th><th>Course</th><th>Type</th><th>Created</th><th>Due</th><th>Status</th><th>Submissions</th><th></th></tr></thead>
                     <tbody>
                         <t t-foreach="assignments" t-as="asgn">
                             <tr>
                                 <td class="fw-bold"><t t-esc="asgn.name"/></td>
                                 <td><t t-esc="asgn.course_id.name"/></td>
                                 <td><span class="tm-badge tm-badge-grey"><t t-esc="asgn.assignment_type or '—'"/></span></td>
-                                <td style="white-space:nowrap;"><t t-if="asgn.due_date" t-esc="asgn.due_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
+                                <td style="white-space:nowrap;"><t t-esc="asgn.create_date.strftime('%d %b %Y') if asgn.create_date else '—'"/></td>
+                                <td style="white-space:nowrap;"><t t-esc="asgn.due_date.strftime('%d %b %Y') if asgn.due_date else '—'"/></td>
                                 <td><span t-attf-class="tm-badge #{asgn.status == 'completed' and 'tm-badge-green' or asgn.status == 'assigned' and 'tm-badge-blue' or 'tm-badge-grey'}"><t t-esc="asgn.status.capitalize()"/></span></td>
                                 <td><span class="tm-badge tm-badge-purple"><t t-esc="len(asgn.submission_ids)"/></span></td>
                                 <td><a t-attf-href="/my/tutor/assignment/#{asgn.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> Review</a></td>
@@ -1058,13 +1059,14 @@
                 </div>
                 <t t-if="course_assignments">
                     <table class="tm-table">
-                        <thead><tr><th>Title</th><th>Type</th><th>Due</th><th>Submissions</th><th></th></tr></thead>
+                        <thead><tr><th>Title</th><th>Type</th><th>Created</th><th>Due</th><th>Submissions</th><th></th></tr></thead>
                         <tbody>
                             <t t-foreach="course_assignments[:5]" t-as="asgn">
                                 <tr>
                                     <td class="fw-bold"><t t-esc="asgn.name"/></td>
                                     <td><span class="tm-badge tm-badge-grey"><t t-esc="asgn.assignment_type or '—'"/></span></td>
-                                    <td style="white-space:nowrap;"><t t-if="asgn.due_date" t-esc="asgn.due_date" t-options='{"widget": "date"}'/><t t-else="">—</t></td>
+                                    <td style="white-space:nowrap;"><t t-esc="asgn.create_date.strftime('%d %b %Y') if asgn.create_date else '—'"/></td>
+                                    <td style="white-space:nowrap;"><t t-esc="asgn.due_date.strftime('%d %b %Y') if asgn.due_date else '—'"/></td>
                                     <td><span class="tm-badge tm-badge-blue"><t t-esc="len(asgn.submission_ids)"/></span></td>
                                     <td><a t-attf-href="/my/tutor/assignment/#{asgn.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> Review</a></td>
                                 </tr>

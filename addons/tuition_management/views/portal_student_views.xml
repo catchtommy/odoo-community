@@ -336,11 +336,11 @@
                                 <td class="fw-bold"><t t-esc="a.name"/></td>
                                 <td><t t-esc="a.course_id.name"/></td>
                                 <td><span class="tm-badge tm-badge-grey"><t t-esc="a.assignment_type or '—'"/></span></td>
-                                <td style="white-space:nowrap;"><t t-esc="a.create_date" t-options='{"widget": "date"}'/></td>
+                                <td style="white-space:nowrap;"><t t-esc="a.create_date.strftime('%d %b %Y') if a.create_date else '—'"/></td>
                                 <td style="white-space:nowrap;">
                                     <t t-if="a.due_date">
                                         <span t-attf-class="tm-badge #{a.due_date &lt; (today or a.due_date) and 'tm-badge-red' or 'tm-badge-orange'}">
-                                            <t t-esc="a.due_date" t-options='{"widget": "date"}'/>
+                                            <t t-esc="a.due_date.strftime('%d %b %Y')"/>
                                         </span>
                                     </t>
                                     <t t-else="">—</t>
