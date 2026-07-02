@@ -96,6 +96,14 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 self._fmt_dt(next_session.start_datetime, '%a %d %b %Y, %H:%M %Z')
                 if next_session else '—'
             )
+            from datetime import datetime as _dt
+            start_of_week = today - timedelta(days=today.weekday())
+            end_of_week = start_of_week + timedelta(days=6)
+            week_lesson_count = request.env['class.schedule.occurrence'].sudo().search_count([
+                ('course_id', 'in', course_ids),
+                ('start_datetime', '>=', _dt.combine(start_of_week, _dt.min.time())),
+                ('start_datetime', '<=', _dt.combine(end_of_week, _dt.max.time())),
+            ])
             values.update({
                 'student': student,
                 'course_count': len(enrollments),
@@ -109,6 +117,7 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 'next_session': next_session,
                 'next_session_live': next_session_live,
                 'next_session_dt_str': next_session_dt_str,
+                'week_lesson_count': week_lesson_count,
             })
             return request.render('tuition_management.portal_student_dashboard', values)
 

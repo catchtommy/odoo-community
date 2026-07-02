@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from odoo import http, fields
 from odoo.http import request
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, date
+from calendar import monthrange
 import base64
 
 from .portal_mixin import PortalMixin
@@ -15,7 +16,7 @@ class StudentPortal(http.Controller, PortalMixin):
     # ──────────────────────────────────────────────
 
     @http.route(['/my/student/schedule'], type='http', auth='user', website=True)
-    def portal_student_schedule(self, week='this', **kw):
+    def portal_student_schedule(self, week='this', view_mode='week', **kw):
         student = self._get_student()
         if not student:
             return request.redirect('/my')
@@ -24,11 +25,29 @@ class StudentPortal(http.Controller, PortalMixin):
         ])
         course_ids = enrollments.mapped('course_id').ids
 
-        try:
-            week_offset = int(kw.get('week_offset', 0))
-        except (ValueError, TypeError):
+        if view_mode == 'month':
+            try:
+                month_offset = int(kw.get('month_offset', 0))
+            except (ValueError, TypeError):
+                month_offset = 0
+            today = self._tz_today()
+            raw_month = today.month + month_offset
+            target_year = today.year + (raw_month - 1) // 12
+            target_month = ((raw_month - 1) % 12) + 1
+            first_day = date(target_year, target_month, 1)
+            last_day = date(target_year, target_month, monthrange(target_year, target_month)[1])
+            start_utc, end_utc = self._tz_date_bounds(first_day, last_day)
+            period_label = first_day.strftime('%B %Y')
             week_offset = 0
-        start_utc, end_utc, start_of_week, end_of_week, week_label = self._tz_week_bounds(week_offset)
+        else:
+            view_mode = 'week'
+            month_offset = 0
+            try:
+                week_offset = int(kw.get('week_offset', 0))
+            except (ValueError, TypeError):
+                week_offset = 0
+            start_utc, end_utc, start_of_week, end_of_week, week_label = self._tz_week_bounds(week_offset)
+            period_label = week_label
 
         occurrences = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', 'in', course_ids),
@@ -78,7 +97,9 @@ class StudentPortal(http.Controller, PortalMixin):
             'student': student,
             'occ_data': occ_data,
             'week_offset': week_offset,
-            'week_label': week_label,
+            'month_offset': month_offset,
+            'view_mode': view_mode,
+            'period_label': period_label,
             'user_tz': self._get_user_tz(),
             'page_name': 'student_schedule',
             'page_title': 'My Schedule',
@@ -257,20 +278,41 @@ class StudentPortal(http.Controller, PortalMixin):
     # ──────────────────────────────────────────────
 
     @http.route(['/my/assignments'], type='http', auth='user', website=True)
-    def portal_my_assignments(self, **kw):
+    def portal_my_assignments(self, status_filter='all', **kw):
         student = self._get_student()
         if not student:
             return request.redirect('/my')
         course_ids = request.env['course.enrollment'].sudo().search([
             ('student_id', '=', student.id), ('status', '=', 'active'),
         ]).mapped('course_id').ids
-        assignments = request.env['course.assignment'].sudo().search([
-            ('course_id', 'in', course_ids), ('status', 'in', ['assigned', 'completed']),
+        all_assignments = request.env['course.assignment'].sudo().search([
+            ('course_id', 'in', course_ids),
+            ('status', 'in', ['assigned', 'pending_review', 'completed']),
         ], order='due_date asc')
         submission_map = {}
-        for asgn in assignments:
+        for asgn in all_assignments:
             sub = asgn.submission_ids.filtered(lambda s: s.student_id.id == student.id)
-            submission_map[asgn.id] = sub
+            submission_map[asgn.id] = sub[:1]
+
+        def _display_status(asgn):
+            sub = submission_map.get(asgn.id)
+            if sub and sub.status == 'rework':
+                return 'rework'
+            if sub and sub.status == 'completed':
+                return 'completed'
+            if sub and sub.status == 'pending_review':
+                return 'under_review'
+            if sub:
+                return 'submitted'
+            return 'pending'
+
+        if status_filter == 'pending':
+            assignments = all_assignments.filtered(lambda a: _display_status(a) in ('pending', 'rework'))
+        elif status_filter and status_filter != 'all':
+            assignments = all_assignments.filtered(lambda a: _display_status(a) == status_filter)
+        else:
+            assignments = all_assignments
+
         return request.render('tuition_management.portal_student_assignments', {
             'user': request.env.user,
             'is_student': True, 'is_tutor': False, 'is_parent': False,
@@ -278,6 +320,7 @@ class StudentPortal(http.Controller, PortalMixin):
             'submission_map': submission_map,
             'student': student,
             'page_name': 'assignments',
+            'status_filter': status_filter,
         })
 
     @http.route(['/my/assignments/<int:assignment_id>'], type='http', auth='user', website=True)
@@ -297,6 +340,11 @@ class StudentPortal(http.Controller, PortalMixin):
         submission = request.env['assignment.submission'].sudo().search([
             ('assignment_id', '=', assignment.id), ('student_id', '=', student.id),
         ], limit=1)
+        # Ensure access tokens exist so portal users can download via /web/content/{id}?access_token=...
+        all_attachments = assignment.attachment_ids | (submission.attachment_ids if submission else request.env['ir.attachment'])
+        missing_token = all_attachments.filtered(lambda a: not a.access_token)
+        if missing_token:
+            missing_token.generate_access_token()
         return request.render('tuition_management.portal_student_assignment_detail', {
             'user': request.env.user,
             'is_student': True, 'is_tutor': False, 'is_parent': False,

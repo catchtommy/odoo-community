@@ -503,6 +503,11 @@ class TutorPortal(http.Controller, PortalMixin):
         assignment = request.env['course.assignment'].sudo().browse(assignment_id)
         if not assignment.exists() or not self._tutor_has_course_access(tutor, assignment.course_id):
             return request.redirect('/my/tutor/courses')
+        # Ensure access tokens exist so portal users can download via /web/content/{id}?access_token=...
+        all_attachments = assignment.attachment_ids | assignment.submission_ids.mapped('attachment_ids')
+        missing_token = all_attachments.filtered(lambda a: not a.access_token)
+        if missing_token:
+            missing_token.generate_access_token()
         return request.render('tuition_management.portal_tutor_assignment_detail', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,

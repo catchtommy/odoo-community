@@ -1730,7 +1730,7 @@
                                 <div>
                                     <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; font-weight:600;">Resources</div>
                                     <t t-foreach="assignment.attachment_ids" t-as="att">
-                                        <a t-attf-href="/web/content/#{att.id}?download=true"
+                                        <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
                                            style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:7px; margin-bottom:6px; font-size:12px; color:#4a6cf7; text-decoration:none;">
                                             <i class="fa fa-file-o" style="color:#888;"/>
                                             <span t-out="att.name"/>
@@ -1994,7 +1994,7 @@
                                     <t t-if="sub.attachment_ids">
                                         <div style="margin-bottom:12px;">
                                             <t t-foreach="sub.attachment_ids" t-as="att">
-                                                <a t-attf-href="/web/content/#{att.id}?download=true"
+                                                <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
                                                    style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:6px; font-size:11px; color:#555; text-decoration:none; margin-right:6px; margin-bottom:4px;">
                                                     <i class="fa fa-paperclip" style="color:#4a6cf7;"/>
                                                     <t t-out="att.name"/>

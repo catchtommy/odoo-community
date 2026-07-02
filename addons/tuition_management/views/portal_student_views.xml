@@ -63,6 +63,26 @@
         </t>
 
         <div class="tm-stat-grid">
+            <a href="/my/student/schedule" class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="week_lesson_count or 0"/></div>
+                        <div class="tm-stat-label">This Week's Lessons</div>
+                    </div>
+                    <div class="tm-stat-icon blue"><i class="fa fa-calendar"/></div>
+                </div>
+                <div class="tm-stat-action">View Schedule →</div>
+            </a>
+            <a href="/my/assignments?status_filter=pending" class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="pending_assignments or 0"/></div>
+                        <div class="tm-stat-label">Pending Assignments</div>
+                    </div>
+                    <div class="tm-stat-icon orange"><i class="fa fa-tasks"/></div>
+                </div>
+                <div class="tm-stat-action">View Assignments →</div>
+            </a>
             <a href="/my/courses" class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div>
@@ -72,16 +92,6 @@
                     <div class="tm-stat-icon purple"><i class="fa fa-book"/></div>
                 </div>
                 <div class="tm-stat-action">View Courses →</div>
-            </a>
-            <a href="/my/assignments" class="tm-stat-card">
-                <div class="tm-stat-card-top">
-                    <div>
-                        <div class="tm-stat-value"><t t-esc="pending_assignments or 0"/></div>
-                        <div class="tm-stat-label">Pending Assignments</div>
-                    </div>
-                    <div class="tm-stat-icon orange"><i class="fa fa-tasks"/></div>
-                </div>
-                <div class="tm-stat-action">View Assignments →</div>
             </a>
             <a href="/my/student/schedule" class="tm-stat-card">
                 <div class="tm-stat-card-top">
@@ -93,15 +103,6 @@
                 </div>
                 <div class="tm-stat-action">View Schedule →</div>
             </a>
-            <div class="tm-stat-card">
-                <div class="tm-stat-card-top">
-                    <div>
-                        <div class="tm-stat-value"><t t-esc="course_count or 0"/></div>
-                        <div class="tm-stat-label">Active Courses</div>
-                    </div>
-                    <div class="tm-stat-icon purple"><i class="fa fa-book"/></div>
-                </div>
-            </div>
         </div>
 
         <div class="tm-grid-2">
@@ -171,6 +172,13 @@
         <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-calendar"/> My Schedule</h5>
 
 
+        <div style="display:flex;gap:8px;margin-bottom:16px;">
+            <a t-attf-href="/my/student/schedule?view_mode=week"
+               t-attf-class="tm-btn tm-btn-sm #{(view_mode or 'week') == 'week' and 'tm-btn-primary' or 'tm-btn-outline'}">This Week</a>
+            <a t-attf-href="/my/student/schedule?view_mode=month"
+               t-attf-class="tm-btn tm-btn-sm #{view_mode == 'month' and 'tm-btn-primary' or 'tm-btn-outline'}">This Month</a>
+        </div>
+
         <div class="tm-card">
             <div class="tm-card-header">
                 <div class="tm-card-title"><i class="fa fa-list"/> Sessions</div>
@@ -179,9 +187,16 @@
                 <div class="alert alert-warning" style="margin:12px 16px;"><t t-esc="vc_error"/></div>
             </t>
             <div style="padding:10px 16px;border-bottom:1px solid var(--tm-border);display:flex;justify-content:space-between;align-items:center;">
-                <a t-attf-href="/my/student/schedule?week_offset=#{(week_offset or 0) - 1}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-chevron-left"/> Prev</a>
-                <span style="font-size:12px;font-weight:600;color:var(--tm-text);"><t t-esc="week_label or 'This Week'"/></span>
-                <a t-attf-href="/my/student/schedule?week_offset=#{(week_offset or 0) + 1}" class="tm-btn tm-btn-outline tm-btn-sm">Next <i class="fa fa-chevron-right"/></a>
+                <t t-if="view_mode == 'month'">
+                    <a t-attf-href="/my/student/schedule?view_mode=month&amp;month_offset=#{(month_offset or 0) - 1}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-chevron-left"/> Prev</a>
+                    <span style="font-size:12px;font-weight:600;color:var(--tm-text);"><t t-esc="period_label"/></span>
+                    <a t-attf-href="/my/student/schedule?view_mode=month&amp;month_offset=#{(month_offset or 0) + 1}" class="tm-btn tm-btn-outline tm-btn-sm">Next <i class="fa fa-chevron-right"/></a>
+                </t>
+                <t t-else="">
+                    <a t-attf-href="/my/student/schedule?view_mode=week&amp;week_offset=#{(week_offset or 0) - 1}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-chevron-left"/> Prev</a>
+                    <span style="font-size:12px;font-weight:600;color:var(--tm-text);"><t t-esc="period_label"/></span>
+                    <a t-attf-href="/my/student/schedule?view_mode=week&amp;week_offset=#{(week_offset or 0) + 1}" class="tm-btn tm-btn-outline tm-btn-sm">Next <i class="fa fa-chevron-right"/></a>
+                </t>
             </div>
             <t t-if="occ_data">
                 <table class="tm-table">
@@ -194,7 +209,6 @@
                                 <td><t t-esc="od['occ'].course_id.name or '—'"/></td>
                                 <td><t t-esc="od['occ'].tutor_id.name or '—'"/></td>
                                 <td>
-                                    <!-- Provider badge — read-only, resolved from course -->
                                     <t t-set="_prov" t-value="od['occ'].course_id.virtual_provider_default or 'bbb'"/>
                                     <span t-attf-class="tm-badge #{_prov == 'bbb' and 'tm-badge-blue' or _prov == 'zoom' and 'tm-badge-purple' or 'tm-badge-green'}" title="Platform">
                                         <t t-if="_prov == 'bbb'">BBB</t>
@@ -220,7 +234,7 @@
                     </tbody>
                 </table>
             </t>
-            <t t-else=""><div class="tm-empty"><i class="fa fa-calendar"/><p>No sessions this week.</p></div></t>
+            <t t-else=""><div class="tm-empty"><i class="fa fa-calendar"/><p>No sessions found.</p></div></t>
         </div>
     </t>
 </template>
@@ -288,6 +302,17 @@
 
         <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-tasks"/> My Assignments</h5>
 
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
+            <a t-attf-href="/my/assignments?status_filter=all"
+               t-attf-class="tm-btn tm-btn-sm #{(status_filter or 'all') == 'all' and 'tm-btn-primary' or 'tm-btn-outline'}">All</a>
+            <a t-attf-href="/my/assignments?status_filter=pending"
+               t-attf-class="tm-btn tm-btn-sm #{status_filter == 'pending' and 'tm-btn-primary' or 'tm-btn-outline'}">Pending</a>
+            <a t-attf-href="/my/assignments?status_filter=under_review"
+               t-attf-class="tm-btn tm-btn-sm #{status_filter == 'under_review' and 'tm-btn-primary' or 'tm-btn-outline'}">Under Review</a>
+            <a t-attf-href="/my/assignments?status_filter=completed"
+               t-attf-class="tm-btn tm-btn-sm #{status_filter == 'completed' and 'tm-btn-primary' or 'tm-btn-outline'}">Completed</a>
+        </div>
+
         <t t-if="not assignments">
             <div class="tm-card">
                 <div class="tm-empty">
@@ -303,7 +328,7 @@
                 </div>
                 <table class="tm-table">
                     <thead>
-                        <tr><th>Assignment</th><th>Course</th><th>Type</th><th>Due Date</th><th>Status</th><th></th></tr>
+                        <tr><th>Assignment</th><th>Course</th><th>Type</th><th>Created</th><th>Due Date</th><th>Status</th><th></th></tr>
                     </thead>
                     <tbody>
                         <t t-foreach="assignments" t-as="a">
@@ -311,10 +336,11 @@
                                 <td class="fw-bold"><t t-esc="a.name"/></td>
                                 <td><t t-esc="a.course_id.name"/></td>
                                 <td><span class="tm-badge tm-badge-grey"><t t-esc="a.assignment_type or '—'"/></span></td>
+                                <td style="white-space:nowrap;"><t t-esc="a.create_date" t-options='{"widget": "date"}'/></td>
                                 <td style="white-space:nowrap;">
                                     <t t-if="a.due_date">
                                         <span t-attf-class="tm-badge #{a.due_date &lt; (today or a.due_date) and 'tm-badge-red' or 'tm-badge-orange'}">
-                                            <t t-esc="a.due_date"/>
+                                            <t t-esc="a.due_date" t-options='{"widget": "date"}'/>
                                         </span>
                                     </t>
                                     <t t-else="">—</t>
@@ -435,7 +461,7 @@
                         <div class="tm-label">Attachments</div>
                         <div class="tm-value">
                             <t t-foreach="assignment.attachment_ids" t-as="att">
-                                <a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link">
+                                <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true" class="tm-file-link">
                                     <i class="fa fa-download"/> <t t-esc="att.name"/>
                                 </a>
                             </t>
@@ -487,7 +513,7 @@
                             <div class="tm-label">Your Files</div>
                             <div class="tm-value">
                                 <t t-foreach="submission.attachment_ids" t-as="att">
-                                    <a t-attf-href="/web/content/#{att.id}?download=true" class="tm-file-link">
+                                    <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true" class="tm-file-link">
                                         <i class="fa fa-paperclip"/> <t t-esc="att.name"/>
                                     </a>
                                 </t>
