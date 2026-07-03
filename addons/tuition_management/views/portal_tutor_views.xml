@@ -1725,6 +1725,16 @@
                                     return;
                                 }
                                 if (editor) hidden.value = editor.innerHTML;
+
+                                // Sync accumulated files (click + drag-and-drop) into the file input
+                                if (_editFiles.length > 0) {
+                                    try {
+                                        var dt = new DataTransfer();
+                                        _editFiles.forEach(function(f) { dt.items.add(f); });
+                                        document.getElementById('asgn_edit_file_input').files = dt.files;
+                                    } catch(e) { /* DataTransfer not supported — input already has last selection */ }
+                                }
+
                                 document.getElementById('asgn-edit-form').submit();
                             }
 
@@ -2084,6 +2094,17 @@
 
                         document.getElementById('asgn_draft_flag').value = isDraft ? '1' : '0';
                         if (editor) document.getElementById('asgn_description_hidden').value = editor.innerHTML;
+
+                        // Sync accumulated files (click + drag-and-drop) into the file input
+                        // so the native multipart POST carries all of them.
+                        if (_asgnFiles.length > 0) {
+                            try {
+                                var dt = new DataTransfer();
+                                _asgnFiles.forEach(function(f) { dt.items.add(f); });
+                                document.getElementById('asgn_file_input').files = dt.files;
+                            } catch(e) { /* DataTransfer not supported — input already has last selection */ }
+                        }
+
                         document.getElementById('asgn-create-form').submit();
                     }
                     ]]>

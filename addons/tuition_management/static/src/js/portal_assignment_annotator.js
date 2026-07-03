@@ -32,7 +32,8 @@
         this.lineWidth = 3;
         this.isDrawing = false;
 
-        this._activeTA = null;   // currently open text-entry textarea
+        this._activeTA   = null;   // currently open text-entry textarea
+        this._activeHint = null;   // hint label below the textarea
 
         this.baseCanvas = document.getElementById('tm-base-canvas');
         this.annCanvas  = document.getElementById('tm-ann-canvas');
@@ -79,9 +80,9 @@
         this.tool = tool;
         var self = this;
         // Dismiss open textarea when switching away from text tool
-        if (tool !== 'text' && self._activeTA) {
-            self._activeTA.remove();
-            self._activeTA = null;
+        if (tool !== 'text') {
+            if (self._activeTA)   { self._activeTA.remove();   self._activeTA   = null; }
+            if (self._activeHint) { self._activeHint.remove(); self._activeHint = null; }
         }
         ['draw', 'text', 'highlight', 'eraser'].forEach(function (t) {
             var btn = document.getElementById('tm-tool-' + t);
@@ -189,13 +190,18 @@
 
     /* ─── Text tool ───────────────────────────────────────────── */
     AnnotationViewer.prototype._placeText = function (canvasX, canvasY) {
-        var self     = this;
-        var fontSize = Math.max(16, self.lineWidth * 5);
+        var self       = this;
+        var fontSize   = Math.max(16, self.lineWidth * 5);
+        var lineHeight = fontSize * 1.4;
 
         // Remove any already-open text editor
         if (self._activeTA && self._activeTA.parentNode) {
             self._activeTA.remove();
             self._activeTA = null;
+        }
+        if (self._activeHint && self._activeHint.parentNode) {
+            self._activeHint.remove();
+            self._activeHint = null;
         }
 
         // Convert canvas coords → fixed viewport coords
@@ -203,11 +209,11 @@
         var scaleX  = rect.width  / self.annCanvas.width;
         var scaleY  = rect.height / self.annCanvas.height;
         var screenX = rect.left + canvasX * scaleX;
-        var screenY = rect.top  + canvasY * scaleY - fontSize - 6;
+        var screenY = rect.top  + canvasY * scaleY;
 
         var ta = document.createElement('textarea');
-        ta.rows        = 1;
-        ta.placeholder = 'Type here, then press Enter';
+        ta.rows        = 3;
+        ta.placeholder = 'Type here…\nEnter = new line\nCtrl+Enter = done';
         ta.style.cssText = [
             'position:fixed',
             'left:'   + Math.max(4, screenX) + 'px',
@@ -216,25 +222,56 @@
             'font-family:Arial,sans-serif',
             'font-weight:bold',
             'color:'  + self.color,
-            'background:rgba(255,255,255,0.93)',
+            'background:rgba(255,255,255,0.95)',
             'border:2px dashed ' + self.color,
             'border-radius:4px',
-            'padding:3px 8px',
+            'padding:4px 8px',
             'outline:none',
-            'min-width:150px',
-            'resize:none',
-            'overflow:hidden',
-            'line-height:1.3',
+            'min-width:200px',
+            'resize:both',
+            'overflow:auto',
+            'line-height:' + lineHeight + 'px',
             'z-index:999999',
             'box-sizing:border-box',
-            'box-shadow:0 2px 10px rgba(0,0,0,0.18)',
+            'box-shadow:0 2px 12px rgba(0,0,0,0.22)',
+        ].join(';');
+
+        // Small "Ctrl+Enter to finish" hint below the textarea
+        var hint = document.createElement('div');
+        hint.textContent = 'Ctrl+Enter to finish · Esc to cancel';
+        hint.style.cssText = [
+            'position:fixed',
+            'font-size:11px',
+            'color:#555',
+            'background:rgba(255,255,255,0.88)',
+            'padding:2px 7px',
+            'border-radius:3px',
+            'z-index:999999',
+            'pointer-events:none',
+            'white-space:nowrap',
         ].join(';');
 
         document.body.appendChild(ta);
-        self._activeTA = ta;
+        document.body.appendChild(hint);
+        self._activeTA   = ta;
+        self._activeHint = hint;
 
-        // Call focus() synchronously — Chrome requires focus to be called within
-        // a direct user-gesture handler (mousedown). Async setTimeout is blocked by Chrome.
+        function positionHint() {
+            var taRect = ta.getBoundingClientRect();
+            hint.style.left = taRect.left + 'px';
+            hint.style.top  = (taRect.bottom + 3) + 'px';
+        }
+        positionHint();
+
+        // Auto-grow height as user types
+        function autoGrow() {
+            ta.style.height = 'auto';
+            ta.style.height = (ta.scrollHeight + 4) + 'px';
+            positionHint();
+        }
+        ta.addEventListener('input', autoGrow);
+
+        // Call focus() synchronously — Chrome requires focus inside mousedown handler.
         ta.focus();
 
         var committed = false;
@@ -242,36 +279,52 @@
         function commit() {
             if (committed) return;
             committed = true;
-            var val = ta.value.trim();
-            if (ta.parentNode) { ta.remove(); }
-            self._activeTA = null;
+            if (ta.parentNode)   ta.remove();
+            if (hint.parentNode) hint.remove();
+            self._activeTA   = null;
+            self._activeHint = null;
+            // Strip leading/trailing blank lines but preserve internal newlines
+            var val = ta.value.replace(/^\n+|\n+$/g, '');
             if (!val) return;
-            var ctx = self.annCtx;
+            var ctx   = self.annCtx;
             ctx.globalAlpha = 1.0;
             ctx.globalCompositeOperation = 'source-over';
             ctx.fillStyle = self.color;
             ctx.font      = 'bold ' + fontSize + 'px Arial, sans-serif';
-            ctx.fillText(val, canvasX, canvasY);
+            // Draw each line separately so multi-line text renders correctly
+            var lines = val.split('\n');
+            lines.forEach(function (line, i) {
+                ctx.fillText(line, canvasX, canvasY + i * lineHeight);
+            });
         }
 
         ta.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); commit(); }
+            // Ctrl+Enter or Cmd+Enter → commit
+            if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+                e.preventDefault();
+                commit();
+                return;
+            }
+            // Escape → cancel
             if (e.key === 'Escape') {
                 committed = true;
-                if (ta.parentNode) ta.remove();
-                self._activeTA = null;
+                if (ta.parentNode)   ta.remove();
+                if (hint.parentNode) hint.remove();
+                self._activeTA   = null;
+                self._activeHint = null;
             }
+            // Plain Enter → natural newline (browser default, no action needed)
         });
 
-        // Commit on blur — but wait 250 ms in case the user just clicked
-        // the canvas again (which would create a new TA, already handling commit there)
+        // Stop clicks inside textarea from re-triggering canvas _onDown
+        ta.addEventListener('mousedown', function (e) { e.stopPropagation(); });
+
+        // Commit on blur only if text has been entered; re-focus if spurious blur (Chrome)
         ta.addEventListener('blur', function () {
             setTimeout(function () {
                 if (committed) return;
-                var val = ta.value.trim();
+                var val = ta.value.replace(/^\n+|\n+$/g, '');
                 if (!val) {
-                    // Spurious blur (Chrome fires this after mousedown focus);
-                    // keep textarea open so the user can still type.
                     if (ta.parentNode) ta.focus();
                 } else {
                     commit();
