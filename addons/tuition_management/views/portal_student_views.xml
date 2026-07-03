@@ -430,142 +430,292 @@
             </div>
         </div>
 
-        <div class="tm-grid-2">
-            <div class="tm-card">
-                <div class="tm-card-header">
-                    <div class="tm-card-title"><i class="fa fa-info-circle"/> Assignment Details</div>
-                </div>
-                <div class="tm-card-body">
-                    <div class="tm-label">Course</div>
-                    <div class="tm-value"><t t-esc="assignment.course_id.name"/></div>
-                    <div class="tm-label">Type</div>
-                    <div class="tm-value"><t t-esc="assignment.assignment_type or '—'"/></div>
-                    <div class="tm-label">Status</div>
-                    <div class="tm-value">
-                        <span t-if="assignment.status == 'assigned'" class="tm-badge tm-badge-blue">Assigned</span>
-                        <span t-elif="assignment.status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
-                        <span t-elif="assignment.status == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
-                        <span t-else="" class="tm-badge tm-badge-grey"><t t-esc="assignment.status"/></span>
+        <!-- ── Assignment Details ── -->
+        <div class="tm-card" style="margin-bottom:16px;">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-info-circle"/> Assignment Details</div>
+            </div>
+            <div class="tm-card-body">
+                <!-- 2-column grid for compact fields -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-bottom:4px;">
+                    <div>
+                        <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:2px;">Type</div>
+                        <div style="font-size:13px;color:var(--tm-text);"><t t-esc="assignment.assignment_type or '—'"/></div>
+                    </div>
+                    <div>
+                        <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:2px;">Status</div>
+                        <div style="font-size:13px;">
+                            <span t-if="assignment.status == 'assigned'"    style="color:#3b82f6;">Assigned</span>
+                            <span t-elif="assignment.status == 'completed'" style="color:#22c55e;">Completed</span>
+                            <span t-elif="assignment.status == 'draft'"     style="color:#9ca3af;">Draft</span>
+                            <span t-else=""                                 style="color:var(--tm-text);"><t t-esc="assignment.status"/></span>
+                        </div>
                     </div>
                     <t t-if="assignment.due_date">
-                        <div class="tm-label">Due Date</div>
-                        <div class="tm-value" style="font-weight:600;color:var(--tm-orange);">
-                            <t t-esc="assignment.due_date" t-options='{"widget": "date"}'/>
+                        <div>
+                            <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:2px;">Due Date</div>
+                            <div style="font-size:13px;color:var(--tm-orange);"><t t-esc="assignment.due_date.strftime('%d %b %Y')"/></div>
                         </div>
                     </t>
-                    <t t-if="assignment.description">
-                        <div class="tm-label">Description</div>
-                        <div class="tm-value" style="white-space:pre-wrap;"><t t-esc="assignment.description"/></div>
+                    <t t-if="assignment.assigned_date">
+                        <div>
+                            <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:2px;">Assigned Date</div>
+                            <div style="font-size:13px;color:var(--tm-text);"><t t-esc="assignment.assigned_date.strftime('%d %b %Y')"/></div>
+                        </div>
                     </t>
-                    <t t-if="assignment.attachment_ids">
-                        <div class="tm-label">Attachments</div>
-                        <div class="tm-value">
-                            <t t-foreach="assignment.attachment_ids" t-as="att">
-                                <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true" class="tm-file-link">
-                                    <i class="fa fa-download"/> <t t-esc="att.name"/>
+                </div>
+                <!-- Description — full width with border box -->
+                <t t-if="assignment.description">
+                    <div style="margin-top:12px;">
+                        <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:6px;">Description</div>
+                        <div style="border:1px solid var(--tm-border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--tm-text);white-space:pre-wrap;width:100%;box-sizing:border-box;background:var(--tm-bg);">
+                            <t t-out="assignment.description"/>
+                        </div>
+                    </div>
+                </t>
+                <!-- Resources — full width -->
+                <t t-if="assignment.attachment_ids">
+                    <div style="margin-top:12px;">
+                        <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:6px;">Resources</div>
+                        <t t-foreach="assignment.attachment_ids" t-as="att">
+                            <div style="display:flex;align-items:center;gap:16px;padding:7px 10px;border-radius:6px;margin-bottom:4px;"
+                                 t-attf-style="background:#{att_index % 2 == 0 and '#f8f9fb' or '#ffffff'};border:1px solid #eaecf0;">
+                                <span style="font-size:13px;color:var(--tm-text);min-width:20px;line-height:1.5;"><t t-esc="att_index + 1"/>.</span>
+                                <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
+                                   style="font-size:13px;color:var(--tm-blue);text-decoration:none;display:inline-flex;align-items:center;gap:5px;flex:1;line-height:1.5;">
+                                    <i class="fa fa-paperclip" style="font-size:12px;"/><t t-esc="att.name"/>
                                 </a>
-                            </t>
-                        </div>
-                    </t>
-                </div>
-            </div>
-
-            <div class="tm-card">
-                <div class="tm-card-header">
-                    <div class="tm-card-title"><i class="fa fa-upload"/> Your Submission</div>
-                </div>
-                <div class="tm-card-body">
-                    <t t-if="submission">
-                        <div class="tm-label">Submitted On</div>
-                        <div class="tm-value">
-                            <t t-if="submission.submission_date" t-esc="submission.submission_date" t-options='{"widget": "datetime", "format": "dd MMM yyyy hh:mm a"}'/>
-                            <t t-else="">—</t>
-                        </div>
-                        <div class="tm-label">Status</div>
-                        <div class="tm-value">
-                            <span t-if="submission.status == 'completed'"      class="tm-badge tm-badge-green">Completed</span>
-                            <span t-elif="submission.status == 'rework'"       class="tm-badge tm-badge-red">Rework Required</span>
-                            <span t-elif="submission.status == 'pending_review'" class="tm-badge tm-badge-orange">Under Review</span>
-                            <span t-elif="submission.status == 'submitted'"    class="tm-badge tm-badge-blue">Submitted</span>
-                            <span t-else=""                                    class="tm-badge tm-badge-grey">Pending</span>
-                        </div>
-                        <t t-if="submission.score">
-                            <div class="tm-label">Score</div>
-                            <div class="tm-value" style="font-size:16px;font-weight:700;">
-                                <t t-esc="'%.1f' % (submission.score or 0)"/> / <t t-esc="'%.0f' % (submission.max_score or 100)"/>
-                            </div>
-                        </t>
-                        <t t-if="submission.feedback">
-                            <div class="tm-label">Tutor Feedback</div>
-                            <t t-if="submission.status == 'rework'">
-                                <div class="tm-value" style="background:#fffbeb;border:1px solid #fde68a;padding:10px;border-radius:8px;color:#92400e;">
-                                    <i class="fa fa-exclamation-triangle me-1"/>
-                                    <t t-esc="submission.feedback"/>
-                                </div>
-                            </t>
-                            <t t-else="">
-                                <div class="tm-value" style="background:var(--tm-bg);padding:10px;border-radius:8px;">
-                                    <t t-esc="submission.feedback"/>
-                                </div>
-                            </t>
-                        </t>
-                        <t t-if="submission.attachment_ids">
-                            <div class="tm-label">Your Files</div>
-                            <div class="tm-value">
-                                <t t-foreach="submission.attachment_ids" t-as="att">
-                                    <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true" class="tm-file-link">
-                                        <i class="fa fa-paperclip"/> <t t-esc="att.name"/>
+                                <t t-if="att in annotatable_atts">
+                                    <a t-attf-href="/my/assignments/#{assignment.id}/annotate/#{att.id}"
+                                       class="tm-btn tm-btn-sm tm-btn-outline" style="white-space:nowrap;">
+                                        <i class="fa fa-eye"/> Preview
                                     </a>
                                 </t>
                             </div>
                         </t>
-                        <t t-if="submission.notes">
-                            <div class="tm-label">Your Note</div>
-                            <div class="tm-value" style="background:var(--tm-bg);padding:10px;border-radius:8px;white-space:pre-wrap;">
-                                <t t-esc="submission.notes"/>
+                    </div>
+                </t>
+            </div>
+        </div>
+
+        <!-- ── Your Submission ── -->
+        <div class="tm-card">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-upload"/> Your Submission</div>
+            </div>
+            <div class="tm-card-body">
+                <t t-if="submission">
+                    <!-- 2-column grid for compact fields -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-bottom:4px;">
+                        <div>
+                            <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:2px;">Submitted On</div>
+                            <div style="font-size:13px;color:var(--tm-text);">
+                                <t t-if="submission.submission_date" t-esc="submission.submission_date" t-options='{"widget": "datetime", "format": "dd MMM yyyy hh:mm a"}'/>
+                                <t t-else="">—</t>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:2px;">Status</div>
+                            <div style="font-size:13px;">
+                                <span t-if="submission.status == 'completed'"        style="color:#22c55e;">Completed</span>
+                                <span t-elif="submission.status == 'rework'"         style="color:#ef4444;">Rework Required</span>
+                                <span t-elif="submission.status == 'pending_review'" style="color:#f97316;">Under Review</span>
+                                <span t-elif="submission.status == 'submitted'"      style="color:#3b82f6;">Submitted</span>
+                                <span t-else=""                                      style="color:#9ca3af;">Pending</span>
+                            </div>
+                        </div>
+                        <t t-if="submission.score">
+                            <div>
+                                <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:2px;">Score</div>
+                                <div style="font-size:13px;color:var(--tm-text);">
+                                    <t t-esc="'%.1f' % (submission.score or 0)"/> / <t t-esc="'%.0f' % (submission.max_score or 100)"/>
+                                </div>
                             </div>
                         </t>
-                        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--tm-border);">
-                            <div class="tm-label">
-                                <t t-if="submission.status == 'rework'">Resubmit</t>
-                                <t t-else="">Re-submit</t>
-                            </div>
+                    </div>
+                    <!-- Full-width fields -->
+                    <t t-if="submission.feedback">
+                        <div style="margin-top:12px;">
+                            <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:6px;">Tutor Feedback</div>
                             <t t-if="submission.status == 'rework'">
-                                <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#dc2626;">
-                                    <i class="fa fa-info-circle me-1"/>Your tutor has requested a rework. Please review the feedback above and resubmit.
+                                <div style="background:#fffbeb;border:1px solid #fde68a;padding:10px 12px;border-radius:8px;color:#92400e;font-size:13px;">
+                                    <i class="fa fa-exclamation-triangle me-1"/><t t-esc="submission.feedback"/>
                                 </div>
                             </t>
-                            <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
-                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                                <div style="margin-bottom:12px;">
-                                    <input type="file" name="submission_file" class="form-control form-control-sm"/>
+                            <t t-else="">
+                                <div style="background:var(--tm-bg);border:1px solid var(--tm-border);padding:10px 12px;border-radius:8px;font-size:13px;">
+                                    <t t-esc="submission.feedback"/>
                                 </div>
-                                <div style="margin-bottom:12px;">
-                                    <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Add a Note (optional)</label>
-                                    <textarea name="student_note" class="form-control form-control-sm" rows="3" placeholder="Add any notes for your tutor..."/>
-                                </div>
-                                <button type="submit" class="tm-btn tm-btn-blue tm-btn-sm"><i class="fa fa-upload"/> Re-submit</button>
-                            </form>
+                            </t>
                         </div>
                     </t>
-                    <t t-if="not submission">
+                    <t t-if="submission.attachment_ids">
+                        <div style="margin-top:12px;">
+                            <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:6px;">Your Files</div>
+                            <t t-foreach="submission.attachment_ids" t-as="att">
+                                <div style="display:flex;align-items:center;gap:16px;padding:7px 10px;border-radius:6px;margin-bottom:4px;"
+                                     t-attf-style="background:#{att_index % 2 == 0 and '#f8f9fb' or '#ffffff'};border:1px solid #eaecf0;">
+                                    <span style="font-size:13px;color:var(--tm-text);min-width:20px;line-height:1.5;"><t t-esc="att_index + 1"/>.</span>
+                                    <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
+                                       style="font-size:13px;color:var(--tm-blue);text-decoration:none;display:inline-flex;align-items:center;gap:5px;flex:1;line-height:1.5;">
+                                        <i class="fa fa-paperclip" style="font-size:12px;"/><t t-esc="att.name"/>
+                                    </a>
+                                    <t t-if="att in annotatable_atts">
+                                        <a t-attf-href="/my/assignments/#{assignment.id}/annotate/#{att.id}"
+                                           class="tm-btn tm-btn-sm tm-btn-outline" style="white-space:nowrap;">
+                                            <i class="fa fa-eye"/> Preview
+                                        </a>
+                                    </t>
+                                    <form t-attf-action="/my/assignments/#{assignment.id}/submission/delete-file/#{att.id}"
+                                          method="POST" style="display:inline;margin:0;">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <button type="submit" class="tm-btn tm-btn-sm tm-btn-outline"
+                                                style="color:#ef4444;border-color:#fecaca;white-space:nowrap;"
+                                                onclick="return confirm('Delete this file?')">
+                                            <i class="fa fa-times"/> Delete
+                                        </button>
+                                    </form>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+                    <t t-if="submission.notes">
+                        <div style="margin-top:12px;margin-bottom:16px;">
+                            <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:6px;">Your Note</div>
+                            <div style="border:1px solid var(--tm-border);border-radius:8px;padding:10px 12px;font-size:13px;color:var(--tm-text);white-space:pre-wrap;background:var(--tm-bg);">
+                                <t t-esc="submission.notes"/>
+                            </div>
+                        </div>
+                    </t>
+                    <!-- Re-submit form -->
+                    <div style="padding-top:16px;border-top:1px solid var(--tm-border);">
+                        <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">
+                            <t t-if="submission.status == 'rework'">Resubmit</t>
+                            <t t-else="">Re-submit</t>
+                        </div>
+                        <t t-if="submission.status == 'rework'">
+                            <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#dc2626;">
+                                <i class="fa fa-info-circle me-1"/>Your tutor has requested a rework. Please review the feedback above and resubmit.
+                            </div>
+                        </t>
                         <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
                             <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                            <div style="margin-bottom:12px;">
-                                <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Upload File *</label>
-                                <input type="file" name="submission_file" class="form-control form-control-sm" />
+                            <div style="margin-bottom:10px;">
+                                <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Upload File (optional)</label>
+                                <input type="file" name="submission_file" class="form-control" style="width:100%;min-width:0;"/>
                             </div>
                             <div style="margin-bottom:12px;">
                                 <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Add a Note (optional)</label>
-                                <textarea name="student_note" class="form-control form-control-sm" rows="3" placeholder="Add any notes for your tutor..."/>
+                                <textarea name="student_note" class="form-control form-control-sm" rows="3" placeholder="Add any notes for your tutor..." style="width:100%;"/>
                             </div>
-                            <button type="submit" class="tm-btn tm-btn-green" style="width:100%;justify-content:center;">
-                                <i class="fa fa-upload"/> Submit Assignment
-                            </button>
+                            <button type="submit" class="tm-btn tm-btn-blue tm-btn-sm"><i class="fa fa-upload"/> Re-submit</button>
                         </form>
-                    </t>
-                </div>
+                    </div>
+                </t>
+                <t t-if="not submission">
+                    <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <div style="margin-bottom:10px;">
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Upload File (optional)</label>
+                            <input type="file" name="submission_file" class="form-control form-control-sm"/>
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Add a Note (optional)</label>
+                            <textarea name="student_note" class="form-control form-control-sm" rows="3" placeholder="Add any notes for your tutor..." style="width:100%;"/>
+                        </div>
+                        <button type="submit" class="tm-btn tm-btn-green"><i class="fa fa-upload"/> Submit Assignment</button>
+                    </form>
+                </t>
             </div>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- STUDENT: ANNOTATION / ANNOTATE PAGE             -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_student_annotate" name="Student: Annotate Assignment">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">assignments</t>
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+            <a t-attf-href="/my/assignments/#{assignment.id}" class="tm-btn tm-btn-outline tm-btn-sm">
+                <i class="fa fa-arrow-left"/> Back to Assignment
+            </a>
+            <span style="font-size:13px;font-weight:600;color:var(--tm-text);">
+                <i class="fa fa-paint-brush" style="color:var(--tm-blue);"/> <t t-esc="attachment.name"/>
+            </span>
+        </div>
+
+        <!-- Toolbar card -->
+        <div style="background:#fff;border:1px solid var(--tm-border);border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:none;">
+            <span style="font-size:11px;font-weight:700;color:var(--tm-text-light);text-transform:uppercase;letter-spacing:.5px;margin-right:4px;">Tools</span>
+            <button id="tm-tool-draw"      type="button" class="tm-btn tm-btn-sm tm-btn-primary"  title="Draw (freehand)"><i class="fa fa-pencil"/> Draw</button>
+            <button id="tm-tool-text"      type="button" class="tm-btn tm-btn-sm tm-btn-outline"  title="Add text"><i class="fa fa-font"/> Text</button>
+            <button id="tm-tool-highlight" type="button" class="tm-btn tm-btn-sm tm-btn-outline"  title="Highlight"><i class="fa fa-paint-brush"/> Highlight</button>
+            <button id="tm-tool-eraser"    type="button" class="tm-btn tm-btn-sm tm-btn-outline"  title="Eraser"><i class="fa fa-eraser"/> Eraser</button>
+            <span style="width:1px;height:24px;background:var(--tm-border);display:inline-block;"/>
+            <label style="margin:0;display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;" title="Colour">
+                <i class="fa fa-circle" style="font-size:10px;color:var(--tm-text-light);"/>
+                <input id="tm-color-picker" type="color" value="#e74c3c" style="width:30px;height:26px;border:none;background:none;cursor:pointer;padding:0;"/>
+            </label>
+            <label style="margin:0;display:flex;align-items:center;gap:5px;font-size:11px;" title="Thickness">
+                <i class="fa fa-minus" style="font-size:9px;"/>
+                <input id="tm-line-width" type="range" min="1" max="12" value="3" style="width:80px;"/>
+                <i class="fa fa-minus" style="font-size:15px;"/>
+            </label>
+            <button id="tm-clear-ann" type="button" class="tm-btn tm-btn-sm tm-btn-outline" title="Clear all"><i class="fa fa-times"/> Clear</button>
+            <div id="tm-page-nav" style="display:none;align-items:center;gap:6px;margin-left:auto;">
+                <button id="tm-prev-page" type="button" class="tm-btn tm-btn-sm tm-btn-outline"><i class="fa fa-chevron-left"/></button>
+                <span id="tm-page-indicator" style="font-size:12px;font-weight:600;">Page 1 / 1</span>
+                <button id="tm-next-page" type="button" class="tm-btn tm-btn-sm tm-btn-outline"><i class="fa fa-chevron-right"/></button>
+            </div>
+        </div>
+
+        <!-- Text tool input panel (shown when Text tool is active) -->
+        <div id="tm-text-panel" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-left:1px solid var(--tm-border);border-right:1px solid var(--tm-border);padding:10px 16px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span id="tm-text-hint" style="font-size:12px;color:#92400e;white-space:nowrap;"><i class="fa fa-mouse-pointer"/> Click on the canvas to set text position</span>
+                <input id="tm-text-input" type="text" placeholder="Type your annotation and press Enter…"
+                       style="display:none;flex:1;min-width:200px;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;"/>
+                <button id="tm-text-place" type="button" class="tm-btn tm-btn-sm tm-btn-primary" style="display:none;">
+                    <i class="fa fa-check"/> Place Text
+                </button>
+                <button id="tm-text-cancel-inp" type="button" class="tm-btn tm-btn-sm tm-btn-outline">
+                    <i class="fa fa-times"/> Cancel
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div id="tm-annotation-viewer"
+             t-att-data-attachments="annotation_attachments_json"
+             style="overflow:auto;background:#444;border-left:1px solid var(--tm-border);border-right:1px solid var(--tm-border);min-height:400px;line-height:0;">
+            <div style="position:relative;display:inline-block;min-width:100%;">
+                <canvas id="tm-base-canvas" style="display:block;"/>
+                <canvas id="tm-ann-canvas"  style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair;"/>
+            </div>
+        </div>
+
+        <!-- Submit form -->
+        <div style="background:#fff;border:1px solid var(--tm-border);border-radius:0 0 10px 10px;padding:16px;border-top:none;">
+            <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST"
+                  enctype="multipart/form-data" data-annotation-form="1">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <input type="hidden" name="annotated_image" class="tm-annotated-image-data"/>
+                <div style="margin-bottom:10px;">
+                    <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Add a Note (optional)</label>
+                    <textarea name="student_note" class="form-control" rows="3" style="width:100%;"
+                              placeholder="Any comments for your tutor..."/>
+                </div>
+                <button type="submit" class="tm-btn tm-btn-green">
+                    <i class="fa fa-upload"/> Submit Assignment
+                </button>
+                <div style="margin-top:8px;font-size:11px;color:var(--tm-text-light);">
+                    <i class="fa fa-info-circle"/> Your annotations will be saved and submitted to the tutor.
+                </div>
+            </form>
         </div>
     </t>
 </template>

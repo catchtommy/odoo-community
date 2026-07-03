@@ -1055,7 +1055,7 @@
             <div class="tm-card">
                 <div class="tm-card-header">
                     <div class="tm-card-title"><i class="fa fa-tasks"/> Assignments</div>
-                    <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-card-action"><i class="fa fa-plus"/> Add New</a>
+                    <a t-attf-href="/my/tutor/courses/#{course.id}/assignments/new" class="tm-card-action"><i class="fa fa-plus"/> Add New</a>
                 </div>
                 <t t-if="course_assignments">
                     <table class="tm-table">
@@ -1083,7 +1083,7 @@
                     <div class="tm-empty">
                         <i class="fa fa-tasks"/>
                         <p>No assignments yet.</p>
-                        <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm" style="margin-top:8px;"><i class="fa fa-plus"/> Create First Assignment</a>
+                        <a t-attf-href="/my/tutor/courses/#{course.id}/assignments/new" class="tm-btn tm-btn-outline tm-btn-sm" style="margin-top:8px;"><i class="fa fa-plus"/> Create First Assignment</a>
                     </div>
                 </t>
             </div>
@@ -1303,7 +1303,10 @@
 
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
             <h5 style="margin:0;font-weight:700;"><i class="fa fa-tasks"/> <t t-esc="course.name"/> — Assignments</h5>
-            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+            <div style="display:flex;gap:8px;">
+                <a t-attf-href="/my/tutor/courses/#{course.id}/assignments/new" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-plus"/> New Assignment</a>
+                <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+            </div>
         </div>
 
         <!-- Deleted flash -->
@@ -1343,233 +1346,6 @@
                     <div class="tm-stat-icon green"><i class="fa fa-inbox"/></div>
                 </div>
                 <div class="tm-stat-action">Total submissions</div>
-            </div>
-        </div>
-
-        <!-- ── CREATE ASSIGNMENT FORM ── -->
-        <div class="tm-card mb-4">
-            <div class="tm-card-header">
-                <div class="tm-card-title"><i class="fa fa-plus-circle me-2"/>New Assignment</div>
-            </div>
-            <div class="tm-card-body">
-                <form t-attf-action="/my/tutor/courses/#{course.id}/assignments/create" method="POST" enctype="multipart/form-data" id="asgn-create-form">
-                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                    <input type="hidden" name="draft" id="asgn_draft_flag" value="0"/>
-
-                    <!-- Row 1: Assignment Title -->
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:13px;">Assignment Title <span style="color:#dc2626;">*</span></label>
-                        <input type="text" name="name" class="form-control" required="required"
-                               style="border-radius:8px; border:1px solid #d0d7de; font-size:14px; padding:10px 14px;"
-                               placeholder=""/>
-                    </div>
-
-                    <!-- Row 2: Course + Subject -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <label class="form-label fw-semibold" style="font-size:13px;">Assignment Type <span style="color:#dc2626;">*</span></label>
-                            <select name="assignment_type" class="form-select" required="required"
-                                    style="border-radius:8px; border:1px solid #d0d7de; font-size:14px; padding:10px 14px;">
-                                <option value="">— Select Type —</option>
-                                <option value="homework">Homework</option>
-                                <option value="quiz">Quiz</option>
-                                <option value="test">Test</option>
-                                <option value="project">Project</option>
-                                <option value="worksheet">Worksheet</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- Row 4: Due Date + Submission Type -->
-                    <div class="row g-3 mb-3">
-                        <div class="col-6">
-                            <label class="form-label fw-semibold" style="font-size:13px;">Due Date</label>
-                            <input type="date" name="due_date" class="form-control"
-                                   style="border-radius:8px; border:1px solid #d0d7de; font-size:14px; padding:10px 14px;"/>
-                        </div>
-                    </div>
-
-                    <!-- Row 5: Description / Instructions with simple toolbar -->
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold" style="font-size:13px;">Description / Instructions <span style="color:#dc2626;">*</span></label>
-                        <div style="border:1px solid #d0d7de; border-radius:8px; overflow:hidden;">
-                            <!-- Toolbar -->
-                            <div style="background:#f8f9fa; border-bottom:1px solid #e0e0e0; padding:6px 10px; display:flex; flex-wrap:wrap; gap:2px; align-items:center;">
-                                <button type="button" onclick="document.execCommand('bold')" title="Bold"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-weight:700;font-size:13px;cursor:pointer;color:#333;">B</button>
-                                <button type="button" onclick="document.execCommand('italic')" title="Italic"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-style:italic;font-size:13px;cursor:pointer;color:#333;">I</button>
-                                <button type="button" onclick="document.execCommand('underline')" title="Underline"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;text-decoration:underline;font-size:13px;cursor:pointer;color:#333;">U</button>
-                                <button type="button" onclick="document.execCommand('strikeThrough')" title="Strikethrough"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;text-decoration:line-through;font-size:13px;cursor:pointer;color:#333;">S</button>
-                                <span style="width:1px;height:18px;background:#d0d7de;margin:0 4px;display:inline-block;"/>
-                                <button type="button" onclick="document.execCommand('insertUnorderedList')" title="Bullet List"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-list-ul"/></button>
-                                <button type="button" onclick="document.execCommand('insertOrderedList')" title="Numbered List"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-list-ol"/></button>
-                                <button type="button" onclick="document.execCommand('outdent')" title="Outdent"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-outdent"/></button>
-                                <button type="button" onclick="document.execCommand('indent')" title="Indent"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-indent"/></button>
-                                <button type="button" onclick="document.execCommand('formatBlock', false, 'blockquote')" title="Blockquote"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-quote-right"/></button>
-                                <button type="button" onclick="asgnInsertLink()" title="Link"
-                                        style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-link"/></button>
-                            </div>
-                            <!-- Editable area -->
-                            <div id="asgn_description_editor" contenteditable="true"
-                                 style="min-height:160px; padding:14px; font-size:14px; color:#333; outline:none; background:#fff;"
-                                 data-placeholder="Add detailed assignment instructions here..."></div>
-                            <textarea name="description" id="asgn_description_hidden" style="display:none;"></textarea>
-                        </div>
-                    </div>
-
-                    <!-- Row 6: Attachment -->
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold" style="font-size:13px;">Attachment</label>
-                        <!-- File list (shown after selection) -->
-                        <div id="asgn_file_list" class="mb-2"/>
-                        <!-- Drop zone -->
-                        <div id="asgn_drop_zone"
-                             style="border:2px dashed #d0d7de; border-radius:8px; padding:28px; text-align:center; background:#fafbfc; cursor:pointer; transition:border-color .2s;"
-                             onclick="document.getElementById('asgn_file_input').click()"
-                             ondragover="event.preventDefault(); this.style.borderColor='#667eea';"
-                             ondragleave="this.style.borderColor='#d0d7de';"
-                             ondrop="asgnHandleDrop(event)">
-                            <div style="font-size:24px; color:#aaa; margin-bottom:4px;">&#8679;</div>
-                            <div style="font-size:13px; color:#888;">Drag and drop here</div>
-                            <input type="file" id="asgn_file_input" name="attachment" class="d-none"
-                                   multiple="multiple" onchange="asgnHandleFiles(this.files)"/>
-                        </div>
-                    </div>
-
-                    <!-- Row 7: Buttons -->
-                    <div class="mb-2">
-                        <button type="submit" onclick="asgnPrepareSubmit(0)"
-                                style="width:100%; padding:13px; font-size:15px; font-weight:700; color:#fff; border:none; border-radius:8px; background:linear-gradient(90deg,#4a6cf7,#6a4cf7); cursor:pointer; letter-spacing:.3px;">
-                            Create Assignment
-                        </button>
-                    </div>
-                    <div class="d-flex gap-3">
-                        <button type="button" onclick="asgnPrepareSubmit(1)"
-                                style="flex:1; padding:10px; font-size:13px; font-weight:500; color:#555; border:1px solid #d0d7de; border-radius:8px; background:#fff; cursor:pointer;">
-                            Save as Draft
-                        </button>
-                        <a t-attf-href="/my/tutor/courses/#{course.id}"
-                           style="flex:1; padding:10px; font-size:13px; font-weight:500; color:#555; border:1px solid #d0d7de; border-radius:8px; background:#fff; cursor:pointer; text-align:center; text-decoration:none; display:inline-block;">
-                            Cancel
-                        </a>
-                    </div>
-                </form>
-
-                <script>
-                    <![CDATA[
-                    // ── Type toggle ──────────────────────────────────────────
-                    function setAssignmentMode(mode) {
-                        document.getElementById('asgn_mode_input').value = mode;
-                        var assigned = document.getElementById('type-assigned');
-                        var control  = document.getElementById('type-control');
-                        if (mode === 'assigned') {
-                            assigned.style.background = '#fff';
-                            assigned.style.color = '#333';
-                            assigned.style.fontWeight = '600';
-                            control.style.background = 'transparent';
-                            control.style.color = '#888';
-                            control.style.fontWeight = '500';
-                        } else {
-                            control.style.background = '#fff';
-                            control.style.color = '#333';
-                            control.style.fontWeight = '600';
-                            assigned.style.background = 'transparent';
-                            assigned.style.color = '#888';
-                            assigned.style.fontWeight = '500';
-                        }
-                    }
-
-                    // ── Placeholder for editor ────────────────────────────────
-                    var _editor = document.getElementById('asgn_description_editor');
-                    if (_editor) {
-                        _editor.addEventListener('focus', function() {
-                            if (this.innerHTML === '' || this.innerHTML === '<br>') this.innerHTML = '';
-                        });
-                        _editor.addEventListener('input', function() {
-                            document.getElementById('asgn_description_hidden').value = this.innerHTML;
-                        });
-                        // show placeholder via CSS
-                        var st = document.createElement('style');
-                        st.innerHTML = '#asgn_description_editor:empty:before{content:attr(data-placeholder);color:#aaa;}';
-                        document.head.appendChild(st);
-                    }
-
-                    // ── Link insert ──────────────────────────────────────────
-                    function asgnInsertLink() {
-                        var url = prompt('Enter URL:');
-                        if (url) document.execCommand('createLink', false, url);
-                    }
-
-                    // ── File handling ────────────────────────────────────────
-                    var _asgnFiles = [];
-                    function asgnHandleFiles(fileList) {
-                        Array.from(fileList).forEach(function(f) { _asgnFiles.push(f); });
-                        asgnRenderFileList();
-                    }
-                    function asgnHandleDrop(e) {
-                        e.preventDefault();
-                        document.getElementById('asgn_drop_zone').style.borderColor = '#d0d7de';
-                        asgnHandleFiles(e.dataTransfer.files);
-                    }
-                    function asgnRenderFileList() {
-                        var list = document.getElementById('asgn_file_list');
-                        list.innerHTML = '';
-                        if (_asgnFiles.length === 0) return;
-                        var grid = document.createElement('div');
-                        grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;';
-                        _asgnFiles.forEach(function(f) {
-                            var item = document.createElement('div');
-                            item.style.cssText = 'background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:8px 10px;';
-                            item.innerHTML =
-                                '<div style="display:flex;justify-content:space-between;font-size:12px;color:#555;margin-bottom:4px;">' +
-                                '<span>' + f.name + ' [100%]</span><span>100%</span></div>' +
-                                '<div style="height:4px;background:#e0e0e0;border-radius:4px;overflow:hidden;">' +
-                                '<div style="width:100%;height:100%;background:#4caf50;border-radius:4px;"></div></div>';
-                            grid.appendChild(item);
-                        });
-                        list.appendChild(grid);
-                    }
-
-                    // ── Submit handler ───────────────────────────────────────
-                    function asgnPrepareSubmit(isDraft) {
-                        var editor = document.getElementById('asgn_description_editor');
-                        var descVal = editor ? editor.innerText.trim() : '';
-                        var typeVal = document.querySelector('[name="assignment_type"]').value;
-                        var nameVal = document.querySelector('[name="name"]').value.trim();
-
-                        if (!nameVal) {
-                            alert('Assignment Title is required.');
-                            document.querySelector('[name="name"]').focus();
-                            return;
-                        }
-                        if (!typeVal) {
-                            alert('Assignment Type is required.');
-                            document.querySelector('[name="assignment_type"]').focus();
-                            return;
-                        }
-                        if (!descVal) {
-                            alert('Description / Instructions is required.');
-                            editor.focus();
-                            return;
-                        }
-
-                        document.getElementById('asgn_draft_flag').value = isDraft ? '1' : '0';
-                        if (editor) {
-                            document.getElementById('asgn_description_hidden').value = editor.innerHTML;
-                        }
-                        document.getElementById('asgn-create-form').submit();
-                    }
-                    ]]>
-                </script>
             </div>
         </div>
 
@@ -1732,12 +1508,20 @@
                                 <div>
                                     <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.4px; margin-bottom:6px; font-weight:600;">Resources</div>
                                     <t t-foreach="assignment.attachment_ids" t-as="att">
-                                        <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
-                                           style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:7px; margin-bottom:6px; font-size:12px; color:#4a6cf7; text-decoration:none;">
+                                        <div style="display:flex; align-items:center; gap:6px; padding:8px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:7px; margin-bottom:6px;">
                                             <i class="fa fa-file-o" style="color:#888;"/>
-                                            <span t-out="att.name"/>
-                                            <i class="fa fa-download ms-auto" style="color:#aaa; font-size:11px;"/>
-                                        </a>
+                                            <span style="flex:1; font-size:12px; color:#333;" t-out="att.name"/>
+                                            <t t-if="att in annotatable_atts">
+                                                <a t-attf-href="/my/tutor/assignment/#{assignment.id}/preview/#{att.id}"
+                                                   style="font-size:11px; color:#4a6cf7; text-decoration:none; display:inline-flex; align-items:center; gap:3px; padding:3px 8px; border:1px solid #4a6cf7; border-radius:5px;">
+                                                    <i class="fa fa-eye"/> Preview
+                                                </a>
+                                            </t>
+                                            <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
+                                               style="font-size:11px; color:#888; text-decoration:none; display:inline-flex; align-items:center; gap:3px;">
+                                                <i class="fa fa-download"/>
+                                            </a>
+                                        </div>
                                     </t>
                                 </div>
                             </t>
@@ -1808,19 +1592,27 @@
 
                                 <!-- Attachment drop zone -->
                                 <div class="mb-4">
-                                    <label class="form-label fw-semibold" style="font-size:12px;">Add Attachment</label>
-                                    <!-- Existing attachments -->
+                                    <label class="form-label fw-semibold" style="font-size:12px;">Attachments</label>
+                                    <!-- Hidden field to track deletions -->
+                                    <input type="hidden" name="delete_attachment_ids" id="delete_attachment_ids" value=""/>
+                                    <!-- Existing attachments with delete buttons -->
                                     <t t-if="assignment.attachment_ids">
-                                        <div style="margin-bottom:8px;">
+                                        <div id="asgn_existing_atts" style="margin-bottom:8px;">
                                             <t t-foreach="assignment.attachment_ids" t-as="att">
-                                                <span style="display:inline-flex;align-items:center;gap:6px;background:#f8f9fa;border:1px solid #e8eaed;border-radius:6px;padding:4px 10px;font-size:11px;color:#555;margin-right:6px;margin-bottom:4px;">
+                                                <span t-att-data-att-id="att.id"
+                                                      style="display:inline-flex;align-items:center;gap:6px;background:#f8f9fa;border:1px solid #e8eaed;border-radius:6px;padding:4px 10px;font-size:11px;color:#555;margin-right:6px;margin-bottom:4px;">
                                                     <i class="fa fa-paperclip" style="color:#4a6cf7;"/>
                                                     <t t-out="att.name"/>
+                                                    <button type="button"
+                                                            t-att-data-att-id="att.id"
+                                                            onclick="asgnDeleteAttachment(this)"
+                                                            style="border:none;background:none;padding:0 2px;cursor:pointer;color:#dc2626;font-size:12px;line-height:1;"
+                                                            title="Remove">&#x2715;</button>
                                                 </span>
                                             </t>
                                         </div>
                                     </t>
-                                    <!-- File list preview -->
+                                    <!-- File list preview for newly selected files -->
                                     <div id="asgn_edit_file_list" class="mb-2"/>
                                     <!-- Drop zone -->
                                     <div id="asgn_edit_drop_zone"
@@ -1837,16 +1629,14 @@
                                 </div>
 
                                 <!-- Buttons -->
-                                <div class="mb-2">
-                                    <button type="button" onclick="asgnEditSubmit()"
-                                            style="width:100%; padding:11px; font-size:14px; font-weight:700; color:#fff; border:none; border-radius:8px; background:linear-gradient(90deg,#4a6cf7,#6a4cf7); cursor:pointer; letter-spacing:.3px;">
+                                <div class="d-flex gap-2">
+                                    <button type="button" onclick="asgnEditSubmit()" class="tm-btn tm-btn-primary">
                                         <i class="fa fa-save me-1"/>Save Changes
                                     </button>
+                                    <button type="button" onclick="toggleEditPanel()" class="tm-btn tm-btn-outline">
+                                        Cancel
+                                    </button>
                                 </div>
-                                <button type="button" onclick="toggleEditPanel()"
-                                        style="width:100%; padding:9px; font-size:13px; font-weight:500; color:#555; border:1px solid #d0d7de; border-radius:8px; background:#fff; cursor:pointer;">
-                                    Cancel
-                                </button>
                             </form>
                         </div>
                         <script>
@@ -1923,7 +1713,6 @@
                             function asgnEditSubmit() {
                                 var editor = document.getElementById('asgn_edit_editor');
                                 var hidden = document.getElementById('asgn_edit_hidden');
-                                var descVal = editor ? editor.innerText.trim() : '';
                                 var nameVal = document.querySelector('#asgn-edit-form [name="name"]').value.trim();
                                 var typeVal = document.querySelector('#asgn-edit-form [name="assignment_type"]').value;
 
@@ -1935,13 +1724,19 @@
                                     alert('Assignment Type is required.');
                                     return;
                                 }
-                                if (!descVal) {
-                                    alert('Description / Instructions is required.');
-                                    editor && editor.focus();
-                                    return;
-                                }
                                 if (editor) hidden.value = editor.innerHTML;
                                 document.getElementById('asgn-edit-form').submit();
+                            }
+
+                            // ── Delete existing attachment ─────────────────
+                            function asgnDeleteAttachment(btn) {
+                                var attId = btn.getAttribute('data-att-id');
+                                var hiddenField = document.getElementById('delete_attachment_ids');
+                                var current = hiddenField.value ? hiddenField.value.split(',') : [];
+                                if (current.indexOf(attId) === -1) current.push(attId);
+                                hiddenField.value = current.join(',');
+                                var badge = btn.closest('span[data-att-id]');
+                                if (badge) badge.style.display = 'none';
                             }
                             ]]>
                         </script>
@@ -1996,11 +1791,20 @@
                                     <t t-if="sub.attachment_ids">
                                         <div style="margin-bottom:12px;">
                                             <t t-foreach="sub.attachment_ids" t-as="att">
-                                                <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
-                                                   style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:6px; font-size:11px; color:#555; text-decoration:none; margin-right:6px; margin-bottom:4px;">
+                                                <div style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:6px; font-size:11px; color:#555; margin-right:6px; margin-bottom:4px;">
                                                     <i class="fa fa-paperclip" style="color:#4a6cf7;"/>
-                                                    <t t-out="att.name"/>
-                                                </a>
+                                                    <span t-out="att.name"/>
+                                                    <t t-if="att in annotatable_atts">
+                                                        <a t-attf-href="/my/tutor/assignment/#{assignment.id}/preview/#{att.id}"
+                                                           style="color:#4a6cf7; text-decoration:none; display:inline-flex; align-items:center; gap:3px; padding:2px 6px; border:1px solid #4a6cf7; border-radius:4px; font-size:10px;">
+                                                            <i class="fa fa-eye"/> Preview
+                                                        </a>
+                                                    </t>
+                                                    <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
+                                                       style="color:#888; text-decoration:none;">
+                                                        <i class="fa fa-download"/>
+                                                    </a>
+                                                </div>
                                             </t>
                                         </div>
                                     </t>
@@ -2133,6 +1937,229 @@
                     </tbody>
                 </table>
             </t>
+        </div>
+    </t>
+</template>
+
+<!-- ── TUTOR: Preview attachment (view-only annotator) ── -->
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: NEW ASSIGNMENT FORM                       -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_assignment_new" name="Tutor: New Assignment">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_course_detail</t>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+            <h5 style="margin:0;font-weight:700;"><i class="fa fa-plus-circle"/> New Assignment — <t t-esc="course.name"/></h5>
+            <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Assignments</a>
+        </div>
+
+        <div class="tm-card">
+            <div class="tm-card-body">
+                <form t-attf-action="/my/tutor/courses/#{course.id}/assignments/create" method="POST" enctype="multipart/form-data" id="asgn-create-form">
+                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                    <input type="hidden" name="draft" id="asgn_draft_flag" value="0"/>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:13px;">Assignment Title <span style="color:#dc2626;">*</span></label>
+                        <input type="text" name="name" class="form-control" required="required"
+                               style="border-radius:8px; border:1px solid #d0d7de; font-size:13px; padding:9px 12px;"
+                               placeholder=""/>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-6">
+                            <label class="form-label fw-semibold" style="font-size:13px;">Assignment Type <span style="color:#dc2626;">*</span></label>
+                            <select name="assignment_type" class="form-select" required="required"
+                                    style="border-radius:8px; border:1px solid #d0d7de; font-size:13px; padding:9px 12px;">
+                                <option value="">— Select Type —</option>
+                                <option value="homework">Homework</option>
+                                <option value="quiz">Quiz</option>
+                                <option value="test">Test</option>
+                                <option value="project">Project</option>
+                                <option value="worksheet">Worksheet</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label fw-semibold" style="font-size:13px;">Due Date</label>
+                            <input type="date" name="due_date" class="form-control"
+                                   style="border-radius:8px; border:1px solid #d0d7de; font-size:13px; padding:9px 12px;"/>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold" style="font-size:13px;">Description / Instructions <span style="color:#dc2626;">*</span></label>
+                        <div style="border:1px solid #d0d7de; border-radius:8px; overflow:hidden;">
+                            <div style="background:#f8f9fa; border-bottom:1px solid #e0e0e0; padding:6px 10px; display:flex; flex-wrap:wrap; gap:2px; align-items:center;">
+                                <button type="button" onclick="document.execCommand('bold')" style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-weight:700;font-size:13px;cursor:pointer;color:#333;">B</button>
+                                <button type="button" onclick="document.execCommand('italic')" style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-style:italic;font-size:13px;cursor:pointer;color:#333;">I</button>
+                                <button type="button" onclick="document.execCommand('underline')" style="border:none;background:transparent;padding:4px 7px;border-radius:4px;text-decoration:underline;font-size:13px;cursor:pointer;color:#333;">U</button>
+                                <span style="width:1px;height:18px;background:#d0d7de;margin:0 4px;display:inline-block;"/>
+                                <button type="button" onclick="document.execCommand('insertUnorderedList')" style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-list-ul"/></button>
+                                <button type="button" onclick="document.execCommand('insertOrderedList')" style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-list-ol"/></button>
+                                <button type="button" onclick="asgnInsertLink()" style="border:none;background:transparent;padding:4px 7px;border-radius:4px;font-size:13px;cursor:pointer;color:#333;"><i class="fa fa-link"/></button>
+                            </div>
+                            <div id="asgn_description_editor" contenteditable="true"
+                                 style="min-height:140px; padding:12px; font-size:13px; color:#333; outline:none; background:#fff;"
+                                 data-placeholder="Add detailed assignment instructions here..."></div>
+                            <textarea name="description" id="asgn_description_hidden" style="display:none;"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold" style="font-size:13px;">Attachment</label>
+                        <div id="asgn_file_list" class="mb-2"/>
+                        <div id="asgn_drop_zone"
+                             style="border:2px dashed #d0d7de; border-radius:8px; padding:20px; text-align:center; background:#fafbfc; cursor:pointer; transition:border-color .2s;"
+                             onclick="document.getElementById('asgn_file_input').click()"
+                             ondragover="event.preventDefault(); this.style.borderColor='#667eea';"
+                             ondragleave="this.style.borderColor='#d0d7de';"
+                             ondrop="asgnHandleDrop(event)">
+                            <div style="font-size:20px; color:#aaa; margin-bottom:2px;">&#8679;</div>
+                            <div style="font-size:12px; color:#888;">Drag and drop or click to upload</div>
+                            <input type="file" id="asgn_file_input" name="attachment" class="d-none"
+                                   multiple="multiple" onchange="asgnHandleFiles(this.files)"/>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2">
+                        <button type="button" onclick="asgnPrepareSubmit(0)" class="tm-btn tm-btn-primary">
+                            <i class="fa fa-check"/> Create Assignment
+                        </button>
+                        <button type="button" onclick="asgnPrepareSubmit(1)" class="tm-btn tm-btn-outline">
+                            Save as Draft
+                        </button>
+                        <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+
+                <script>
+                    <![CDATA[
+                    (function() {
+                        var editor = document.getElementById('asgn_description_editor');
+                        if (!editor) return;
+                        var st = document.createElement('style');
+                        st.innerHTML = '#asgn_description_editor:empty:before{content:attr(data-placeholder);color:#aaa;}';
+                        document.head.appendChild(st);
+                        editor.addEventListener('input', function() {
+                            document.getElementById('asgn_description_hidden').value = this.innerHTML;
+                        });
+                    })();
+
+                    function asgnInsertLink() {
+                        var url = prompt('Enter URL:');
+                        if (url) document.execCommand('createLink', false, url);
+                    }
+
+                    var _asgnFiles = [];
+                    function asgnHandleFiles(fileList) {
+                        Array.from(fileList).forEach(function(f) { _asgnFiles.push(f); });
+                        var list = document.getElementById('asgn_file_list');
+                        list.innerHTML = '';
+                        _asgnFiles.forEach(function(f) {
+                            var item = document.createElement('div');
+                            item.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:#f8f9fa;border:1px solid #e8eaed;border-radius:6px;padding:4px 10px;font-size:12px;color:#555;margin-right:6px;margin-bottom:4px;';
+                            item.innerHTML = '<i class="fa fa-paperclip" style="color:#4a6cf7;"/>' + f.name;
+                            list.appendChild(item);
+                        });
+                    }
+                    function asgnHandleDrop(e) {
+                        e.preventDefault();
+                        document.getElementById('asgn_drop_zone').style.borderColor = '#d0d7de';
+                        asgnHandleFiles(e.dataTransfer.files);
+                    }
+
+                    function asgnPrepareSubmit(isDraft) {
+                        var editor = document.getElementById('asgn_description_editor');
+                        var nameVal = document.querySelector('[name="name"]').value.trim();
+                        var typeVal = document.querySelector('[name="assignment_type"]').value;
+                        var descVal = editor ? editor.innerText.trim() : '';
+
+                        if (!nameVal) { alert('Assignment Title is required.'); return; }
+                        if (!typeVal) { alert('Assignment Type is required.'); return; }
+                        if (!descVal) { alert('Description / Instructions is required.'); editor && editor.focus(); return; }
+
+                        document.getElementById('asgn_draft_flag').value = isDraft ? '1' : '0';
+                        if (editor) document.getElementById('asgn_description_hidden').value = editor.innerHTML;
+                        document.getElementById('asgn-create-form').submit();
+                    }
+                    ]]>
+                </script>
+            </div>
+        </div>
+    </t>
+</template>
+
+<template id="portal_tutor_preview" name="Tutor: Preview Attachment">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_assignments</t>
+
+        <!-- Header -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+            <a t-attf-href="/my/tutor/assignment/#{assignment.id}" class="tm-btn tm-btn-outline tm-btn-sm">
+                <i class="fa fa-arrow-left"/> Back to Assignment
+            </a>
+            <span style="font-size:13px;font-weight:600;color:var(--tm-text);">
+                <i class="fa fa-eye" style="color:var(--tm-blue);"/> <t t-esc="attachment.name"/>
+            </span>
+        </div>
+
+        <!-- Toolbar card -->
+        <div style="background:#fff;border:1px solid var(--tm-border);border-radius:10px 10px 0 0;padding:10px 16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;border-bottom:none;">
+            <span style="font-size:11px;font-weight:700;color:var(--tm-text-light);text-transform:uppercase;letter-spacing:.5px;margin-right:4px;">Tools</span>
+            <button id="tm-tool-draw"      type="button" class="tm-btn tm-btn-sm tm-btn-primary"  title="Draw (freehand)"><i class="fa fa-pencil"/> Draw</button>
+            <button id="tm-tool-text"      type="button" class="tm-btn tm-btn-sm tm-btn-outline"  title="Add text"><i class="fa fa-font"/> Text</button>
+            <button id="tm-tool-highlight" type="button" class="tm-btn tm-btn-sm tm-btn-outline"  title="Highlight"><i class="fa fa-paint-brush"/> Highlight</button>
+            <button id="tm-tool-eraser"    type="button" class="tm-btn tm-btn-sm tm-btn-outline"  title="Eraser"><i class="fa fa-eraser"/> Eraser</button>
+            <span style="width:1px;height:24px;background:var(--tm-border);display:inline-block;"/>
+            <label style="margin:0;display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer;" title="Colour">
+                <i class="fa fa-circle" style="font-size:10px;color:var(--tm-text-light);"/>
+                <input id="tm-color-picker" type="color" value="#e74c3c" style="width:30px;height:26px;border:none;background:none;cursor:pointer;padding:0;"/>
+            </label>
+            <label style="margin:0;display:flex;align-items:center;gap:5px;font-size:11px;" title="Thickness">
+                <i class="fa fa-minus" style="font-size:9px;"/>
+                <input id="tm-line-width" type="range" min="1" max="12" value="3" style="width:80px;"/>
+                <i class="fa fa-minus" style="font-size:15px;"/>
+            </label>
+            <button id="tm-clear-ann" type="button" class="tm-btn tm-btn-sm tm-btn-outline" title="Clear all"><i class="fa fa-times"/> Clear</button>
+            <div id="tm-page-nav" style="display:none;align-items:center;gap:6px;margin-left:auto;">
+                <button id="tm-prev-page" type="button" class="tm-btn tm-btn-sm tm-btn-outline"><i class="fa fa-chevron-left"/></button>
+                <span id="tm-page-indicator" style="font-size:12px;font-weight:600;">Page 1 / 1</span>
+                <button id="tm-next-page" type="button" class="tm-btn tm-btn-sm tm-btn-outline"><i class="fa fa-chevron-right"/></button>
+            </div>
+        </div>
+
+        <!-- Text tool input panel (shown when Text tool is active) -->
+        <div id="tm-text-panel" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-left:1px solid var(--tm-border);border-right:1px solid var(--tm-border);padding:10px 16px;">
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                <span id="tm-text-hint" style="font-size:12px;color:#92400e;white-space:nowrap;"><i class="fa fa-mouse-pointer"/> Click on the canvas to set text position</span>
+                <input id="tm-text-input" type="text" placeholder="Type your annotation and press Enter…"
+                       style="display:none;flex:1;min-width:200px;padding:6px 10px;border:1px solid #d1d5db;border-radius:6px;font-size:13px;outline:none;box-sizing:border-box;"/>
+                <button id="tm-text-place" type="button" class="tm-btn tm-btn-sm tm-btn-primary" style="display:none;">
+                    <i class="fa fa-check"/> Place Text
+                </button>
+                <button id="tm-text-cancel-inp" type="button" class="tm-btn tm-btn-sm tm-btn-outline">
+                    <i class="fa fa-times"/> Cancel
+                </button>
+            </div>
+        </div>
+
+        <!-- Canvas -->
+        <div id="tm-annotation-viewer"
+             t-att-data-attachments="annotation_attachments_json"
+             style="overflow:auto;background:#444;border-left:1px solid var(--tm-border);border-right:1px solid var(--tm-border);min-height:400px;line-height:0;">
+            <div style="position:relative;display:inline-block;min-width:100%;">
+                <canvas id="tm-base-canvas" style="display:block;"/>
+                <canvas id="tm-ann-canvas"  style="position:absolute;top:0;left:0;width:100%;height:100%;cursor:crosshair;"/>
+            </div>
+        </div>
+
+        <!-- Footer note (no submit for tutors) -->
+        <div style="background:#fff;border:1px solid var(--tm-border);border-radius:0 0 10px 10px;padding:12px 16px;border-top:none;">
+            <span style="font-size:11px;color:var(--tm-text-light);"><i class="fa fa-info-circle"/> Viewing file from assignment. Annotations are local only and not saved.</span>
         </div>
     </t>
 </template>

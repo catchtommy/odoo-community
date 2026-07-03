@@ -4,6 +4,8 @@ from odoo.http import request
 from datetime import timedelta, datetime, date
 from calendar import monthrange
 import base64
+import json
+import re
 
 from .portal_mixin import PortalMixin
 
@@ -345,11 +347,80 @@ class StudentPortal(http.Controller, PortalMixin):
         missing_token = all_attachments.filtered(lambda a: not a.access_token)
         if missing_token:
             missing_token.generate_access_token()
+
+        all_atts = assignment.attachment_ids | (submission.attachment_ids if submission else request.env['ir.attachment'])
+        annotatable_atts = all_atts.filtered(
+            lambda a: self._resolve_mimetype(a) == 'application/pdf'
+                      or self._resolve_mimetype(a).startswith('image/')
+        )
         return request.render('tuition_management.portal_student_assignment_detail', {
             'user': request.env.user,
             'is_student': True, 'is_tutor': False, 'is_parent': False,
             'assignment': assignment,
             'submission': submission,
+            'student': student,
+            'page_name': 'assignment_detail',
+            'csrf_token': request.csrf_token(),
+            'annotatable_atts': annotatable_atts,
+        })
+
+    # ──────────────────────────────────────────────
+    # HELPERS
+    # ──────────────────────────────────────────────
+
+    _IMG_EXTS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'}
+
+    def _resolve_mimetype(self, att):
+        mt = att.mimetype or ''
+        if not mt or mt == 'application/octet-stream':
+            ext = (att.name or '').rsplit('.', 1)[-1].lower()
+            if ext == 'pdf':
+                mt = 'application/pdf'
+            elif ext in self._IMG_EXTS:
+                mt = 'image/' + ext
+        return mt
+
+    def _annotatable_attachment_ids(self, attachments):
+        ids = set()
+        for att in attachments:
+            mt = self._resolve_mimetype(att)
+            if mt == 'application/pdf' or mt.startswith('image/'):
+                ids.add(att.id)
+        return ids
+
+    @http.route(['/my/assignments/<int:assignment_id>/annotate/<int:attachment_id>'],
+                type='http', auth='user', website=True)
+    def portal_annotate_assignment(self, assignment_id, attachment_id, **kw):
+        student = self._get_student()
+        if not student:
+            return request.redirect('/my/assignments')
+        assignment = request.env['course.assignment'].sudo().browse(assignment_id)
+        if not assignment.exists():
+            return request.redirect('/my/assignments')
+        enrollment = request.env['course.enrollment'].sudo().search([
+            ('student_id', '=', student.id), ('course_id', '=', assignment.course_id.id),
+            ('status', '=', 'active'),
+        ], limit=1)
+        if not enrollment:
+            return request.redirect('/my/assignments')
+        att = request.env['ir.attachment'].sudo().browse(attachment_id)
+        if not att.exists():
+            return request.redirect('/my/assignments/%d' % assignment_id)
+        if not att.access_token:
+            att.generate_access_token()
+        mt = self._resolve_mimetype(att)
+        att_json = json.dumps([{
+            'id': att.id,
+            'name': att.name,
+            'mimetype': mt,
+            'access_token': att.access_token or '',
+        }])
+        return request.render('tuition_management.portal_student_annotate', {
+            'user': request.env.user,
+            'is_student': True, 'is_tutor': False, 'is_parent': False,
+            'assignment': assignment,
+            'attachment': att,
+            'annotation_attachments_json': att_json,
             'student': student,
             'page_name': 'assignment_detail',
             'csrf_token': request.csrf_token(),
@@ -391,6 +462,18 @@ class StudentPortal(http.Controller, PortalMixin):
                 'type': 'binary',
             })
             attachment_ids.append(attachment.id)
+        annotated_image = kw.get('annotated_image', '')
+        if annotated_image and annotated_image.startswith('data:image/'):
+            header, b64data = annotated_image.split(',', 1)
+            m = re.search(r'data:image/(\w+)', header)
+            ext = m.group(1) if m else 'png'
+            ann_att = request.env['ir.attachment'].sudo().create({
+                'name': 'annotation_%s.%s' % (assignment.name, ext),
+                'datas': b64data.encode('ascii'),
+                'res_model': 'assignment.submission',
+                'type': 'binary',
+            })
+            attachment_ids.append(ann_att.id)
         if submission:
             submission.sudo().write(vals)
             if attachment_ids:
@@ -402,3 +485,21 @@ class StudentPortal(http.Controller, PortalMixin):
         # Move assignment to pending_review when student submits
         assignment.sudo().write({'status': 'pending_review'})
         return request.redirect(f'/my/assignments/{assignment_id}?submitted=1')
+
+    @http.route(['/my/assignments/<int:assignment_id>/submission/delete-file/<int:att_id>'],
+                type='http', auth='user', website=True, methods=['POST'])
+    def portal_submission_delete_file(self, assignment_id, att_id, **kw):
+        student = self._get_student()
+        if not student:
+            return request.redirect('/my/assignments')
+        assignment = request.env['course.assignment'].sudo().browse(assignment_id)
+        if not assignment.exists():
+            return request.redirect('/my/assignments')
+        submission = request.env['assignment.submission'].sudo().search([
+            ('assignment_id', '=', assignment.id), ('student_id', '=', student.id),
+        ], limit=1)
+        if submission:
+            attachment = request.env['ir.attachment'].sudo().browse(att_id)
+            if attachment.exists() and attachment in submission.attachment_ids:
+                attachment.unlink()
+        return request.redirect(f'/my/assignments/{assignment_id}')

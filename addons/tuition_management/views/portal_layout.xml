@@ -10,6 +10,7 @@
         <t t-set="head_portal">
             <link rel="stylesheet" href="/tuition_management/static/src/css/portal.css"/>
             <t t-call="tuition_management.portal_tuition_css"/>
+            <script type="text/javascript" src="/tuition_management/static/src/js/portal_assignment_annotator.js"/>
             <t t-out="head or ''"/>
         </t>
         <t t-set="head" t-value="head_portal"/>

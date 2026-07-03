@@ -4,6 +4,7 @@ from odoo.http import request
 from datetime import timedelta, datetime
 from types import SimpleNamespace
 import base64
+import json
 
 from .portal_mixin import PortalMixin
 
@@ -460,6 +461,24 @@ class TutorPortal(http.Controller, PortalMixin):
             'csrf_token': request.csrf_token(),
         })
 
+    @http.route(['/my/tutor/courses/<int:course_id>/assignments/new'], type='http',
+                auth='user', website=True)
+    def portal_tutor_assignment_new(self, course_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        course = request.env['course.master'].sudo().browse(course_id)
+        if not course.exists() or not self._tutor_has_course_access(tutor, course):
+            return request.redirect('/my/tutor/courses')
+        return request.render('tuition_management.portal_tutor_assignment_new', {
+            'user': request.env.user,
+            'is_tutor': True, 'is_student': False, 'is_parent': False,
+            'tutor': tutor,
+            'course': course,
+            'page_name': 'tutor_course_detail',
+            'csrf_token': request.csrf_token(),
+        })
+
     @http.route(['/my/tutor/courses/<int:course_id>/assignments/create'], type='http',
                 auth='user', website=True, methods=['POST'], csrf=True)
     def portal_tutor_assignment_create(self, course_id, **kw):
@@ -482,16 +501,16 @@ class TutorPortal(http.Controller, PortalMixin):
         }
         assignment = request.env['course.assignment'].sudo().create(vals)
 
-        uploaded_file = kw.get('attachment')
-        if uploaded_file and uploaded_file.filename:
-            attachment = request.env['ir.attachment'].sudo().create({
-                'name': uploaded_file.filename,
-                'datas': base64.b64encode(uploaded_file.read()),
-                'res_model': 'course.assignment',
-                'res_id': assignment.id,
-                'type': 'binary',
-            })
-            assignment.sudo().write({'attachment_ids': [(4, attachment.id)]})
+        for uploaded_file in request.httprequest.files.getlist('attachment'):
+            if uploaded_file and uploaded_file.filename:
+                attachment = request.env['ir.attachment'].sudo().create({
+                    'name': uploaded_file.filename,
+                    'datas': base64.b64encode(uploaded_file.read()),
+                    'res_model': 'course.assignment',
+                    'res_id': assignment.id,
+                    'type': 'binary',
+                })
+                assignment.sudo().write({'attachment_ids': [(4, attachment.id)]})
 
         return request.redirect(f'/my/tutor/courses/{course_id}/assignments?created=1')
 
@@ -508,6 +527,14 @@ class TutorPortal(http.Controller, PortalMixin):
         missing_token = all_attachments.filtered(lambda a: not a.access_token)
         if missing_token:
             missing_token.generate_access_token()
+
+        all_annotatable = (
+            assignment.attachment_ids | assignment.submission_ids.mapped('attachment_ids')
+        ).filtered(
+            lambda a: self._resolve_mimetype(a) == 'application/pdf'
+                      or self._resolve_mimetype(a).startswith('image/')
+        )
+
         return request.render('tuition_management.portal_tutor_assignment_detail', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,
@@ -517,6 +544,7 @@ class TutorPortal(http.Controller, PortalMixin):
             'submissions': assignment.submission_ids,
             'page_name': 'tutor_assignment_detail',
             'csrf_token': request.csrf_token(),
+            'annotatable_atts': all_annotatable,
         })
 
     @http.route(['/my/tutor/assignment/<int:assignment_id>/edit'], type='http',
@@ -544,18 +572,82 @@ class TutorPortal(http.Controller, PortalMixin):
         if vals:
             assignment.sudo().write(vals)
 
-        uploaded_file = kw.get('attachment')
-        if uploaded_file and hasattr(uploaded_file, 'filename') and uploaded_file.filename:
-            att = request.env['ir.attachment'].sudo().create({
-                'name': uploaded_file.filename,
-                'datas': base64.b64encode(uploaded_file.read()),
-                'res_model': 'course.assignment',
-                'res_id': assignment.id,
-                'type': 'binary',
-            })
-            assignment.sudo().write({'attachment_ids': [(4, att.id)]})
+        # Handle attachment deletions
+        delete_ids_raw = kw.get('delete_attachment_ids', '')
+        if delete_ids_raw:
+            del_ids = [int(x) for x in delete_ids_raw.split(',') if x.strip().isdigit()]
+            if del_ids:
+                to_del = request.env['ir.attachment'].sudo().browse(del_ids).filtered(
+                    lambda a: a.res_model == 'course.assignment' and a.res_id == assignment.id
+                )
+                to_del.unlink()
+
+        # Handle new file uploads (supports multiple files)
+        uploaded_files = request.httprequest.files.getlist('attachment')
+        for uploaded_file in uploaded_files:
+            if uploaded_file and uploaded_file.filename:
+                att = request.env['ir.attachment'].sudo().create({
+                    'name': uploaded_file.filename,
+                    'datas': base64.b64encode(uploaded_file.read()),
+                    'res_model': 'course.assignment',
+                    'res_id': assignment.id,
+                    'type': 'binary',
+                })
+                assignment.sudo().write({'attachment_ids': [(4, att.id)]})
 
         return request.redirect(f'/my/tutor/assignment/{assignment_id}?saved=1')
+
+    _IMG_EXTS = {'jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg'}
+
+    def _resolve_mimetype(self, att):
+        mt = att.mimetype or ''
+        if not mt or mt == 'application/octet-stream':
+            ext = (att.name or '').rsplit('.', 1)[-1].lower()
+            if ext == 'pdf':
+                mt = 'application/pdf'
+            elif ext in self._IMG_EXTS:
+                mt = 'image/' + ext
+        return mt
+
+    def _annotatable_attachment_ids(self, attachments):
+        ids = set()
+        for att in attachments:
+            mt = self._resolve_mimetype(att)
+            if mt == 'application/pdf' or mt.startswith('image/'):
+                ids.add(att.id)
+        return ids
+
+    @http.route(['/my/tutor/assignment/<int:assignment_id>/preview/<int:attachment_id>'],
+                type='http', auth='user', website=True)
+    def portal_tutor_preview_attachment(self, assignment_id, attachment_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        assignment = request.env['course.assignment'].sudo().browse(assignment_id)
+        if not assignment.exists() or not self._tutor_has_course_access(tutor, assignment.course_id):
+            return request.redirect('/my/tutor/courses')
+        att = request.env['ir.attachment'].sudo().browse(attachment_id)
+        if not att.exists():
+            return request.redirect('/my/tutor/assignment/%d' % assignment_id)
+        if not att.access_token:
+            att.generate_access_token()
+        mt = self._resolve_mimetype(att)
+        att_json = json.dumps([{
+            'id': att.id,
+            'name': att.name,
+            'mimetype': mt,
+            'access_token': att.access_token or '',
+        }])
+        return request.render('tuition_management.portal_tutor_preview', {
+            'user': request.env.user,
+            'is_tutor': True, 'is_student': False, 'is_parent': False,
+            'tutor': tutor,
+            'assignment': assignment,
+            'attachment': att,
+            'annotation_attachments_json': att_json,
+            'page_name': 'tutor_assignment_detail',
+            'csrf_token': request.csrf_token(),
+        })
 
     @http.route(['/my/tutor/assignment/<int:assignment_id>/delete'], type='http',
                 auth='user', website=True, methods=['POST'], csrf=True)
