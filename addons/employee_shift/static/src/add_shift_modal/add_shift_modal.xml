@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+  <t t-name="employee_shift.AddShiftModal">
+    <Dialog title="'Add Shift'" size="'md'">
+      <div class="es-add-shift-modal">
+        <div t-if="state.error" class="alert alert-danger" role="alert" t-esc="state.error"/>
+
+        <div class="mb-3">
+          <label class="form-label">Shift Template</label>
+          <select class="form-select" t-on-change="onTemplateChange" t-att-value="state.templateId">
+            <option value="">Select a template…</option>
+            <t t-foreach="state.templates" t-as="tpl" t-key="tpl.id">
+              <option t-att-value="tpl.id">
+                <t t-esc="tpl.name"/> (<t t-esc="tpl.start_time"/>–<t t-esc="tpl.end_time"/> <t t-esc="tpl.base_tz"/>)
+              </option>
+            </t>
+          </select>
+        </div>
+
+        <div class="mb-3">
+          <label class="form-label">Employees</label>
+          <select class="form-select" multiple="multiple" t-on-change="onEmployeesChange">
+            <t t-foreach="props.employees" t-as="emp" t-key="emp.id">
+              <option t-att-value="emp.id"><t t-esc="emp.name"/></option>
+            </t>
+          </select>
+        </div>
+
+        <div class="mb-3 d-flex gap-3">
+          <div class="flex-grow-1">
+            <label class="form-label">Date From</label>
+            <input type="date" class="form-control" t-att-value="state.dateFrom" t-on-change="onDateFromChange"/>
+          </div>
+          <div class="flex-grow-1">
+            <label class="form-label">Date To</label>
+            <input type="date" class="form-control" t-att-value="state.dateTo" t-att-min="state.dateFrom" t-on-change="onDateToChange"/>
+          </div>
+        </div>
+        <div class="mb-3 text-muted" t-if="dateRange.length &gt; 1">
+          Creates <t t-esc="dateRange.length"/> shift(s), one per day.
+        </div>
+      </div>
+
+      <t t-set-slot="footer">
+        <button type="button" class="btn btn-primary" t-on-click="confirm" t-att-disabled="state.saving">
+          Create Shift(s)
+        </button>
+        <button type="button" class="btn btn-secondary" t-on-click="discard">Cancel</button>
+      </t>
+    </Dialog>
+  </t>
+</templates>

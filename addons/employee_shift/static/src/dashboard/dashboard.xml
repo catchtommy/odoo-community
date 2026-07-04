@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="utf-8"?>
+<templates xml:space="preserve">
+  <t t-name="employee_shift.Dashboard">
+    <div class="es-dashboard">
+      <div class="es-header">
+        <h3 class="es-title">
+          <i class="fa fa-calendar-check-o" style="margin-right:6px;"/>
+          <t t-esc="myShiftsOnly ? 'My Shifts' : 'Shift Dashboard'"/>
+        </h3>
+
+        <div class="es-header-controls">
+          <!-- Timezone searchable dropdown -->
+          <div class="es-tz-picker">
+            <input type="text"
+                   placeholder="Search timezone…"
+                   t-att-value="state.tzDropdownOpen ? state.tzSearch : selectedTzLabel"
+                   t-on-input="onTzSearchInput"
+                   t-on-focus="onTzFocus"
+                   t-on-blur="onTzBlur"/>
+            <div t-if="state.tzDropdownOpen" class="es-tz-dropdown">
+              <t t-if="filteredTimezones.length === 0">
+                <div class="es-tz-no-results">No timezones found</div>
+              </t>
+              <t t-foreach="filteredTimezones" t-as="tzOpt" t-key="tzOpt.value">
+                <div t-attf-class="es-tz-option {{tzOpt.value === state.tz ? 'es-tz-selected' : ''}}"
+                     t-att-data-value="tzOpt.value"
+                     t-on-mousedown="onTzSelect">
+                  <t t-esc="tzOpt.label"/>
+                </div>
+              </t>
+            </div>
+          </div>
+
+          <!-- View mode toggle -->
+          <div class="es-view-toggle" t-if="!myShiftsOnly">
+            <button t-attf-class="{{state.viewMode === 'daily' ? 'active' : ''}}" t-on-click="() =&gt; this.switchViewMode('daily')">Daily</button>
+            <button t-attf-class="{{state.viewMode === 'weekly' ? 'active' : ''}}" t-on-click="() =&gt; this.switchViewMode('weekly')">Weekly</button>
+          </div>
+          <div class="es-view-toggle" t-if="myShiftsOnly">
+            <button t-attf-class="{{state.viewMode === 'today' ? 'active' : ''}}" t-on-click="() =&gt; this.switchViewMode('today')">Today</button>
+            <button t-attf-class="{{state.viewMode === 'weekly' ? 'active' : ''}}" t-on-click="() =&gt; this.switchViewMode('weekly')">Weekly</button>
+            <button t-attf-class="{{state.viewMode === 'monthly' ? 'active' : ''}}" t-on-click="() =&gt; this.switchViewMode('monthly')">Monthly</button>
+          </div>
+
+          <button class="btn btn-primary es-add-shift-btn" t-on-click="openAddShiftModal">
+            <i class="fa fa-plus"/> Add Shift
+          </button>
+        </div>
+      </div>
+
+      <!-- Period navigation -->
+      <div class="es-period-nav">
+        <button t-on-click="prevPeriod"><i class="fa fa-chevron-left"/></button>
+        <button class="es-today-btn" t-on-click="goToday">Today</button>
+        <button t-on-click="nextPeriod"><i class="fa fa-chevron-right"/></button>
+        <span class="es-period-label" t-esc="state.periodLabel"/>
+        <span class="es-tz-badge"><i class="fa fa-clock-o" style="margin-right:3px;"/><t t-esc="state.tz"/></span>
+      </div>
+
+      <!-- Search / filter bar -->
+      <div class="es-card es-filter-card" t-if="!myShiftsOnly">
+        <div class="es-filter-bar">
+          <select class="form-select es-filter-input" t-on-change="onFilterEmployeeChange" t-att-value="state.filterEmployeeId">
+            <option value="">All Employees</option>
+            <t t-foreach="filterableEmployees" t-as="emp" t-key="emp.id">
+              <option t-att-value="emp.id"><t t-esc="emp.name"/></option>
+            </t>
+          </select>
+          <input type="date" class="form-control es-filter-input" t-on-change="onFilterDateChange" t-att-value="state.filterDate"/>
+          <select class="form-select es-filter-input" t-on-change="onFilterTimeRangeChange" t-att-value="state.filterTimeRange">
+            <t t-foreach="timeRangeOptions" t-as="opt" t-key="opt.value">
+              <option t-att-value="opt.value"><t t-esc="opt.label"/></option>
+            </t>
+          </select>
+          <t t-if="state.filterTimeRange === 'custom'">
+            <input type="time" class="form-control es-filter-input" t-on-change="onFilterCustomStartChange" t-att-value="state.filterCustomStart"/>
+            <span>–</span>
+            <input type="time" class="form-control es-filter-input" t-on-change="onFilterCustomEndChange" t-att-value="state.filterCustomEnd"/>
+          </t>
+          <button class="btn btn-primary" t-on-click="applyFilters">Search</button>
+          <button class="btn btn-outline-secondary" t-if="state.filteredShifts !== null" t-on-click="clearFilters">Clear</button>
+        </div>
+
+        <div class="es-filter-results" t-if="state.filteredShifts !== null">
+          <h5>Search Results (<t t-esc="state.filteredShifts.length"/>)</h5>
+          <div class="es-empty-msg" t-if="state.filteredShifts.length === 0">No shifts match these filters.</div>
+          <div class="es-shift-table" t-if="state.filteredShifts.length &gt; 0">
+            <div class="es-shift-row es-shift-row-header">
+              <span>Time</span><span>Shift</span><span>Employees</span><span/>
+            </div>
+            <div class="es-shift-row es-shift-row-clickable" t-foreach="state.filteredShifts" t-as="shift" t-key="shift.id" t-on-click="() =&gt; this.openShift(shift)">
+              <span class="es-shift-time"><t t-esc="fmtTime(shift.start_datetime)"/> – <t t-esc="fmtTime(shift.end_datetime)"/></span>
+              <span class="es-shift-name" t-esc="shift.name"/>
+              <span class="es-shift-employees" t-esc="shift.employees.map((e) =&gt; e.name).join(', ')"/>
+              <span t-if="hasTzMismatch(shift)" class="es-tz-mismatch-badge" t-att-title="nativeTimeTooltip(shift)">+1 Day</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loading -->
+      <div class="es-loading" t-if="state.loading"><i class="fa fa-spinner fa-spin"/> Loading…</div>
+
+      <t t-if="!state.loading">
+        <!-- Summary row: Current Shift + On Leave side by side -->
+        <div class="es-cards-row" t-if="!myShiftsOnly">
+          <div class="es-card">
+            <div class="es-card-header">
+              <i class="fa fa-bolt" style="color:#f0ad4e;"/> Current Shift
+            </div>
+            <div class="es-card-body">
+              <div class="es-avatar-group" t-if="state.currentEmployees.length &gt; 0">
+                <div class="es-avatar-chip" t-foreach="state.currentEmployees" t-as="emp" t-key="emp.id">
+                  <img class="es-avatar" t-attf-src="/web/image/hr.employee/{{emp.id}}/avatar_128"/>
+                  <span t-attf-class="es-status-dot {{emp.checked_in ? 'checked-in' : 'scheduled'}}"
+                        t-att-title="emp.checked_in ? 'Checked in' : 'Scheduled'"/>
+                  <span class="es-avatar-name" t-esc="emp.name"/>
+                </div>
+              </div>
+              <div class="es-empty-msg" t-else="">No one is checked in or scheduled right now.</div>
+            </div>
+          </div>
+
+          <div class="es-card">
+            <div class="es-card-header">
+              <i class="fa fa-plane" style="color:#5bc0de;"/> On Leave
+            </div>
+            <div class="es-card-body">
+              <div class="es-empty-msg" t-if="state.leaveOverview.length === 0">No one is on leave.</div>
+              <div class="es-leave-list" t-if="state.leaveOverview.length &gt; 0">
+                <div class="es-leave-row" t-foreach="state.leaveOverview" t-as="leave" t-key="leave.employee_id">
+                  <img class="es-avatar small" t-attf-src="/web/image/hr.employee/{{leave.employee_id}}/avatar_128"/>
+                  <span class="es-leave-name" t-esc="leave.employee_name"/>
+                  <span class="es-leave-dates"><t t-esc="fmtTime(leave.date_from)"/> → <t t-esc="fmtTime(leave.date_to)"/></span>
+                  <span t-if="leave.state !== 'validate'" class="es-leave-pending-badge">Pending</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Shifts -->
+        <div class="es-card es-card-shifts">
+          <div class="es-card-header">
+            <i class="fa fa-calendar" style="color:#4361ee;"/> Shifts
+          </div>
+          <div class="es-card-body">
+            <!-- Daily / Today view -->
+            <div class="es-shift-table" t-if="state.viewMode === 'daily' || state.viewMode === 'today'">
+              <div class="es-empty-msg" t-if="state.dailyShifts.length === 0">No shifts for this day.</div>
+              <t t-if="state.dailyShifts.length &gt; 0">
+                <div class="es-shift-row es-shift-row-header">
+                  <span>Time</span><span>Shift</span><span>Employees</span><span/>
+                </div>
+                <div class="es-shift-row es-shift-row-clickable" t-foreach="state.dailyShifts" t-as="shift" t-key="shift.id" t-on-click="() =&gt; this.openShift(shift)">
+                  <span class="es-shift-time"><t t-esc="fmtTime(shift.start_datetime)"/> – <t t-esc="fmtTime(shift.end_datetime)"/></span>
+                  <span class="es-shift-name" t-esc="shift.name"/>
+                  <span class="es-shift-employees" t-esc="shift.employees.map((e) =&gt; e.name).join(', ')"/>
+                  <span t-if="hasTzMismatch(shift)" class="es-tz-mismatch-badge" t-att-title="nativeTimeTooltip(shift)">+1 Day</span>
+                </div>
+              </t>
+            </div>
+
+            <!-- Weekly view -->
+            <div class="es-week-grid" t-if="state.viewMode === 'weekly'">
+              <div class="es-week-day-col" t-foreach="state.weekGrid" t-as="day" t-key="day.date">
+                <div class="es-week-day-header" t-esc="day.label"/>
+                <div class="es-week-day-body">
+                  <div class="es-empty-msg small" t-if="day.shifts.length === 0">—</div>
+                  <div class="es-shift-chip es-shift-chip-clickable" t-foreach="day.shifts" t-as="shift" t-key="shift.id" t-on-click="() =&gt; this.openShift(shift)">
+                    <div class="es-shift-chip-top">
+                      <span class="es-shift-chip-time"><t t-esc="fmtTime(shift.start_datetime)"/> – <t t-esc="fmtTime(shift.end_datetime)"/></span>
+                      <span t-if="hasTzMismatch(shift)" class="es-tz-mismatch-badge" t-att-title="nativeTimeTooltip(shift)">+1</span>
+                    </div>
+                    <span class="es-shift-chip-name" t-esc="shift.name"/>
+                    <span class="es-shift-chip-employees" t-esc="shift.employees.length ? shift.employees.map((e) =&gt; e.name).join(', ') : 'Unassigned'"/>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Monthly view (My Shifts) -->
+            <div class="es-month-grid" t-if="state.viewMode === 'monthly'">
+              <div class="es-month-day-cell" t-foreach="state.monthGrid" t-as="day" t-key="day.date">
+                <div class="es-month-day-header" t-esc="day.label"/>
+                <div class="es-shift-chip es-shift-chip-clickable" t-foreach="day.shifts" t-as="shift" t-key="shift.id" t-on-click="() =&gt; this.openShift(shift)">
+                  <span class="es-shift-chip-time"><t t-esc="fmtTime(shift.start_datetime)"/></span>
+                  <span class="es-shift-chip-name" t-esc="shift.name"/>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </t>
+    </div>
+  </t>
+</templates>

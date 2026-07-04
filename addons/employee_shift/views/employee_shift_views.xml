@@ -19,11 +19,15 @@
     <field name="arch" type="xml">
       <form string="Employee Shift">
         <sheet>
+          <field name="name" invisible="1"/>
+          <field name="native_tz" invisible="1"/>
+          <field name="start_datetime" invisible="1"/>
+          <field name="end_datetime" invisible="1"/>
           <group>
-            <field name="name"/>
+            <field name="template_id" required="1"/>
             <field name="employee_ids" widget="many2many_tags"/>
-            <field name="start_datetime"/>
-            <field name="end_datetime"/>
+            <field name="start_date" required="1"/>
+            <field name="end_date" required="1"/>
             <field name="color" widget="color"/>
             <button name="action_open_week_wizard" type="object" string="Create for Range" class="btn-secondary"/>
           </group>
@@ -51,7 +55,9 @@
   </record>
 
   <menuitem id="menu_employee_shift_root" name="Employee Shift" sequence="30"/>
-  <menuitem id="menu_employee_shift" name="Shifts" parent="menu_employee_shift_root" action="action_employee_shifts"/>
+  <menuitem id="menu_employee_shift_dashboard" name="Dashboard" parent="menu_employee_shift_root"
+            action="action_employee_shift_dashboard" sequence="1"/>
+  <menuitem id="menu_employee_shift" name="Shifts" parent="menu_employee_shift_root" action="action_employee_shifts" sequence="10"/>
 
   <record id="action_employee_my_shifts" model="ir.actions.act_window">
     <field name="name">My Shifts</field>
@@ -63,7 +69,13 @@
     </field>
   </record>
 
-  <menuitem id="menu_employee_my_shifts" name="My Shifts" parent="menu_employee_shift_root" action="action_employee_my_shifts"/>
+  <menuitem id="menu_employee_my_shifts" name="My Shifts" parent="menu_employee_shift_root"
+            action="action_employee_shift_my_shifts_dashboard" sequence="20"/>
+
+  <menuitem id="menu_employee_shift_settings" name="Settings" parent="menu_employee_shift_root" sequence="90"
+            groups="employee_shift.group_employee_shift_manager,base.group_system"/>
+  <menuitem id="menu_shift_template" name="Shift Templates" parent="menu_employee_shift_settings"
+            action="action_shift_template"/>
 
   <!-- Wizard form view -->
   <record id="view_shift_week_wizard_form" model="ir.ui.view">

@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="action_employee_shift_dashboard" model="ir.actions.client">
+    <field name="name">Shift Dashboard</field>
+    <field name="tag">employee_shift_dashboard</field>
+  </record>
+
+  <record id="action_employee_shift_my_shifts_dashboard" model="ir.actions.client">
+    <field name="name">My Shifts</field>
+    <field name="tag">employee_shift_dashboard</field>
+    <field name="context">{'my_shifts_only': True}</field>
+  </record>
+</odoo>

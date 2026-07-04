@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+  <record id="view_shift_template_list" model="ir.ui.view">
+    <field name="name">shift.template.list</field>
+    <field name="model">shift.template</field>
+    <field name="arch" type="xml">
+      <list string="Shift Templates">
+        <field name="name"/>
+        <field name="start_time" widget="float_time"/>
+        <field name="end_time" widget="float_time"/>
+        <field name="base_tz"/>
+        <field name="color" widget="color" optional="hide"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="view_shift_template_form" model="ir.ui.view">
+    <field name="name">shift.template.form</field>
+    <field name="model">shift.template</field>
+    <field name="arch" type="xml">
+      <form string="Shift Template">
+        <sheet>
+          <group>
+            <field name="name"/>
+            <field name="start_time" widget="float_time"/>
+            <field name="end_time" widget="float_time"/>
+            <field name="base_tz"/>
+            <field name="color" widget="color"/>
+            <field name="active" invisible="1"/>
+          </group>
+        </sheet>
+      </form>
+    </field>
+  </record>
+
+  <record id="action_shift_template" model="ir.actions.act_window">
+    <field name="name">Shift Templates</field>
+    <field name="res_model">shift.template</field>
+    <field name="view_mode">list,form</field>
+    <field name="help" type="html">
+      <p class="oe_view_nocontent_create">Define a reusable shift template.</p>
+    </field>
+  </record>
+</odoo>

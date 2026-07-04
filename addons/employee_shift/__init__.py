@@ -3,9 +3,9 @@
 from . import models
 
 
-def employee_shift_post_init(cr, registry):
+def employee_shift_post_init(env):
     # Safely alter the color column to text to accept hex values
-    cr.execute("""
+    env.cr.execute("""
         DO $$
         BEGIN
             IF EXISTS (
