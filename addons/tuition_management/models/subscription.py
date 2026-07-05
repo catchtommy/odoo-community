@@ -17,6 +17,15 @@ class TuitionSubscription(models.Model):
                                 related='student_id.parent_id', store=True, readonly=True)
     enrollment_id = fields.Many2one('course.enrollment', string='Enrollment', ondelete='restrict',
                                     domain="[('student_id', '=', student_id)]")
+    subject_id = fields.Many2one('subject.master', string='Subject', compute='_compute_subject_id', store=True,
+                                 help="Subject being tutored, derived from the enrollment's course. "
+                                      "Restricts which products can be picked as a plan for this subscription.")
+    currency_id = fields.Many2one(
+        'res.currency', string='Currency', required=True,
+        default=lambda self: self.env.company.currency_id,
+        domain=[('active', '=', True)],
+        help="Billing currency for this subscription. Plan lines can only use a Pricing List in this currency.",
+    )
     plan_line_ids = fields.One2many('tuition.plan.line', 'subscription_id', string='Plan History')
     adjustment_ids = fields.One2many('tuition.adjustment', 'subscription_id', string='Adjustments')
     invoice_ids = fields.Many2many('account.move', 'account_move_tuition_subscription_rel', 'subscription_id', 'move_id', string='Invoices')
@@ -56,6 +65,11 @@ class TuitionSubscription(models.Model):
         for rec in self:
             parts = [p for p in [rec.student_id.name, rec.enrollment_id.course_id.name if rec.enrollment_id else ''] if p]
             rec.name = ' / '.join(parts) if parts else 'New Subscription'
+
+    @api.depends('enrollment_id.course_id.subject_id')
+    def _compute_subject_id(self):
+        for rec in self:
+            rec.subject_id = rec.enrollment_id.course_id.subject_id if rec.enrollment_id else False
 
     @api.depends('plan_line_ids', 'plan_line_ids.state')
     def _compute_current_plan(self):
@@ -137,6 +151,39 @@ class TuitionSubscription(models.Model):
             rec.total_adjustments_applied = sum(rec.adjustment_ids.filtered(lambda a: a.applied_in_invoice).mapped('amount'))
             rec.monthly_revenue = rec.current_plan_id.price if rec.current_plan_id else 0.0
 
+    def _get_billing_partner(self):
+        """Resolve the contact billing should be addressed to: parent if linked, else the student."""
+        self.ensure_one()
+        partner = self.student_id.partner_id
+        parent_profile = self.env['parent.profile'].sudo().search(
+            [('student_ids', 'in', [self.student_id.id])], limit=1)
+        if parent_profile and parent_profile.partner_id:
+            partner = parent_profile.partner_id
+        return partner
+
+    def _get_invoice_pricelist(self):
+        """Pricelist to bill this subscription with — the one used on its current plan line."""
+        self.ensure_one()
+        return self.current_plan_id.pricelist_id or self.env['product.pricelist'].sudo().search(
+            [('currency_id', '=', self.currency_id.id)], limit=1)
+
+    @api.constrains('enrollment_id', 'state')
+    def _check_unique_enrollment_subscription(self):
+        for rec in self:
+            if not rec.enrollment_id:
+                continue
+            duplicate = self.search([
+                ('id', '!=', rec.id),
+                ('enrollment_id', '=', rec.enrollment_id.id),
+                ('state', '!=', 'cancelled'),
+            ], limit=1)
+            if duplicate:
+                raise ValidationError(
+                    "Enrollment '%s' already has an active subscription (%s). "
+                    "An enrollment can only have one active subscription at a time — "
+                    "cancel the existing one first." % (rec.enrollment_id.name, duplicate.name)
+                )
+
     def action_view_invoices(self):
         self.ensure_one()
         return {
@@ -154,13 +201,9 @@ class TuitionSubscription(models.Model):
         plan = self.current_plan_id
         if not plan:
             raise UserError("No active plan for subscription %s." % self.name)
-        partner = self.student_id.partner_id
-        if not partner:
+        billing_partner = self._get_billing_partner()
+        if not billing_partner:
             raise UserError("Student %s has no linked contact." % self.student_id.name)
-        billing_partner = partner
-        parent_profile = self.env['parent.profile'].sudo().search([('student_ids', 'in', [self.student_id.id])], limit=1)
-        if parent_profile and parent_profile.partner_id:
-            billing_partner = parent_profile.partner_id
         month_label = fields.Date.today().strftime('%B %Y')
         base_price = plan.price
         lines = [{'description': '%s - %s' % (plan.product_id.name, month_label), 'product_id': plan.product_id.id,
@@ -189,20 +232,6 @@ class TuitionSubscription(models.Model):
     def action_pause(self): self.write({'state': 'paused'})
     def action_activate(self): self.write({'state': 'active'})
     def action_cancel(self): self.write({'state': 'cancelled'})
-
-    def action_schedule_plan_change(self):
-        self.ensure_one()
-        require_permission(self.env.user, 'subscription_add_plan')
-        return {'type': 'ir.actions.act_window', 'name': 'Schedule Plan Change',
-                'res_model': 'tuition.plan.change.wizard', 'view_mode': 'form', 'target': 'new',
-                'context': {'default_subscription_id': self.id}}
-
-    def action_add_adjustment(self):
-        self.ensure_one()
-        require_permission(self.env.user, 'subscription_add_adjustment')
-        return {'type': 'ir.actions.act_window', 'name': 'Add Adjustment',
-                'res_model': 'tuition.adjustment.wizard', 'view_mode': 'form', 'target': 'new',
-                'context': {'default_subscription_id': self.id}}
 
     def write(self, vals):
         if 'next_billing_date' in vals:
@@ -275,7 +304,13 @@ class TuitionPlanLine(models.Model):
     subscription_id = fields.Many2one('tuition.subscription', required=True, ondelete='cascade')
     student_id = fields.Many2one('student.profile', related='subscription_id.student_id', store=True, readonly=True)
     product_id = fields.Many2one('product.product', string='Plan Product', required=True)
+    product_tmpl_id = fields.Many2one(related='product_id.product_tmpl_id', store=True)
+    pricelist_id = fields.Many2one('product.pricelist', string='Pricing List',
+                                   help="Pricing list this plan's price/currency were taken from. "
+                                        "Restricted to the subscription's currency and the selected product.")
     price = fields.Float(string='Monthly Price', required=True)
+    currency_id = fields.Many2one('res.currency', string='Currency', related='subscription_id.currency_id',
+                                  store=True, readonly=True)
     classes_per_week = fields.Integer(string='Classes per Week', required=True, default=1)
     start_date = fields.Date(string='Start Date', required=True)
     end_date = fields.Date(string='End Date')
@@ -309,10 +344,27 @@ class TuitionPlanLine(models.Model):
     @api.onchange('product_id')
     def _onchange_product_id(self):
         if self.product_id:
-            self.price = self.product_id.lst_price or 0.0
-            tmpl = self.product_id.product_tmpl_id
-            if tmpl and tmpl.tuition_classes_per_week:
-                self.classes_per_week = tmpl.tuition_classes_per_week
+            if self.subscription_id:
+                matches = self.env['product.pricelist'].sudo().search([
+                    ('currency_id', '=', self.subscription_id.currency_id.id),
+                    '|', ('item_ids.product_id', '=', self.product_id.id),
+                         ('item_ids.product_tmpl_id', '=', self.product_id.product_tmpl_id.id),
+                ])
+                self.pricelist_id = matches.id if len(matches) == 1 else False
+            self._compute_price_from_pricelist()
+            if self.product_id.tuition_classes_per_week:
+                self.classes_per_week = self.product_id.tuition_classes_per_week
+
+    @api.onchange('pricelist_id')
+    def _onchange_pricelist_id(self):
+        self._compute_price_from_pricelist()
+
+    def _compute_price_from_pricelist(self):
+        if self.pricelist_id and self.product_id:
+            partner = self.subscription_id._get_billing_partner() if self.subscription_id else None
+            self.price = self.pricelist_id._get_product_price(self.product_id, 1.0, partner=partner or None)
+        else:
+            self.price = 0.0
 
     @api.depends('start_date', 'end_date', 'approval_state')
     def _compute_state(self):
@@ -379,7 +431,7 @@ class TuitionPlanLine(models.Model):
         # end_date: also editable when scheduled (e.g. to set an expiry early).
         # approval_state and end_date (wizard close) are excluded from the
         # state gate so approve/reject and plan-change wizard flows are unaffected.
-        CONTENT_FIELDS = {'product_id', 'price', 'classes_per_week', 'notes', 'start_date'}
+        CONTENT_FIELDS = {'product_id', 'pricelist_id', 'price', 'classes_per_week', 'notes', 'start_date'}
         if vals.keys() & CONTENT_FIELDS:
             require_permission(self.env.user, 'subscription_edit_plan')
             for rec in self:
@@ -473,69 +525,3 @@ class SaleOrderTuitionExt(models.Model):
 
     tuition_subscription_id = fields.Many2one('tuition.subscription', string='Tuition Subscription', ondelete='set null', index=True)
     tuition_subscription_ids = fields.Many2many('tuition.subscription', 'sale_order_tuition_subscription_rel', 'order_id', 'subscription_id', string='Tuition Subscriptions')
-
-
-class TuitionPlanChangeWizard(models.TransientModel):
-    _name = 'tuition.plan.change.wizard'
-    _description = 'Schedule Plan Change'
-
-    subscription_id = fields.Many2one('tuition.subscription', required=True)
-    product_id = fields.Many2one('product.product', string='New Plan Product', required=True)
-    price = fields.Float(string='Monthly Price', required=True)
-    classes_per_week = fields.Integer(string='Classes per Week', required=True, default=1)
-    start_date = fields.Date(string='Effective From', compute='_compute_start_date', store=True, readonly=False)
-    notes = fields.Char(string='Notes')
-
-    @api.depends('subscription_id')
-    def _compute_start_date(self):
-        first_next = fields.Date.today().replace(day=1) + relativedelta(months=1)
-        for rec in self: rec.start_date = first_next
-
-    @api.onchange('product_id')
-    def _onchange_product(self):
-        if self.product_id:
-            self.price = self.product_id.lst_price or 0.0
-            tmpl = self.product_id.product_tmpl_id
-            if tmpl and tmpl.tuition_classes_per_week:
-                self.classes_per_week = tmpl.tuition_classes_per_week
-
-    def action_confirm(self):
-        self.ensure_one()
-        sub = self.subscription_id
-        if self.start_date.day != 1:
-            raise UserError("Plan change must start on the 1st of a month.")
-        today = fields.Date.today()
-        end_prev = self.start_date - relativedelta(days=1)
-        current = sub.plan_line_ids.filtered(lambda p: p.state == 'active' and (not p.end_date or p.end_date >= today))
-        if current: current[0].sudo().write({'end_date': end_prev})
-        scheduled = sub.plan_line_ids.filtered(lambda p: p.state == 'scheduled')
-        if scheduled: scheduled.sudo().write({'end_date': end_prev})
-        self.env['tuition.plan.line'].create({'subscription_id': sub.id, 'product_id': self.product_id.id,
-                                              'price': self.price, 'classes_per_week': self.classes_per_week,
-                                              'start_date': self.start_date, 'notes': self.notes or ''})
-        return {'type': 'ir.actions.client', 'tag': 'display_notification',
-                'params': {'title': 'Plan Change Scheduled',
-                           'message': "Plan '%s' effective from %s." % (self.product_id.name, self.start_date.strftime('%d %b %Y')),
-                           'type': 'success', 'sticky': False, 'next': {'type': 'ir.actions.act_window_close'}}}
-
-
-class TuitionAdjustmentWizard(models.TransientModel):
-    _name = 'tuition.adjustment.wizard'
-    _description = 'Add Manual Adjustment'
-
-    subscription_id = fields.Many2one('tuition.subscription', required=True)
-    adjustment_type = fields.Selection([
-        ('extra_charge', 'Extra Charge'), ('discount', 'Discount'), ('refund', 'Refund to Customer'),
-    ], string='Type', required=True, default='extra_charge')
-    description = fields.Char(string='Description', required=True)
-    amount = fields.Float(string='Amount', required=True)
-    date = fields.Date(string='Date', default=fields.Date.today, required=True)
-
-    def action_confirm(self):
-        self.ensure_one()
-        self.env['tuition.adjustment'].create({'subscription_id': self.subscription_id.id, 'date': self.date,
-                                               'description': self.description, 'amount': abs(self.amount),
-                                               'adjustment_type': self.adjustment_type})
-        return {'type': 'ir.actions.client', 'tag': 'display_notification',
-                'params': {'title': 'Adjustment Added', 'message': "Adjustment '%s' added." % self.description,
-                           'type': 'success', 'sticky': False, 'next': {'type': 'ir.actions.act_window_close'}}}

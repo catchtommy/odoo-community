@@ -1,6 +1,6 @@
 {
     "name": "Tuition Management",
-    "version": "19.0.2.0",
+    "version": "19.0.2.3",
     "summary": "Manage tuition courses, students, tutors and registrations",
     "category": "Education",
     "author": "Auto Generated",

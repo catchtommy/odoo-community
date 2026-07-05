@@ -40,8 +40,6 @@ access_tuition_subscription,access_tuition_subscription,model_tuition_subscripti
 access_tuition_plan_line,access_tuition_plan_line,model_tuition_plan_line,base.group_user,1,1,1,1
 access_tuition_discount,access_tuition_discount,model_tuition_discount,base.group_user,1,1,1,1
 access_tuition_adjustment,access_tuition_adjustment,model_tuition_adjustment,base.group_user,1,1,1,1
-access_tuition_plan_change_wizard,access_tuition_plan_change_wizard,model_tuition_plan_change_wizard,base.group_user,1,1,1,1
-access_tuition_adjustment_wizard,access_tuition_adjustment_wizard,model_tuition_adjustment_wizard,base.group_user,1,1,1,1
 access_bulk_billing_wizard,access_bulk_billing_wizard,model_bulk_billing_wizard,base.group_user,1,1,1,1
 access_parent_billing_run,parent.billing.run,model_parent_billing_run,base.group_user,1,1,1,1
 access_parent_billing_run_line,parent.billing.run.line,model_parent_billing_run_line,base.group_user,1,1,1,1

@@ -233,7 +233,9 @@ class ParentBillingRun(models.Model):
     def _build_billing_lines(self):
         """
         Compute which subscriptions are due in this period and create
-        one parent.billing.run.line per billing partner.
+        one parent.billing.run.line per (billing partner, currency) — a
+        parent whose subscriptions span multiple currencies gets one
+        billing line, and later one invoice, per currency.
         """
         year, month_int = self.year, int(self.month)
         last_day = calendar.monthrange(year, month_int)[1]
@@ -249,30 +251,22 @@ class ParentBillingRun(models.Model):
                 "No active subscriptions found with a billing date on or before %s." % period_end
             )
 
-        by_partner = {}
+        by_group = {}
         missing_students = []
 
         for sub in subs_to_bill:
-            # Resolve billing partner: parent first, then student
-            billing_partner = False
-            parent_profile = self.env['parent.profile'].sudo().search(
-                [('student_ids', 'in', [sub.student_id.id])], limit=1
-            )
-            if parent_profile and parent_profile.partner_id:
-                billing_partner = parent_profile.partner_id
-            if not billing_partner and sub.student_id.partner_id:
-                billing_partner = sub.student_id.partner_id
-
+            billing_partner = sub._get_billing_partner()
             if not billing_partner:
                 missing_students.append(sub.student_id.name or 'Unknown Student')
                 continue
 
-            key = billing_partner.id
-            if key not in by_partner:
-                by_partner[key] = {'partner_id': key, 'subscription_ids': []}
-            by_partner[key]['subscription_ids'].append(sub.id)
+            currency = sub.currency_id or self.env.company.currency_id
+            key = (billing_partner.id, currency.id)
+            if key not in by_group:
+                by_group[key] = {'partner_id': billing_partner.id, 'subscription_ids': []}
+            by_group[key]['subscription_ids'].append(sub.id)
 
-        if not by_partner:
+        if not by_group:
             raise UserError(
                 "Could not determine a billing partner for any subscriptions.\n\n"
                 "Students missing a linked Contact:\n- " + "\n- ".join(set(missing_students))
@@ -286,7 +280,7 @@ class ParentBillingRun(models.Model):
                 subtype_xmlid='mail.mt_note',
             )
 
-        for partner_id, data in by_partner.items():
+        for (partner_id, _currency_id), data in by_group.items():
             subs = self.env['tuition.subscription'].browse(data['subscription_ids'])
             detail_vals = []
             total = 0.0
@@ -349,7 +343,15 @@ class ParentBillingRunLine(models.Model):
     has_existing_invoice = fields.Boolean(
         string='Invoice Exists', compute='_compute_has_existing_invoice',
     )
-    currency_id = fields.Many2one(related='run_id.currency_id', store=True)
+    currency_id = fields.Many2one(
+        'res.currency', string='Currency', compute='_compute_currency_id', store=True,
+    )
+
+    @api.depends('subscription_ids', 'subscription_ids.currency_id')
+    def _compute_currency_id(self):
+        for rec in self:
+            sub = rec.subscription_ids[:1]
+            rec.currency_id = sub.currency_id if sub else rec.env.company.currency_id
 
     @api.depends('partner_id', 'run_id.month', 'run_id.year')
     def _compute_has_existing_invoice(self):
@@ -434,8 +436,10 @@ class ParentBillingRunLine(models.Model):
         month_str = (
             f"{calendar.month_name[int(self.run_id.month)]} {self.run_id.year}"
         )
+        pricelist = self.subscription_ids[:1]._get_invoice_pricelist()
         order = self.env['sale.order'].sudo().create({
             'partner_id': self.partner_id.id,
+            'pricelist_id': pricelist.id,
             'payment_term_id': payment_term.id if payment_term else False,
             'order_line': order_lines,
             'note': f'Consolidated Tuition Invoice for {month_str}',
