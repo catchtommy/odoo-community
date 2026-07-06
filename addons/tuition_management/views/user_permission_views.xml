@@ -21,6 +21,7 @@
                 <field name="subscription_access"   string="Subs." optional="show"/>
                 <field name="settings_access"       string="Settings" optional="show"/>
                 <field name="reports_access"        string="Reports" optional="show"/>
+                <field name="company_currency_config" string="Company Currencies" optional="hide"/>
             </list>
         </field>
     </record>
@@ -106,6 +107,8 @@
                                         <field name="settings_access"
                                                widget="boolean_toggle"/>
                                         <field name="reports_access"
+                                               widget="boolean_toggle"/>
+                                        <field name="company_currency_config"
                                                widget="boolean_toggle"/>
                                     </group>
                                 </div>

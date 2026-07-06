@@ -17,14 +17,24 @@ class TuitionSubscription(models.Model):
                                 related='student_id.parent_id', store=True, readonly=True)
     enrollment_id = fields.Many2one('course.enrollment', string='Enrollment', ondelete='restrict',
                                     domain="[('student_id', '=', student_id)]")
-    subject_id = fields.Many2one('subject.master', string='Subject', compute='_compute_subject_id', store=True,
-                                 help="Subject being tutored, derived from the enrollment's course. "
-                                      "Restricts which products can be picked as a plan for this subscription.")
+    company_id = fields.Many2one(
+        'res.company', string='Company', required=True,
+        default=lambda self: self.env.company,
+        domain=lambda self: [('id', 'in', self.env.user.company_ids.ids)],
+        help="Legal entity this subscription is billed under. Plan lines can only use products/pricing "
+             "lists that belong to this company (or are shared across companies).",
+    )
     currency_id = fields.Many2one(
         'res.currency', string='Currency', required=True,
         default=lambda self: self.env.company.currency_id,
         domain=[('active', '=', True)],
         help="Billing currency for this subscription. Plan lines can only use a Pricing List in this currency.",
+    )
+    company_currency_ids = fields.Many2many(
+        related='company_id.tuition_currency_ids', string='Company Allowed Currencies',
+        help="Technical field used to restrict the Currency field's dropdown to this "
+             "subscription's company's configured currencies, reactively (not just on "
+             "onchange) so it's also correct for already-saved subscriptions.",
     )
     plan_line_ids = fields.One2many('tuition.plan.line', 'subscription_id', string='Plan History')
     adjustment_ids = fields.One2many('tuition.adjustment', 'subscription_id', string='Adjustments')
@@ -66,10 +76,14 @@ class TuitionSubscription(models.Model):
             parts = [p for p in [rec.student_id.name, rec.enrollment_id.course_id.name if rec.enrollment_id else ''] if p]
             rec.name = ' / '.join(parts) if parts else 'New Subscription'
 
-    @api.depends('enrollment_id.course_id.subject_id')
-    def _compute_subject_id(self):
-        for rec in self:
-            rec.subject_id = rec.enrollment_id.course_id.subject_id if rec.enrollment_id else False
+    @api.onchange('company_id')
+    def _onchange_company_id(self):
+        allowed = self.company_id.tuition_currency_ids
+        if len(allowed) == 1:
+            self.currency_id = allowed
+        elif self.currency_id and self.currency_id not in allowed:
+            self.currency_id = False
+        return {'domain': {'currency_id': [('id', 'in', allowed.ids)]}}
 
     @api.depends('plan_line_ids', 'plan_line_ids.state')
     def _compute_current_plan(self):
@@ -164,8 +178,10 @@ class TuitionSubscription(models.Model):
     def _get_invoice_pricelist(self):
         """Pricelist to bill this subscription with — the one used on its current plan line."""
         self.ensure_one()
-        return self.current_plan_id.pricelist_id or self.env['product.pricelist'].sudo().search(
-            [('currency_id', '=', self.currency_id.id)], limit=1)
+        return self.current_plan_id.pricelist_id or self.env['product.pricelist'].sudo().search([
+            ('currency_id', '=', self.currency_id.id),
+            ('company_id', 'in', [self.company_id.id, False]),
+        ], limit=1)
 
     @api.constrains('enrollment_id', 'state')
     def _check_unique_enrollment_subscription(self):
@@ -347,6 +363,7 @@ class TuitionPlanLine(models.Model):
             if self.subscription_id:
                 matches = self.env['product.pricelist'].sudo().search([
                     ('currency_id', '=', self.subscription_id.currency_id.id),
+                    ('company_id', 'in', [self.subscription_id.company_id.id, False]),
                     '|', ('item_ids.product_id', '=', self.product_id.id),
                          ('item_ids.product_tmpl_id', '=', self.product_id.product_tmpl_id.id),
                 ])
@@ -403,6 +420,29 @@ class TuitionPlanLine(models.Model):
         for rec in self:
             if rec.start_date and rec.start_date.day != 1:
                 raise ValidationError("Plan start date must be the 1st of a month. Got: %s" % rec.start_date)
+
+    @api.constrains('product_id', 'pricelist_id', 'subscription_id')
+    def _check_company_consistency(self):
+        for rec in self:
+            company = rec.subscription_id.company_id
+            if not company:
+                continue
+            if rec.product_id.company_id and rec.product_id.company_id != company:
+                raise ValidationError(
+                    "Product '%s' belongs to company '%s', but this subscription is billed "
+                    "under company '%s'. Either leave the Company field blank on the product "
+                    "(shared across companies) or assign it to '%s'."
+                    % (rec.product_id.display_name, rec.product_id.company_id.name,
+                       company.name, company.name)
+                )
+            if rec.pricelist_id.company_id and rec.pricelist_id.company_id != company:
+                raise ValidationError(
+                    "Pricing list '%s' belongs to company '%s', but this subscription is "
+                    "billed under company '%s'. Either leave the Company field blank on the "
+                    "pricing list or assign it to '%s'."
+                    % (rec.pricelist_id.display_name, rec.pricelist_id.company_id.name,
+                       company.name, company.name)
+                )
 
     @api.constrains('subscription_id', 'start_date', 'end_date')
     def _check_no_overlapping_plans(self):
@@ -518,10 +558,3 @@ class AccountMove(models.Model):
     tuition_subscription_ids = fields.Many2many('tuition.subscription', 'account_move_tuition_subscription_rel', 'move_id', 'subscription_id', string='Tuition Subscriptions')
     tuition_plan_line_id = fields.Many2one('tuition.plan.line', string='Tuition Plan', ondelete='set null', index=True)
     parent_profile_id = fields.Many2one('parent.profile', string='Parent Profile', ondelete='set null', index=True)
-
-
-class SaleOrderTuitionExt(models.Model):
-    _inherit = 'sale.order'
-
-    tuition_subscription_id = fields.Many2one('tuition.subscription', string='Tuition Subscription', ondelete='set null', index=True)
-    tuition_subscription_ids = fields.Many2many('tuition.subscription', 'sale_order_tuition_subscription_rel', 'order_id', 'subscription_id', string='Tuition Subscriptions')

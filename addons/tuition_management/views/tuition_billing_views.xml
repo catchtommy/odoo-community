@@ -30,8 +30,10 @@
                         <field name="student_id"/>
                         <field name="parent_id" readonly="1"/>
                         <field name="enrollment_id"/>
-                        <field name="subject_id" readonly="1"/>
-                        <field name="currency_id" options="{'no_create': True}"/>
+                        <field name="company_id" options="{'no_create': True}" groups="base.group_multi_company"/>
+                        <field name="company_currency_ids" invisible="1"/>
+                        <field name="currency_id" options="{'no_create': True}"
+                               domain="[('id', 'in', company_currency_ids)]"/>
                         <field name="next_billing_date"
                                readonly="not can_edit_billing_date"
                                help="Auto-calculated from last invoice date or plan start date. Users with 'Edit Next Billing Date' permission can override manually."/>
@@ -55,9 +57,9 @@
                                   decoration-muted="state == 'expired'"
                                   decoration-warning="state == 'pending_approval'">
                                 <field name="product_id"       readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"
-                                       domain="[('subject_id', '=', parent.subject_id)]"/>
+                                       domain="[('company_id', 'in', [parent.company_id, False])]"/>
                                 <field name="pricelist_id"     readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"
-                                       domain="[('currency_id', '=', currency_id), '|', ('item_ids.product_id', '=', product_id), ('item_ids.product_tmpl_id', '=', product_tmpl_id)]"
+                                       domain="['&amp;', ('currency_id', '=', currency_id), '&amp;', ('company_id', 'in', [parent.company_id, False]), '|', ('item_ids.product_id', '=', product_id), ('item_ids.product_tmpl_id', '=', product_tmpl_id)]"
                                        options="{'no_create': True}"/>
                                 <field name="price"            readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"
                                        widget="monetary" options="{'currency_field': 'currency_id'}"/>

@@ -52,6 +52,7 @@ PERMISSION_GROUP_MAP = {
     'attendance_approve':         'group_tuition_attendance_approve',
     'settings_access':            'group_tuition_settings_access',
     'reports_access':             'group_tuition_reports_access',
+    'company_currency_config':    'group_tuition_company_currency_config',
 }
 
 # Human-readable labels for error messages
@@ -91,6 +92,7 @@ PERMISSION_LABELS = {
     'attendance_approve':         'Approve Attendance',
     'settings_access':            'Access Settings',
     'reports_access':             'Access Reports',
+    'company_currency_config':    'Configure Company Currencies',
 }
 
 
@@ -275,6 +277,9 @@ class UserPermissionGroup(models.Model):
     reports_access = fields.Boolean(
         string='Access Reports', tracking=True,
         help='Can open and run reports.')
+    company_currency_config = fields.Boolean(
+        string='Configure Company Currencies', tracking=True,
+        help='Can configure which currencies each company is allowed to bill subscriptions in.')
 
     # ── Computed ──────────────────────────────────────────────────────────
     @api.depends('member_ids')

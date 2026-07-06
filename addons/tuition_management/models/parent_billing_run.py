@@ -50,6 +50,15 @@ class ParentBillingRun(models.Model):
     total_parents = fields.Integer(string='Total Parents', compute='_compute_totals', store=True)
     total_lines = fields.Integer(string='Total Lines', compute='_compute_totals', store=True)
     total_amount = fields.Float(string='Total Amount', compute='_compute_totals', store=True)
+    is_multi_currency = fields.Boolean(
+        string='Spans Multiple Currencies', compute='_compute_totals', store=True,
+        help="True when the included billing lines span more than one currency — in that "
+             "case Total Amount is not a meaningful single figure; see Total by Currency instead.",
+    )
+    total_amount_by_currency = fields.Char(
+        string='Total by Currency', compute='_compute_totals', store=True,
+        help="Per-currency breakdown of the included billing lines' totals.",
+    )
 
     currency_id = fields.Many2one(
         'res.currency', default=lambda self: self.env.company.currency_id,
@@ -67,6 +76,15 @@ class ParentBillingRun(models.Model):
     approved_date = fields.Datetime(string='Approved Date', readonly=True)
     invoiced_by = fields.Many2one('res.users', string='Invoiced By', readonly=True, tracking=True)
     invoiced_date = fields.Datetime(string='Invoiced Date', readonly=True)
+    has_live_invoices = fields.Boolean(
+        string='Has Live Invoices', compute='_compute_has_live_invoices',
+        help="Whether this run still has at least one non-cancelled invoice linked to it.",
+    )
+
+    @api.depends('line_ids.invoice_id', 'line_ids.invoice_id.state')
+    def _compute_has_live_invoices(self):
+        for rec in self:
+            rec.has_live_invoices = rec._has_live_invoices()
 
     @api.depends('month', 'year')
     def _compute_period_label(self):
@@ -76,13 +94,31 @@ class ParentBillingRun(models.Model):
             else:
                 rec.period_label = ''
 
-    @api.depends('line_ids.total_amount', 'line_ids.state')
+    @api.depends('line_ids.total_amount', 'line_ids.state', 'line_ids.currency_id')
     def _compute_totals(self):
         for rec in self:
             included = rec.line_ids.filtered(lambda l: l.state == 'included')
             rec.total_parents = len(included)
             rec.total_lines = len(rec.line_ids)
             rec.total_amount = sum(included.mapped('total_amount'))
+
+            currencies = included.mapped('currency_id')
+            rec.is_multi_currency = len(currencies) > 1
+            by_currency = {}
+            for line in included:
+                currency = line.currency_id or rec.env.company.currency_id
+                by_currency[currency] = by_currency.get(currency, 0.0) + line.total_amount
+            rec.total_amount_by_currency = ' · '.join(
+                self._format_currency_amount(currency, amount)
+                for currency, amount in sorted(by_currency.items(), key=lambda kv: kv[0].name)
+            )
+
+    @api.model
+    def _format_currency_amount(self, currency, amount):
+        formatted = f"{currency.round(amount):,.{currency.decimal_places}f}"
+        if currency.position == 'before':
+            return f"{currency.symbol}{formatted}"
+        return f"{formatted} {currency.symbol}"
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -117,9 +153,20 @@ class ParentBillingRun(models.Model):
                 raise UserError("Approved or invoiced billing runs cannot have their period changed.")
         return super().write(vals)
 
+    def _has_live_invoices(self):
+        """Whether this run still has at least one non-cancelled invoice linked to it."""
+        self.ensure_one()
+        return bool(self.line_ids.mapped('invoice_id').filtered(lambda m: m.state != 'cancel'))
+
     def unlink(self):
-        if self.filtered(lambda r: r.state in ('approved', 'invoiced')):
-            raise UserError("Approved or invoiced billing runs cannot be deleted.")
+        for run in self:
+            if run.state == 'approved':
+                raise UserError("Approved billing runs cannot be deleted.")
+            if run.state == 'invoiced' and run._has_live_invoices():
+                raise UserError(
+                    "This billing run has invoices linked to it and cannot be deleted. "
+                    "Cancel/remove those invoices first, or reset the run to Draft."
+                )
         return super().unlink()
 
     # ──────────────────────────────────────────────
@@ -174,15 +221,27 @@ class ParentBillingRun(models.Model):
             raise UserError("No included billing lines to invoice.")
 
         generated_invoices = self.env['account.move']
+        failed_lines = self.env['parent.billing.run.line']
         for line in included_lines:
-            invoice = line._generate_invoice()
+            try:
+                invoice = line._generate_invoice()
+            except UserError as e:
+                line.error_message = str(e)
+                failed_lines |= line
+                continue
+            line.error_message = False
             if invoice:
                 generated_invoices |= invoice
 
         if not generated_invoices:
+            # Force the per-line error_message writes above to persist even though we're
+            # about to raise — an uncaught exception rolls back the whole transaction,
+            # which would otherwise wipe out the very diagnostics we just recorded.
+            self.env.cr.commit()
             raise UserError(
                 "No invoices were generated. This may be because all subscriptions "
-                "have already been invoiced for this period."
+                "have already been invoiced for this period, or because every included "
+                "line failed — see the Error column for details."
             )
 
         self.write({
@@ -190,12 +249,12 @@ class ParentBillingRun(models.Model):
             'invoiced_by': self.env.user.id,
             'invoiced_date': fields.Datetime.now(),
         })
-        self.message_post(
-            body='<b>%d invoice(s)</b> generated by <b>%s</b>.' % (
-                len(generated_invoices), self.env.user.name
-            ),
-            subtype_xmlid='mail.mt_note',
+        summary = '<b>%d invoice(s)</b> generated by <b>%s</b>.' % (
+            len(generated_invoices), self.env.user.name
         )
+        if failed_lines:
+            summary += ' <b>%d line(s) failed</b> and were skipped — see the Error column on those lines.' % len(failed_lines)
+        self.message_post(body=summary, subtype_xmlid='mail.mt_note')
 
         return {
             'type': 'ir.actions.act_window',
@@ -207,10 +266,27 @@ class ParentBillingRun(models.Model):
 
     def action_reset_to_draft(self):
         for run in self:
-            if run.state not in ('draft', 'preview'):
-                raise UserError("Only Draft or Preview runs can be reset to Draft.")
+            if run.state == 'approved':
+                # Approved runs never have invoices yet — generation atomically moves
+                # the run straight to 'invoiced'. Only the approver may undo this.
+                require_permission(self.env.user, 'parent_invoice_approve')
+            elif run.state == 'invoiced':
+                if run._has_live_invoices():
+                    raise UserError(
+                        "This billing run has invoices linked to it and cannot be reset to Draft. "
+                        "Cancel/remove those invoices first."
+                    )
+            elif run.state not in ('draft', 'preview'):
+                raise UserError(
+                    "Only Draft, Preview, Approved, or Invoiced (with no linked invoices) "
+                    "runs can be reset to Draft."
+                )
             run.line_ids.unlink()
-            run.write({'state': 'draft'})
+            run.write({
+                'state': 'draft',
+                'approved_by': False,
+                'approved_date': False,
+            })
             run.message_post(body='Reset to Draft.', subtype_xmlid='mail.mt_note')
         return True
 
@@ -226,6 +302,26 @@ class ParentBillingRun(models.Model):
             'domain': [('id', 'in', invoice_ids)],
         }
 
+    def action_view_billing_lines_by_company(self):
+        """Open this run's billing lines as a standalone, grouped list — one section per
+        Company (then Currency), each with its own accurate subtotal. Embedded one2many
+        list widgets don't support default groupby, so this opens a real window action
+        instead, where Odoo's native per-group aggregates work correctly."""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Billing Lines by Company',
+            'res_model': 'parent.billing.run.line',
+            'view_mode': 'list,form',
+            'views': [
+                (self.env.ref('tuition_management.view_parent_billing_run_line_list_grouped').id, 'list'),
+                (self.env.ref('tuition_management.view_parent_billing_run_line_form').id, 'form'),
+            ],
+            'search_view_id': self.env.ref('tuition_management.view_parent_billing_run_line_search').id,
+            'domain': [('run_id', '=', self.id)],
+            'context': {'group_by': ['company_id', 'currency_id']},
+        }
+
     # ──────────────────────────────────────────────
     #  Internal helpers
     # ──────────────────────────────────────────────
@@ -233,9 +329,9 @@ class ParentBillingRun(models.Model):
     def _build_billing_lines(self):
         """
         Compute which subscriptions are due in this period and create
-        one parent.billing.run.line per (billing partner, currency) — a
-        parent whose subscriptions span multiple currencies gets one
-        billing line, and later one invoice, per currency.
+        one parent.billing.run.line per (billing partner, currency, company) —
+        a parent whose subscriptions span multiple currencies and/or companies
+        gets one billing line, and later one invoice, per combination.
         """
         year, month_int = self.year, int(self.month)
         last_day = calendar.monthrange(year, month_int)[1]
@@ -261,7 +357,8 @@ class ParentBillingRun(models.Model):
                 continue
 
             currency = sub.currency_id or self.env.company.currency_id
-            key = (billing_partner.id, currency.id)
+            company = sub.company_id or self.env.company
+            key = (billing_partner.id, currency.id, company.id)
             if key not in by_group:
                 by_group[key] = {'partner_id': billing_partner.id, 'subscription_ids': []}
             by_group[key]['subscription_ids'].append(sub.id)
@@ -280,7 +377,7 @@ class ParentBillingRun(models.Model):
                 subtype_xmlid='mail.mt_note',
             )
 
-        for (partner_id, _currency_id), data in by_group.items():
+        for (partner_id, _currency_id, _company_id), data in by_group.items():
             subs = self.env['tuition.subscription'].browse(data['subscription_ids'])
             detail_vals = []
             total = 0.0
@@ -340,11 +437,19 @@ class ParentBillingRunLine(models.Model):
         'account.move', string='Invoice', readonly=True, copy=False,
     )
     notes = fields.Char(string='Notes / Override Reason')
+    error_message = fields.Char(
+        string='Error', copy=False,
+        help="Set when invoice generation failed for this line (e.g. a company/currency "
+             "mismatch). Cleared automatically once generation succeeds.",
+    )
     has_existing_invoice = fields.Boolean(
         string='Invoice Exists', compute='_compute_has_existing_invoice',
     )
     currency_id = fields.Many2one(
         'res.currency', string='Currency', compute='_compute_currency_id', store=True,
+    )
+    company_id = fields.Many2one(
+        'res.company', string='Company', compute='_compute_company_id', store=True,
     )
 
     @api.depends('subscription_ids', 'subscription_ids.currency_id')
@@ -352,6 +457,12 @@ class ParentBillingRunLine(models.Model):
         for rec in self:
             sub = rec.subscription_ids[:1]
             rec.currency_id = sub.currency_id if sub else rec.env.company.currency_id
+
+    @api.depends('subscription_ids', 'subscription_ids.company_id')
+    def _compute_company_id(self):
+        for rec in self:
+            sub = rec.subscription_ids[:1]
+            rec.company_id = sub.company_id if sub else rec.env.company
 
     @api.depends('partner_id', 'run_id.month', 'run_id.year')
     def _compute_has_existing_invoice(self):
@@ -386,16 +497,26 @@ class ParentBillingRunLine(models.Model):
             line.state = 'included'
 
     def _generate_invoice(self):
-        """
-        Generate a consolidated Odoo invoice for this billing line.
-        Mirrors BulkBillingPreviewLine._generate_consolidated_invoice.
-        """
+        """Generate a consolidated Odoo customer invoice for this billing line, directly
+        (no intermediate sale order/quotation)."""
         self.ensure_one()
         if self.invoice_id:
             return self.invoice_id
 
+        if self.has_existing_invoice:
+            raise UserError(
+                "An invoice already exists for %s covering %s %s. Refusing to generate a "
+                "duplicate. This can happen after resetting a run and regenerating it — "
+                "the earlier successful invoice isn't retracted, so re-running would bill "
+                "this parent twice. If a second invoice is genuinely needed (e.g. a "
+                "correction), create it manually instead of via this run."
+                % (self.partner_id.display_name,
+                   calendar.month_name[int(self.run_id.month)], self.run_id.year)
+            )
+
         all_lines = []
         all_unapplied_adjustments = self.env['tuition.adjustment']
+        skip_reasons = []
 
         for sub in self.subscription_ids:
             try:
@@ -405,20 +526,39 @@ class ParentBillingRunLine(models.Model):
                     all_unapplied_adjustments |= self.env['tuition.adjustment'].browse(
                         preview_vals.get('unapplied_adj_ids')
                     )
-            except UserError:
+            except UserError as e:
+                skip_reasons.append('%s: %s' % (sub.name, e))
                 continue
 
         if not all_lines:
-            return self.env['account.move']
+            if skip_reasons:
+                raise UserError(
+                    "No billable lines could be generated for this parent this period:\n- "
+                    + '\n- '.join(skip_reasons)
+                )
+            raise UserError(
+                "No billable lines could be generated for this parent this period "
+                "(no subscriptions produced any charges)."
+            )
 
-        payment_term = self.env['account.payment.term'].sudo().search(
-            [('name', 'ilike', '15')], limit=1
-        )
+        # Grouping in _build_billing_lines guarantees every subscription on this line
+        # shares the same company — that company is authoritative for this invoice.
+        subscription_company = self.subscription_ids[:1].company_id or self.env.company
+
+        payment_term = self.env['account.payment.term'].sudo().search([
+            ('name', 'ilike', '15'),
+            ('company_id', 'in', [subscription_company.id, False]),
+        ], limit=1)
+        # A payment term with no installment lines produces no due date at all when
+        # used — treat it the same as not having found one, rather than assigning a
+        # broken term to the invoice.
+        if payment_term and not payment_term.line_ids:
+            payment_term = self.env['account.payment.term']
         misc_product = self.env['product.product'].sudo().search(
             [('type', '=', 'service')], limit=1
         )
 
-        order_lines = []
+        invoice_lines = []
         for line in all_lines:
             product = (
                 self.env['product.product'].sudo().browse(line['product_id'])
@@ -426,9 +566,17 @@ class ParentBillingRunLine(models.Model):
             )
             if not product:
                 continue
-            order_lines.append((0, 0, {
+            if product.company_id and product.company_id != subscription_company:
+                raise UserError(
+                    "Cannot generate this invoice: product '%s' belongs to company '%s', but "
+                    "this subscription is billed under company '%s'. Either leave the Company "
+                    "field blank on the product (shared across companies) or assign it to '%s'."
+                    % (product.display_name, product.company_id.name,
+                       subscription_company.name, subscription_company.name)
+                )
+            invoice_lines.append((0, 0, {
                 'product_id': product.id,
-                'product_uom_qty': line['quantity'],
+                'quantity': line['quantity'],
                 'price_unit': line['unit_price'],
                 'name': line['description'],
             }))
@@ -437,26 +585,48 @@ class ParentBillingRunLine(models.Model):
             f"{calendar.month_name[int(self.run_id.month)]} {self.run_id.year}"
         )
         pricelist = self.subscription_ids[:1]._get_invoice_pricelist()
-        order = self.env['sale.order'].sudo().create({
-            'partner_id': self.partner_id.id,
-            'pricelist_id': pricelist.id,
-            'payment_term_id': payment_term.id if payment_term else False,
-            'order_line': order_lines,
-            'note': f'Consolidated Tuition Invoice for {month_str}',
-            'tuition_subscription_ids': [(6, 0, self.subscription_ids.ids)],
-        })
-        order.action_confirm()
-
-        invoice = order._create_invoices()
+        if pricelist.company_id and pricelist.company_id != subscription_company:
+            raise UserError(
+                "Cannot generate this invoice: the pricing list '%s' belongs to company '%s', "
+                "but this subscription is billed under company '%s'. Either leave the Company "
+                "field blank on the pricing list or assign it to '%s'."
+                % (pricelist.display_name, pricelist.company_id.name,
+                   subscription_company.name, subscription_company.name)
+            )
 
         parent_profile = self.env['parent.profile'].sudo().search(
             [('partner_id', '=', self.partner_id.id)], limit=1
         )
-        invoice.sudo().write({
+        invoice_date = fields.Date.today()
+        invoice_vals = {
+            'move_type': 'out_invoice',
+            'partner_id': self.partner_id.id,
+            'company_id': subscription_company.id,
+            'currency_id': pricelist.currency_id.id,
+            'invoice_date': invoice_date,
+            'invoice_line_ids': invoice_lines,
+            'narration': f'Consolidated Tuition Invoice for {month_str}',
             'tuition_subscription_ids': [(6, 0, self.subscription_ids.ids)],
             'parent_profile_id': parent_profile.id if parent_profile else False,
-        })
-        invoice.sudo().action_post()
+        }
+        if payment_term:
+            invoice_vals['invoice_payment_term_id'] = payment_term.id
+        else:
+            # No payment term to derive installment due dates from — due immediately.
+            # Set this explicitly rather than relying on compute-timing during create(),
+            # since an unset due date on the receivable line fails validation on posting.
+            invoice_vals['invoice_date_due'] = invoice_date
+        invoice = self.env['account.move']
+        try:
+            invoice = self.env['account.move'].sudo().create(invoice_vals)
+            invoice.sudo().action_post()
+        except Exception:
+            # Don't leave a dangling draft invoice behind if posting failed partway
+            # through — especially important because a later diagnostic commit
+            # (see action_generate_invoices) can otherwise persist it.
+            if invoice and invoice.state == 'draft':
+                invoice.sudo().unlink()
+            raise
 
         # Mark adjustments and advance next billing date
         if all_unapplied_adjustments:

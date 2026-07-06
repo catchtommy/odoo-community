@@ -38,6 +38,7 @@
         <field name="arch" type="xml">
             <form string="Parent Invoicing Run">
                 <header>
+                    <field name="has_live_invoices" invisible="1"/>
                     <!-- Draft → Preview -->
                     <button name="action_generate_preview" type="object"
                             string="Generate Preview" class="btn-primary"
@@ -62,6 +63,17 @@
                     <button name="action_reset_to_draft" type="object"
                             string="Reset to Draft" class="btn-secondary"
                             invisible="state not in ['draft', 'preview']"/>
+                    <!-- Approved but invoices not generated yet — approver can still undo -->
+                    <button name="action_reset_to_draft" type="object"
+                            string="Reset to Draft" class="btn-secondary"
+                            invisible="state != 'approved'"
+                            confirm="This will revert the run to Draft and clear its billing lines. Continue?"
+                            groups="tuition_management.group_tuition_parent_invoice_approve,base.group_system"/>
+                    <!-- Invoiced but no invoices actually remain linked (e.g. they were cancelled/deleted) -->
+                    <button name="action_reset_to_draft" type="object"
+                            string="Reset to Draft" class="btn-secondary"
+                            invisible="state != 'invoiced' or has_live_invoices"
+                            confirm="This billing run has no invoices linked to it. Reset it back to Draft?"/>
                     <field name="state" widget="statusbar"
                            statusbar_visible="draft,preview,approved,invoiced"/>
                 </header>
@@ -78,8 +90,12 @@
                         </group>
                         <group string="Summary">
                             <field name="total_parents" readonly="1"/>
+                            <field name="is_multi_currency" invisible="1"/>
                             <field name="total_amount" readonly="1" widget="monetary"
-                                   options="{'currency_field': 'currency_id'}"/>
+                                   options="{'currency_field': 'currency_id'}"
+                                   invisible="is_multi_currency"/>
+                            <field name="total_amount_by_currency" string="Total by Currency"
+                                   readonly="1" invisible="not is_multi_currency"/>
                             <field name="currency_id" invisible="1"/>
                         </group>
                     </group>
@@ -99,21 +115,30 @@
 
                     <field name="notes" placeholder="Internal notes..."/>
 
-                    <separator string="Billing Lines"/>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <separator string="Billing Lines"/>
+                        <button name="action_view_billing_lines_by_company" type="object"
+                                string="View Grouped by Company" class="btn-link"
+                                invisible="not is_multi_currency"/>
+                    </div>
                     <field name="line_ids"
                            context="{'tree_view_ref': 'tuition_management.view_parent_billing_run_line_list'}">
                         <list string="Billing Lines"
+                              default_group_by="company_id,currency_id"
                               decoration-muted="state == 'excluded'"
-                              decoration-warning="has_existing_invoice and state == 'included'">
+                              decoration-danger="error_message"
+                              decoration-warning="has_existing_invoice and state == 'included' and not error_message">
                             <field name="partner_id" readonly="1"/>
+                            <field name="company_id" readonly="1" optional="show" groups="base.group_multi_company"/>
                             <field name="state" widget="badge"
                                    decoration-success="state == 'included'"
                                    decoration-danger="state == 'excluded'"/>
                             <field name="has_existing_invoice" column_invisible="True"/>
-                            <field name="total_amount" sum="Total" readonly="1"
+                            <field name="total_amount" readonly="1"
                                    widget="monetary" options="{'currency_field': 'currency_id'}"/>
                             <field name="currency_id" column_invisible="True"/>
                             <field name="invoice_id" readonly="1"/>
+                            <field name="error_message" optional="show"/>
                             <field name="notes"/>
                             <button name="action_exclude" type="object"
                                     icon="fa-times" title="Exclude this line"
@@ -138,8 +163,33 @@
         <field name="name">parent.billing.run.line.list</field>
         <field name="model">parent.billing.run.line</field>
         <field name="arch" type="xml">
-            <list string="Billing Lines">
+            <list string="Billing Lines" decoration-danger="error_message">
                 <field name="partner_id"/>
+                <field name="company_id" optional="show" groups="base.group_multi_company"/>
+                <field name="state" widget="badge"
+                       decoration-success="state == 'included'"
+                       decoration-danger="state == 'excluded'"/>
+                <field name="total_amount" widget="monetary"
+                       options="{'currency_field': 'currency_id'}"/>
+                <field name="currency_id" column_invisible="True"/>
+                <field name="invoice_id"/>
+                <field name="error_message" optional="show"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ─────────────────────────────────────────────────
+         Parent Billing Run Line — List grouped by Company/Currency
+         (own view so the sum aggregate only appears here, where a
+         real search-enabled action makes per-group totals meaningful)
+    ───────────────────────────────────────────────── -->
+    <record id="view_parent_billing_run_line_list_grouped" model="ir.ui.view">
+        <field name="name">parent.billing.run.line.list.grouped</field>
+        <field name="model">parent.billing.run.line</field>
+        <field name="arch" type="xml">
+            <list string="Billing Lines by Company" decoration-danger="error_message">
+                <field name="partner_id"/>
+                <field name="company_id" optional="show" groups="base.group_multi_company"/>
                 <field name="state" widget="badge"
                        decoration-success="state == 'included'"
                        decoration-danger="state == 'excluded'"/>
@@ -147,7 +197,27 @@
                        options="{'currency_field': 'currency_id'}"/>
                 <field name="currency_id" column_invisible="True"/>
                 <field name="invoice_id"/>
+                <field name="error_message" optional="show"/>
             </list>
+        </field>
+    </record>
+
+    <record id="view_parent_billing_run_line_search" model="ir.ui.view">
+        <field name="name">parent.billing.run.line.search</field>
+        <field name="model">parent.billing.run.line</field>
+        <field name="arch" type="xml">
+            <search string="Billing Lines">
+                <field name="partner_id"/>
+                <field name="company_id"/>
+                <field name="currency_id"/>
+                <filter string="Included" name="included" domain="[('state', '=', 'included')]"/>
+                <filter string="Excluded" name="excluded" domain="[('state', '=', 'excluded')]"/>
+                <separator/>
+                <filter string="Failed" name="failed" domain="[('error_message', '!=', False)]"/>
+                <separator/>
+                <filter string="Group by Company" name="group_by_company" context="{'group_by': 'company_id'}"/>
+                <filter string="Group by Currency" name="group_by_currency" context="{'group_by': 'currency_id'}"/>
+            </search>
         </field>
     </record>
 
@@ -164,10 +234,14 @@
                     <strong>Warning:</strong> An invoice already exists for this parent in this billing period.
                     Generating another may result in duplicate billing.
                 </div>
+                <div class="alert alert-danger" role="alert" invisible="not error_message">
+                    <strong>Invoice generation failed:</strong> <field name="error_message" readonly="1" nolabel="1"/>
+                </div>
                 <sheet>
                     <group>
                         <field name="run_id" readonly="1"/>
                         <field name="partner_id" readonly="1"/>
+                        <field name="company_id" readonly="1" groups="base.group_multi_company"/>
                         <field name="state"/>
                         <field name="total_amount" readonly="1" widget="monetary"
                                options="{'currency_field': 'currency_id'}"/>
