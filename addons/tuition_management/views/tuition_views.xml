@@ -53,9 +53,9 @@
                         <field name="student_age" string="Student Age"/>
                     </group>
                     <group string="Academic Information" readonly="not can_edit_enquiry">
-                        <field name="category_id" readonly="is_enrolled"/>
-                        <field name="subject_id" domain="[('category_id', '=', category_id)]" readonly="is_enrolled"/>
-                        <field name="grade_id" domain="[('category_ids', 'in', [category_id])]" readonly="is_enrolled"/>
+                        <field name="category_id" readonly="is_enrolled" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="subject_id" domain="[('category_id', '=', category_id)]" readonly="is_enrolled" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="grade_id" domain="[('category_ids', 'in', [category_id])]" readonly="is_enrolled" options="{'no_create': True, 'no_open': True}"/>
                     </group>
                     <group string="Notes" readonly="not can_edit_enquiry">
                         <field name="notes" nolabel="1" readonly="is_enrolled"/>
@@ -126,7 +126,7 @@
                     <field name="student_name" placeholder="Student Full Name"/>
                     <field name="partner_id"/><field name="email" placeholder="Email"/>
                     <field name="phone" placeholder="Phone"/>
-                    <field name="subject_id"/><field name="grade_id"/>
+                    <field name="subject_id" options="{'no_create': True, 'no_open': True}"/><field name="grade_id" options="{'no_create': True, 'no_open': True}"/>
                 </group>
             </form>
         </field>

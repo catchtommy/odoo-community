@@ -41,9 +41,9 @@
                 <group readonly="not can_edit_course">
                     <group string="Course Information">
                         <field name="name"/>
-                        <field name="category_id"/>
-                        <field name="subject_id" domain="[('category_id', '=', category_id)] if category_id else []"/>
-                        <field name="grade_id" domain="[('category_ids', 'in', [category_id])]"/>
+                        <field name="category_id" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="subject_id" domain="[('category_id', '=', category_id)] if category_id else []" options="{'no_create': True, 'no_open': True}"/>
+                        <field name="grade_id" domain="[('category_ids', 'in', [category_id])]" options="{'no_create': True, 'no_open': True}"/>
                         <field name="tutor_id" string="Primary Tutor" domain="['&amp;', ('subject_ids', 'in', [subject_id]), '|', ('grade_ids', 'in', [grade_id]), ('grade_ids', '=', False)] if subject_id and grade_id else [('subject_ids', 'in', [subject_id])] if subject_id else []"/>
                         <field name="tutor_ids" string="All Tutors (Primary + Supporting)" widget="many2many_tags" domain="['&amp;', ('subject_ids', 'in', [subject_id]), '|', ('grade_ids', 'in', [grade_id]), ('grade_ids', '=', False)] if subject_id and grade_id else [('subject_ids', 'in', [subject_id])] if subject_id else []" options="{'no_create': True}"/>
                         <field name="coordinator_id" domain="[('share', '=', False)]"/>

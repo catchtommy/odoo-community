@@ -59,8 +59,8 @@
                             <field name="partner_id" invisible="1"/>
                         </group>
                         <group string="Academic Information">
-                            <field name="grade_id"/>
-                            <field name="subjects_ids" widget="many2many_tags"/>
+                            <field name="grade_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="subjects_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
                             <field name="parent_id"/>
                         </group>
                     </group>
@@ -144,11 +144,13 @@
                             <field name="partner_id"/>
                         </group>
                         <group string="Teaching Information">
-                            <field name="category_ids" widget="many2many_tags"/>
+                            <field name="category_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
                             <field name="subject_ids" widget="many2many_tags"
-                                  domain="[('category_id', 'in', category_ids)] if category_ids else []"/>
+                                  domain="[('category_id', 'in', category_ids)] if category_ids else []"
+                                  options="{'no_create': True, 'no_create_edit': True}"/>
                             <field name="grade_ids" widget="many2many_tags"
-                                  domain="[('category_ids', 'in', category_ids)] if category_ids else []"/>
+                                  domain="[('category_ids', 'in', category_ids)] if category_ids else []"
+                                  options="{'no_create': True, 'no_create_edit': True}"/>
                         </group>
                     </group>
                     <notebook>
@@ -165,8 +167,8 @@
                             <field name="tutor_subject_rate_ids">
                                 <list editable="bottom">
                                     <field name="active_flag" widget="boolean_toggle"/>
-                                    <field name="category_id"/>
-                                    <field name="subject_id" domain="[('category_id', '=', category_id)] if category_id else []"/>
+                                    <field name="category_id" options="{'no_create': True, 'no_open': True}"/>
+                                    <field name="subject_id" domain="[('category_id', '=', category_id)] if category_id else []" options="{'no_create': True, 'no_open': True}"/>
                                     <field name="standard_hourly_rate"/>
                                     <field name="demo_rate_type"/>
                                     <field name="demo_percentage" invisible="demo_rate_type != 'percentage'"/>
