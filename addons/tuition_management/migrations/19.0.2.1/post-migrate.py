@@ -10,7 +10,7 @@ def migrate(cr, version):
          WHERE currency_id IS NULL
     """)
     cr.execute("""
-        UPDATE tuition_subscription
+        UPDATE tuition_plan_line
            SET pricelist_id = (
                 SELECT pl.id FROM product_pricelist pl
                 JOIN res_company c ON c.currency_id = pl.currency_id
