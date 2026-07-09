@@ -540,7 +540,7 @@ class DemoSession(models.Model):
 
     course_id = fields.Many2one('course.master', string='Course', required=True, ondelete='cascade')
     subject_id = fields.Many2one('subject.master', string='Subject')
-    tutor_id = fields.Many2one('tutor.profile', string='Tutor')
+    tutor_id = fields.Many2one('tutor.profile', string='Tutor', required=True)
 
     @api.onchange('course_id')
     def _onchange_course_id(self):
@@ -596,7 +596,7 @@ class DemoSession(models.Model):
                 subtype_xmlid='mail.mt_note',
             )
 
-    scheduled_datetime = fields.Datetime(string='Scheduled Date & Time')
+    scheduled_datetime = fields.Datetime(string='Scheduled Date & Time', required=True)
     timezone = fields.Selection(
         selection=get_tz_selection,
         string='Timezone',

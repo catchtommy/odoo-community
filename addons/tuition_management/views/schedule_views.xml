@@ -18,9 +18,6 @@
         <field name="model">class.schedule</field>
         <field name="arch" type="xml">
             <form string="Class Schedule">
-                <header>
-                    <button name="action_delete_schedule" type="object" string="Delete Schedule" class="btn-danger" icon="fa-trash"/>
-                </header>
                 <sheet>
                     <group>
                         <field name="course_id"/><field name="schedule_type"/>

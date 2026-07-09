@@ -768,10 +768,6 @@ class ClassSchedule(models.Model):
             schedule_str,
         )
 
-    def action_delete_schedule(self):
-        self.ensure_one()
-        return self.unlink()
-
     @api.constrains('schedule_type', 'start_date', 'end_date', 'schedule_date')
     def _check_required_dates(self):
         for rec in self:

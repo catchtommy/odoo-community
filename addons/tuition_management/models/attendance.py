@@ -75,6 +75,17 @@ class MarkAttendanceWizard(models.TransientModel):
         occurrence = self.occurrence_id
         is_admin = self.env.user.has_group('base.group_system') or self.env.user.has_group('base.group_erp_manager')
 
+        # Every student line must have a status explicitly selected — status can't be a
+        # hard-required field on the line model itself, since the wizard is initialized
+        # with blank-status placeholder lines (one per enrolled student) before the user
+        # fills them in; enforce it here instead, at confirm time.
+        missing = self.line_ids.filtered(lambda l: not l.status)
+        if missing:
+            raise UserError(
+                'Please select an attendance status for: %s.'
+                % ', '.join(missing.mapped('student_id.name'))
+            )
+
         # Validate mandatory academic fields (only required if at least one student is present)
         all_absent = self.line_ids and all(l.status == 'absent' for l in self.line_ids)
         all_cancelled = self.line_ids and all(l.status == 'cancelled' for l in self.line_ids)
