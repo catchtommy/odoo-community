@@ -328,6 +328,10 @@ class TuitionPlanLine(models.Model):
     currency_id = fields.Many2one('res.currency', string='Currency', related='subscription_id.currency_id',
                                   store=True, readonly=True)
     classes_per_week = fields.Integer(string='Classes per Week', required=True, default=1)
+    classes_per_week_selection = fields.Selection(
+        [(str(i), str(i)) for i in range(1, 8)], string='Classes per Week',
+        compute='_compute_classes_per_week_selection', inverse='_inverse_classes_per_week_selection',
+        required=True)
     start_date = fields.Date(string='Start Date', required=True)
     end_date = fields.Date(string='End Date')
     state = fields.Selection([
@@ -360,26 +364,61 @@ class TuitionPlanLine(models.Model):
     @api.onchange('product_id')
     def _onchange_product_id(self):
         if self.product_id:
-            if self.subscription_id:
-                matches = self.env['product.pricelist'].sudo().search([
-                    ('currency_id', '=', self.subscription_id.currency_id.id),
-                    ('company_id', 'in', [self.subscription_id.company_id.id, False]),
-                    '|', ('item_ids.product_id', '=', self.product_id.id),
-                         ('item_ids.product_tmpl_id', '=', self.product_id.product_tmpl_id.id),
-                ])
-                self.pricelist_id = matches.id if len(matches) == 1 else False
-            self._compute_price_from_pricelist()
             if self.product_id.tuition_classes_per_week:
                 self.classes_per_week = self.product_id.tuition_classes_per_week
+            if self.subscription_id:
+                matches = self._search_matching_pricelists()
+                self.pricelist_id = matches.id if len(matches) == 1 else False
+            self._compute_price_from_pricelist()
 
     @api.onchange('pricelist_id')
     def _onchange_pricelist_id(self):
         self._compute_price_from_pricelist()
 
+    @api.onchange('classes_per_week')
+    def _onchange_classes_per_week(self):
+        if self.product_id and self.subscription_id:
+            matches = self._search_matching_pricelists()
+            if self.pricelist_id not in matches:
+                self.pricelist_id = matches.id if len(matches) == 1 else False
+        self._compute_price_from_pricelist()
+
+    @api.onchange('classes_per_week_selection')
+    def _onchange_classes_per_week_selection(self):
+        # Onchange dispatch writes the edited field straight to cache and never
+        # calls its `inverse`, so the sync to `classes_per_week` has to happen
+        # here explicitly (inverse only runs on an actual write()/create()).
+        self.classes_per_week = int(self.classes_per_week_selection) if self.classes_per_week_selection else 0
+        self._onchange_classes_per_week()
+
+    def _search_matching_pricelists(self):
+        """Pricelists matching this line's currency/company/product, with a tier
+        applicable at the current quantity (classes per week)."""
+        self.ensure_one()
+        if not (self.product_id and self.subscription_id):
+            return self.env['product.pricelist']
+        return self.env['product.pricelist'].sudo().search([
+            ('currency_id', '=', self.subscription_id.currency_id.id),
+            ('company_id', 'in', [self.subscription_id.company_id.id, False]),
+            '&', '|', ('item_ids.product_id', '=', self.product_id.id),
+                      ('item_ids.product_tmpl_id', '=', self.product_id.product_tmpl_id.id),
+            ('item_ids.min_quantity', '<=', self.classes_per_week or 1),
+        ])
+
+    @api.depends('classes_per_week')
+    def _compute_classes_per_week_selection(self):
+        for rec in self:
+            rec.classes_per_week_selection = str(rec.classes_per_week) if rec.classes_per_week else False
+
+    def _inverse_classes_per_week_selection(self):
+        for rec in self:
+            rec.classes_per_week = int(rec.classes_per_week_selection) if rec.classes_per_week_selection else 0
+
     def _compute_price_from_pricelist(self):
         if self.pricelist_id and self.product_id:
             partner = self.subscription_id._get_billing_partner() if self.subscription_id else None
-            self.price = self.pricelist_id._get_product_price(self.product_id, 1.0, partner=partner or None)
+            self.price = self.pricelist_id._get_product_price(
+                self.product_id, self.classes_per_week or 1.0, partner=partner or None)
         else:
             self.price = 0.0
 
@@ -468,9 +507,8 @@ class TuitionPlanLine(models.Model):
 
     def write(self, vals):
         # Content fields: editable only when plan is pending approval.
-        # end_date: also editable when scheduled (e.g. to set an expiry early).
-        # approval_state and end_date (wizard close) are excluded from the
-        # state gate so approve/reject and plan-change wizard flows are unaffected.
+        # end_date is excluded from the state gate: it can be changed regardless
+        # of plan status, as long as the user has the subscription_edit_plan permission.
         CONTENT_FIELDS = {'product_id', 'pricelist_id', 'price', 'classes_per_week', 'notes', 'start_date'}
         if vals.keys() & CONTENT_FIELDS:
             require_permission(self.env.user, 'subscription_edit_plan')
@@ -482,12 +520,6 @@ class TuitionPlanLine(models.Model):
                     )
         if 'end_date' in vals and not self.env.user.has_group('base.group_system'):
             require_permission(self.env.user, 'subscription_edit_plan')
-            for rec in self:
-                if rec.state not in ('pending_approval', 'scheduled'):
-                    raise UserError(
-                        "End date can only be changed when the plan is 'Pending Approval' or 'Scheduled'. "
-                        "'%s' is currently '%s'." % (rec.product_id.name or 'plan', rec.state)
-                    )
         if 'start_date' in vals:
             for rec in self:
                 if self.env['account.move'].sudo().search([('tuition_plan_line_id', '=', rec.id), ('state', '!=', 'cancel')], limit=1):
