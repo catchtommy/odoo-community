@@ -242,6 +242,13 @@ class EmployeeShift(models.Model):
             raise ValidationError("Select at least one employee.")
         if not dates:
             raise ValidationError("Select at least one date.")
+        ineligible = self.env['hr.employee'].browse(employee_ids).filtered(
+            lambda e: not e.requires_shift_management)
+        if ineligible:
+            raise ValidationError(
+                "The following employee(s) are not configured for shift management: %s."
+                % ", ".join(ineligible.mapped('name'))
+            )
 
         created = self.browse()
         for date_str in dates:

@@ -8,7 +8,7 @@
         <field name="name"/>
         <field name="start_datetime"/>
         <field name="end_datetime"/>
-        <field name="employee_ids"/>
+        <field name="employee_ids" domain="[('requires_shift_management', '=', True)]"/>
       </list>
     </field>
   </record>
@@ -25,7 +25,7 @@
           <field name="end_datetime" invisible="1"/>
           <group>
             <field name="template_id" required="1"/>
-            <field name="employee_ids" widget="many2many_tags"/>
+            <field name="employee_ids" widget="many2many_tags" domain="[('requires_shift_management', '=', True)]"/>
             <field name="start_date" required="1"/>
             <field name="end_date" required="1"/>
             <field name="color" widget="color"/>
@@ -76,6 +76,32 @@
             groups="employee_shift.group_employee_shift_manager,base.group_system"/>
   <menuitem id="menu_shift_template" name="Shift Templates" parent="menu_employee_shift_settings"
             action="action_shift_template"/>
+
+  <record id="view_hr_employee_shift_eligibility_list" model="ir.ui.view">
+    <field name="name">hr.employee.shift.eligibility.list</field>
+    <field name="model">hr.employee</field>
+    <field name="arch" type="xml">
+      <list string="Shift-Eligible Employees" editable="top">
+        <field name="name" readonly="1"/>
+        <field name="department_id" readonly="1"/>
+        <field name="requires_shift_management" widget="boolean_toggle"/>
+      </list>
+    </field>
+  </record>
+
+  <record id="action_employee_shift_eligibility" model="ir.actions.act_window">
+    <field name="name">Shift-Eligible Employees</field>
+    <field name="res_model">hr.employee</field>
+    <field name="view_mode">list</field>
+    <field name="view_id" ref="view_hr_employee_shift_eligibility_list"/>
+    <field name="context">{'create': False}</field>
+    <field name="help" type="html">
+      <p class="oe_view_nocontent_create">Enable "Requires Shift Management" for each employee who should appear in the Shift Management app.</p>
+    </field>
+  </record>
+
+  <menuitem id="menu_employee_shift_eligibility" name="Shift-Eligible Employees" parent="menu_employee_shift_settings"
+            action="action_employee_shift_eligibility" sequence="5"/>
 
   <!-- Wizard form view -->
   <record id="view_shift_week_wizard_form" model="ir.ui.view">

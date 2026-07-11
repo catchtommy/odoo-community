@@ -67,7 +67,7 @@ export class EmployeeShiftDashboard extends Component {
             const [userTz, rawTzList, employees] = await Promise.all([
                 this.orm.call("employee.shift", "get_user_timezone", []),
                 this.orm.call("employee.shift", "get_common_timezones", []),
-                this.orm.searchRead("hr.employee", [], ["id", "name", "user_id"]),
+                this.orm.searchRead("hr.employee", [["requires_shift_management", "=", true]], ["id", "name", "user_id"]),
             ]);
 
             this.state.timezones = rawTzList.map(([value, label]) => ({ value, label }));
