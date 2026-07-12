@@ -8,22 +8,99 @@ class TuitionPricingWizard(models.TransientModel):
     _name = 'tuition.pricing.wizard'
     _description = 'Tuition Pricing Wizard'
 
-    def _default_filter_currency_id(self):
-        return self.env.ref('base.USD', raise_if_not_found=False) or self.env['res.currency'].search(
-            [('name', '=', 'USD')], limit=1)
+    def _default_filter_company_id(self):
+        company = self.env['res.company'].search([('name', 'ilike', 'US Shiningace')], limit=1)
+        return company or self.env.company
 
+    def _default_filter_currency_id(self):
+        return self._currency_for_company(self._default_filter_company_id())
+
+    def _currency_for_company(self, company):
+        usd = self.env.ref('base.USD', raise_if_not_found=False) or self.env['res.currency'].search(
+            [('name', '=', 'USD')], limit=1)
+        allowed = company.tuition_currency_ids
+        if allowed:
+            return usd if usd in allowed else allowed[:1]
+        return usd
+
+    filter_company_id = fields.Many2one('res.company', string='Company', default=_default_filter_company_id)
     filter_currency_id = fields.Many2one('res.currency', string='Currency', default=_default_filter_currency_id)
     filter_product_id = fields.Many2one('product.product', string='Product')
     filter_pricelist_id = fields.Many2one('product.pricelist', string='Pricelist')
-    filter_company_id = fields.Many2one('res.company', string='Company')
     filter_number_of_classes = fields.Float(string='Number of Classes')
     line_ids = fields.One2many('tuition.pricing.wizard.line', 'wizard_id', string='Lines')
+
+    allowed_currency_ids = fields.Many2many('res.currency', compute='_compute_allowed_currency_ids')
+    allowed_product_ids = fields.Many2many('product.product', compute='_compute_allowed_product_ids')
+    allowed_pricelist_ids = fields.Many2many('product.pricelist', compute='_compute_allowed_pricelist_ids')
+
+    @api.depends('filter_company_id')
+    def _compute_allowed_currency_ids(self):
+        all_currencies = self.env['res.currency'].search([])
+        for rec in self:
+            rec.allowed_currency_ids = rec.filter_company_id.tuition_currency_ids or all_currencies
+
+    @api.depends('filter_company_id', 'filter_currency_id')
+    def _compute_allowed_product_ids(self):
+        for rec in self:
+            pricelists = rec._pricelists_for_filters(exclude_pricelist=True, exclude_product=True)
+            rec.allowed_product_ids = rec._products_for_pricelists(pricelists)
+
+    @api.depends('filter_company_id', 'filter_currency_id', 'filter_product_id')
+    def _compute_allowed_pricelist_ids(self):
+        for rec in self:
+            rec.allowed_pricelist_ids = rec._pricelists_for_filters(exclude_pricelist=True)
+
+    def _pricelists_for_filters(self, exclude_pricelist=False, exclude_product=False):
+        domain = []
+        if self.filter_company_id:
+            domain.append(('company_id', 'in', [self.filter_company_id.id, False]))
+        if self.filter_currency_id:
+            domain.append(('currency_id', '=', self.filter_currency_id.id))
+        if not exclude_pricelist and self.filter_pricelist_id:
+            domain.append(('id', '=', self.filter_pricelist_id.id))
+        pricelists = self.env['product.pricelist'].search(domain)
+        if not exclude_product and self.filter_product_id:
+            pricelists = pricelists.filtered(lambda pl: self._pricelist_has_product(pl, self.filter_product_id))
+        return pricelists
+
+    @staticmethod
+    def _pricelist_has_product(pricelist, product):
+        items = pricelist.item_ids
+        return product in items.product_id or product.product_tmpl_id in items.product_tmpl_id
+
+    def _products_for_pricelists(self, pricelists):
+        items = pricelists.item_ids
+        products = items.product_id
+        tmpl_products = self.env['product.product'].search([
+            ('product_tmpl_id', 'in', items.product_tmpl_id.ids),
+            ('sale_ok', '=', True),
+        ])
+        return products | tmpl_products
+
+    @api.onchange('filter_company_id')
+    def _onchange_filter_company_id(self):
+        self.filter_currency_id = self._currency_for_company(self.filter_company_id)
+        self.filter_product_id = False
+        self.filter_pricelist_id = False
+
+    @api.onchange('filter_currency_id')
+    def _onchange_filter_currency_id(self):
+        self.filter_product_id = False
+        self.filter_pricelist_id = False
+
+    @api.onchange('filter_product_id')
+    def _onchange_filter_product_id(self):
+        if self.filter_pricelist_id and self.filter_product_id and not self._pricelist_has_product(
+                self.filter_pricelist_id, self.filter_product_id):
+            self.filter_pricelist_id = False
 
     @api.model
     def default_get(self, fields_list):
         vals = super().default_get(fields_list)
         if 'line_ids' in fields_list:
             vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(
+                filter_company_id=vals.get('filter_company_id'),
                 filter_currency_id=vals.get('filter_currency_id'),
             )]
         return vals
@@ -40,8 +117,13 @@ class TuitionPricingWizard(models.TransientModel):
             pricelist_domain.append(('company_id', 'in', [filter_company_id, False]))
         pricelists = self.env['product.pricelist'].search(pricelist_domain)
 
-        products = self.env['product.product'].search(
-            [('id', '=', filter_product_id)] if filter_product_id else [('sale_ok', '=', True)])
+        if filter_product_id:
+            product_domain = [('id', '=', filter_product_id)]
+        else:
+            product_domain = [('sale_ok', '=', True)]
+            if filter_company_id:
+                product_domain.append(('company_id', 'in', [filter_company_id, False]))
+        products = self.env['product.product'].search(product_domain)
 
         lines = []
         for pricelist in pricelists:
@@ -96,11 +178,12 @@ class TuitionPricingWizard(models.TransientModel):
 
     def action_clear_filters(self):
         self.ensure_one()
+        company = self._default_filter_company_id()
         self.write({
             'filter_pricelist_id': False,
             'filter_product_id': False,
-            'filter_currency_id': self._default_filter_currency_id().id,
-            'filter_company_id': False,
+            'filter_company_id': company.id,
+            'filter_currency_id': self._currency_for_company(company).id,
             'filter_number_of_classes': False,
         })
         return self.action_refresh()
