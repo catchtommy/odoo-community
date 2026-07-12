@@ -8,9 +8,13 @@ class TuitionPricingWizard(models.TransientModel):
     _name = 'tuition.pricing.wizard'
     _description = 'Tuition Pricing Wizard'
 
-    filter_pricelist_id = fields.Many2one('product.pricelist', string='Pricelist')
+    def _default_filter_currency_id(self):
+        return self.env.ref('base.USD', raise_if_not_found=False) or self.env['res.currency'].search(
+            [('name', '=', 'USD')], limit=1)
+
+    filter_currency_id = fields.Many2one('res.currency', string='Currency', default=_default_filter_currency_id)
     filter_product_id = fields.Many2one('product.product', string='Product')
-    filter_currency_id = fields.Many2one('res.currency', string='Currency')
+    filter_pricelist_id = fields.Many2one('product.pricelist', string='Pricelist')
     filter_company_id = fields.Many2one('res.company', string='Company')
     filter_number_of_classes = fields.Float(string='Number of Classes')
     line_ids = fields.One2many('tuition.pricing.wizard.line', 'wizard_id', string='Lines')
@@ -19,7 +23,9 @@ class TuitionPricingWizard(models.TransientModel):
     def default_get(self, fields_list):
         vals = super().default_get(fields_list)
         if 'line_ids' in fields_list:
-            vals['line_ids'] = [(0, 0, line) for line in self._get_line_values()]
+            vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(
+                filter_currency_id=vals.get('filter_currency_id'),
+            )]
         return vals
 
     def _get_line_values(self, filter_pricelist_id=None, filter_product_id=None,
@@ -93,7 +99,7 @@ class TuitionPricingWizard(models.TransientModel):
         self.write({
             'filter_pricelist_id': False,
             'filter_product_id': False,
-            'filter_currency_id': False,
+            'filter_currency_id': self._default_filter_currency_id().id,
             'filter_company_id': False,
             'filter_number_of_classes': False,
         })

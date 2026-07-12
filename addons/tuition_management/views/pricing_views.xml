@@ -7,9 +7,9 @@
             <form string="Pricing">
                 <sheet>
                     <group string="Filters">
+                        <field name="filter_currency_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
                         <field name="filter_product_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
                         <field name="filter_pricelist_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
-                        <field name="filter_currency_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
                         <field name="filter_company_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
                         <field name="filter_number_of_classes"/>
                     </group>
