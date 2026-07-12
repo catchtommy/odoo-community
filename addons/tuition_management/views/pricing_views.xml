@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_tuition_pricing_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.pricing.wizard.form</field>
+        <field name="model">tuition.pricing.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Pricing">
+                <sheet>
+                    <group string="Filters">
+                        <field name="filter_product_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
+                        <field name="filter_pricelist_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
+                        <field name="filter_currency_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
+                        <field name="filter_company_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
+                        <field name="filter_number_of_classes"/>
+                    </group>
+                    <div class="d-flex gap-2 mb-3">
+                        <button name="action_refresh" type="object" string="Apply" class="btn-primary" icon="fa-filter"/>
+                        <button name="action_clear_filters" type="object" string="Clear Filters" class="btn-secondary" icon="fa-times"/>
+                    </div>
+                    <field name="line_ids" nolabel="1">
+                        <list string="Pricing" create="false" edit="false" delete="false" no_open="1">
+                            <field name="product_id" options="{'no_open': True}"/>
+                            <field name="pricelist_id" options="{'no_open': True}"/>
+                            <field name="company_id" options="{'no_open': True}"/>
+                            <field name="number_of_classes" string="Number of Classes"/>
+                            <field name="price" widget="monetary"/>
+                            <field name="currency_id" options="{'no_open': True}"/>
+                        </list>
+                    </field>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Pre-create wizard so form opens with a real res_id (same pattern as other reports) -->
+    <record id="action_open_tuition_pricing" model="ir.actions.server">
+        <field name="name">Open Pricing</field>
+        <field name="model_id" ref="model_tuition_pricing_wizard"/>
+        <field name="state">code</field>
+        <field name="code">
+rec = env['tuition.pricing.wizard'].create({})
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Pricing',
+    'res_model': 'tuition.pricing.wizard',
+    'view_mode': 'form',
+    'res_id': rec.id,
+    'target': 'current',
+}
+        </field>
+    </record>
+
+    <menuitem id="menu_tuition_pricing" name="Pricing" parent="menu_tuition_reports"
+              action="action_open_tuition_pricing" sequence="40"
+              groups="tuition_management.group_tuition_reports_access,base.group_system"/>
+</odoo>
