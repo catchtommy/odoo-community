@@ -336,7 +336,7 @@ class CourseMaster(models.Model):
         if not occurrence:
             raise UserError("No scheduled lessons found for this course.")
         meeting = service.start_meeting(occurrence, provider)
-        url = service.get_tutor_start_url(meeting, self.tutor_id)
+        url = service.get_tutor_start_url(meeting)
         if not url:
             raise UserError("Could not generate a virtual classroom URL.")
         return {
