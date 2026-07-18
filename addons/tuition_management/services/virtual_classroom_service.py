@@ -77,6 +77,39 @@ class VirtualClassroomService(models.AbstractModel):
             existing.sudo().action_mark_cancelled()
             occurrence.sudo().write({'virtual_meeting_id': False})
 
+        if provider_code == 'zoom':
+            return self._ensure_zoom_meeting(occurrence)
+        return self._ensure_shared_meeting(occurrence, provider_code)
+
+    def _ensure_zoom_meeting(self, occurrence):
+        """Zoom gets a fresh meeting per occurrence (never reused across
+        sessions) so each start picks whichever of the configured accounts
+        is currently free. Only re-used if this exact occurrence already
+        has a ready zoom meeting (idempotent against a double click)."""
+        existing = occurrence.virtual_meeting_id
+        if existing and existing.provider == 'zoom' and existing.state == 'ready':
+            return existing
+
+        meeting = self.env['virtual.classroom.meeting'].sudo().create({
+            'occurrence_id': occurrence.id,
+            'provider': 'zoom',
+            'state': 'creating',
+        })
+        try:
+            vals = self._provider('zoom').create_or_get_meeting(meeting) or {}
+            vals.update({'state': 'ready', 'last_sync_at': fields.Datetime.now()})
+            meeting.write(vals)
+            occurrence.sudo().write({'virtual_meeting_id': meeting.id})
+        except Exception as exc:
+            meeting.write({
+                'state': 'failed',
+                'error_message': str(exc),
+                'last_sync_at': fields.Datetime.now(),
+            })
+            raise
+        return meeting
+
+    def _ensure_shared_meeting(self, occurrence, provider_code):
         # One room per course — search at course level, not occurrence level
         meeting = self.env['virtual.classroom.meeting'].sudo().search([
             ('course_id', '=', occurrence.course_id.id),
@@ -157,14 +190,20 @@ class VirtualClassroomService(models.AbstractModel):
             raise UserError('This class has been cancelled.')
 
         meeting = occurrence.virtual_meeting_id
-        # Also check course-level meeting (one room per course — any session can reuse it)
+        # Also check course-level meeting (one room per course — any session can reuse it).
+        # Zoom meetings are per-occurrence, never shared across sessions, so this
+        # fallback must not apply to zoom — otherwise a student could be handed
+        # a different occurrence's join link.
         if not (meeting and meeting.state == 'ready'):
             provider_code = self._selected_provider(occurrence)
-            meeting = self.env['virtual.classroom.meeting'].sudo().search([
-                ('course_id', '=', occurrence.course_id.id),
-                ('provider', '=', provider_code),
-                ('state', '=', 'ready'),
-            ], limit=1)
+            if provider_code != 'zoom':
+                meeting = self.env['virtual.classroom.meeting'].sudo().search([
+                    ('course_id', '=', occurrence.course_id.id),
+                    ('provider', '=', provider_code),
+                    ('state', '=', 'ready'),
+                ], limit=1)
+            else:
+                meeting = self.env['virtual.classroom.meeting']
         if meeting and meeting.state == 'ready':
             display_name = student.name or self.env.user.name
             return self._provider(meeting.provider).get_attendee_url(meeting, display_name)

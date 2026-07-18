@@ -29,6 +29,7 @@
         "views/course_views.xml",
         "views/schedule_views.xml",
         "views/virtual_classroom_views.xml",
+        "views/virtual_classroom_zoom_account_views.xml",
         "views/virtual_classroom_settings_views.xml",
         "views/tutor_payroll_views.xml",
         "views/attendance_views.xml",

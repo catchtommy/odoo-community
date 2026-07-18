@@ -54,14 +54,17 @@ class VirtualClassroomMeeting(models.Model):
     error_message = fields.Text(readonly=True)
     last_sync_at = fields.Datetime(readonly=True)
     expires_at = fields.Datetime()
+    zoom_account_id = fields.Many2one(
+        'virtual.classroom.zoom.account',
+        string='Zoom Account Used',
+        index=True,
+        readonly=True,
+    )
 
-    _sql_constraints = [
-        (
-            'uniq_course_provider',
-            'unique(course_id, provider)',
-            'A meeting already exists for this course and provider.',
-        ),
-    ]
+    _uniq_occurrence_provider = models.Constraint(
+        'unique(occurrence_id, provider)',
+        'A meeting already exists for this lesson and provider.',
+    )
 
     def action_retry(self):
         for meeting in self:

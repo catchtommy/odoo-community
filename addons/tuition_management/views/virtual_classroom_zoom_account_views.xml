@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_virtual_classroom_zoom_account_list" model="ir.ui.view">
+        <field name="name">virtual.classroom.zoom.account.list</field>
+        <field name="model">virtual.classroom.zoom.account</field>
+        <field name="arch" type="xml">
+            <list string="Zoom Accounts">
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="account_id"/>
+                <field name="host_email"/>
+                <field name="active"/>
+                <field name="last_checked_at"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_virtual_classroom_zoom_account_form" model="ir.ui.view">
+        <field name="name">virtual.classroom.zoom.account.form</field>
+        <field name="model">virtual.classroom.zoom.account</field>
+        <field name="arch" type="xml">
+            <form string="Zoom Account">
+                <sheet>
+                    <group>
+                        <field name="name"/>
+                        <field name="sequence"/>
+                        <field name="active"/>
+                    </group>
+                    <group string="Credentials">
+                        <field name="account_id"/>
+                        <field name="client_id"/>
+                        <field name="client_secret" password="True"/>
+                        <field name="host_email"/>
+                    </group>
+                    <group string="Diagnostics">
+                        <field name="last_checked_at"/>
+                        <field name="last_check_error"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_virtual_classroom_zoom_accounts" model="ir.actions.act_window">
+        <field name="name">Zoom Accounts</field>
+        <field name="res_model">virtual.classroom.zoom.account</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

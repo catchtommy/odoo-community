@@ -74,6 +74,7 @@
               groups="tuition_management.group_tuition_grades_edit,base.group_system"/>
     <menuitem id="menu_tuition_virtual_classroom_meetings" name="Virtual Meetings" parent="menu_tuition_settings" action="action_virtual_classroom_meetings" groups="base.group_user"/>
     <menuitem id="menu_tuition_virtual_classroom_settings" name="Virtual Classroom Integrations" parent="menu_tuition_settings" action="action_virtual_classroom_settings" groups="base.group_system"/>
+    <menuitem id="menu_tuition_virtual_classroom_zoom_accounts" name="Zoom Accounts" parent="menu_tuition_settings" action="action_virtual_classroom_zoom_accounts" groups="base.group_system"/>
     <menuitem id="menu_tuition_company_currency_config" name="Company Currency Configuration" parent="menu_tuition_settings" action="action_company_tuition_currency_config"
               groups="tuition_management.group_tuition_company_currency_config,base.group_system"/>
 </odoo>

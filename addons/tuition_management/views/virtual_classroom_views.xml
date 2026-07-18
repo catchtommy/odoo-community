@@ -45,6 +45,7 @@
                         <field name="google_conference_id"/>
                     </group>
                     <group string="Diagnostics">
+                        <field name="zoom_account_id" invisible="provider != 'zoom'"/>
                         <field name="last_sync_at"/>
                         <field name="expires_at"/>
                         <field name="error_message"/>
