@@ -249,7 +249,17 @@ class TuitionSubscription(models.Model):
     def action_activate(self): self.write({'state': 'active'})
     def action_cancel(self): self.write({'state': 'cancelled'})
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        for rec in records.filtered('enrollment_id'):
+            rec.enrollment_id.subscription_id = rec.id
+        return records
+
     def write(self, vals):
+        if vals.get('enrollment_id'):
+            for rec in self:
+                self.env['course.enrollment'].browse(vals['enrollment_id']).subscription_id = rec.id
         if 'next_billing_date' in vals:
             if not (self.env.user.has_group('base.group_system') or
                     user_has_permission(self.env.user, 'subscription_edit_billing_date')):

@@ -197,17 +197,17 @@
                                     </select>
                                 </div>
                                 <div class="col-6">
-                                    <label class="form-label fw-bold" style="font-size:12px;">Grade <span class="text-danger">*</span></label>
-                                    <select name="grade_id" id="field_grade" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
-                                        <option value="">Select grade...</option>
+                                    <label class="form-label fw-bold" style="font-size:12px;">Subject <span class="text-danger">*</span></label>
+                                    <select name="subject_id" id="field_subject" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
+                                        <option value="">Select subject...</option>
                                     </select>
                                 </div>
                             </div>
 
                             <div class="mb-3">
-                                <label class="form-label fw-bold" style="font-size:12px;">Subject <span class="text-danger">*</span></label>
-                                <select name="subject_id" id="field_subject" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
-                                    <option value="">Select subject...</option>
+                                <label class="form-label fw-bold" style="font-size:12px;">Grade <span class="text-danger">*</span></label>
+                                <select name="grade_id" id="field_grade" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
+                                    <option value="">Select grade...</option>
                                 </select>
                             </div>
 

@@ -7,7 +7,7 @@ from odoo.http import request
 class PublicEnquiryController(http.Controller):
 
     def _get_enquiry_render_values(self, extra=None):
-        grades = request.env['grade.master'].sudo().search([], order='name')
+        grades = request.env['grade.master'].sudo().search([], order='sequence, name')
         categories = request.env['subject.category'].sudo().search([], order='name')
         subjects = request.env['subject.master'].sudo().search([], order='name')
         # Build a {category_id: [{id, name}, ...]} map for JS filtering of subjects
