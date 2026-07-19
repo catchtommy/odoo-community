@@ -29,23 +29,11 @@ class ResConfigSettings(models.TransientModel):
         string='Secret',
         config_parameter='tuition_management.bbb_secret',
     )
-    vc_google_client_id = fields.Char(
-        string='Client ID',
-        config_parameter='tuition_management.google_client_id',
+    vc_google_service_account_email = fields.Char(
+        string='Service Account Email',
+        config_parameter='tuition_management.google_service_account_email',
     )
-    vc_google_client_secret = fields.Char(
-        string='Client Secret',
-        config_parameter='tuition_management.google_client_secret',
-    )
-    vc_google_redirect_uri = fields.Char(
-        string='Redirect URI',
-        config_parameter='tuition_management.google_redirect_uri',
-    )
-    vc_google_organizer_email = fields.Char(
-        string='Workspace Organizer Email',
-        config_parameter='tuition_management.google_organizer_email',
-    )
-    vc_google_refresh_token = fields.Char(
-        string='OAuth Refresh Token',
-        config_parameter='tuition_management.google_refresh_token',
+    vc_google_service_account_private_key = fields.Char(
+        string='Service Account Private Key',
+        config_parameter='tuition_management.google_service_account_private_key',
     )

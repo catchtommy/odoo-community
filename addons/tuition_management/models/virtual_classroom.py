@@ -60,6 +60,12 @@ class VirtualClassroomMeeting(models.Model):
         index=True,
         readonly=True,
     )
+    google_account_id = fields.Many2one(
+        'virtual.classroom.google.account',
+        string='Google Meet Account Used',
+        index=True,
+        readonly=True,
+    )
 
     _uniq_occurrence_provider = models.Constraint(
         'unique(occurrence_id, provider)',

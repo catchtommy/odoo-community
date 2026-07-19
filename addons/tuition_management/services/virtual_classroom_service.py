@@ -28,6 +28,7 @@ class VirtualClassroomService(models.AbstractModel):
             self.env.user.has_group('base.group_system')
             or self.env.user.has_group('base.group_erp_manager')
             or self.env.user.has_group('tuition_management.group_virtual_classroom_manager')
+            or self.env.user.has_group('tuition_management.group_tuition_course_edit')
         )
 
     def _can_start(self, occurrence):
@@ -77,26 +78,27 @@ class VirtualClassroomService(models.AbstractModel):
             existing.sudo().action_mark_cancelled()
             occurrence.sudo().write({'virtual_meeting_id': False})
 
-        if provider_code == 'zoom':
-            return self._ensure_zoom_meeting(occurrence)
+        if provider_code in ('zoom', 'google_meet'):
+            return self._ensure_per_occurrence_meeting(occurrence, provider_code)
         return self._ensure_shared_meeting(occurrence, provider_code)
 
-    def _ensure_zoom_meeting(self, occurrence):
-        """Zoom gets a fresh meeting per occurrence (never reused across
-        sessions) so each start picks whichever of the configured accounts
-        is currently free. Only re-used if this exact occurrence already
-        has a ready zoom meeting (idempotent against a double click)."""
+    def _ensure_per_occurrence_meeting(self, occurrence, provider_code):
+        """Zoom and Google Meet get a fresh meeting per occurrence (never
+        reused across sessions) so each start picks whichever of the
+        configured host accounts is currently free. Only re-used if this
+        exact occurrence already has a ready meeting for this provider
+        (idempotent against a double click)."""
         existing = occurrence.virtual_meeting_id
-        if existing and existing.provider == 'zoom' and existing.state == 'ready':
+        if existing and existing.provider == provider_code and existing.state == 'ready':
             return existing
 
         meeting = self.env['virtual.classroom.meeting'].sudo().create({
             'occurrence_id': occurrence.id,
-            'provider': 'zoom',
+            'provider': provider_code,
             'state': 'creating',
         })
         try:
-            vals = self._provider('zoom').create_or_get_meeting(meeting) or {}
+            vals = self._provider(provider_code).create_or_get_meeting(meeting) or {}
             vals.update({'state': 'ready', 'last_sync_at': fields.Datetime.now()})
             meeting.write(vals)
             occurrence.sudo().write({'virtual_meeting_id': meeting.id})
@@ -191,12 +193,12 @@ class VirtualClassroomService(models.AbstractModel):
 
         meeting = occurrence.virtual_meeting_id
         # Also check course-level meeting (one room per course — any session can reuse it).
-        # Zoom meetings are per-occurrence, never shared across sessions, so this
-        # fallback must not apply to zoom — otherwise a student could be handed
-        # a different occurrence's join link.
+        # Zoom and Google Meet meetings are per-occurrence, never shared across
+        # sessions, so this fallback must not apply to them — otherwise a
+        # student could be handed a different occurrence's join link.
         if not (meeting and meeting.state == 'ready'):
             provider_code = self._selected_provider(occurrence)
-            if provider_code != 'zoom':
+            if provider_code not in ('zoom', 'google_meet'):
                 meeting = self.env['virtual.classroom.meeting'].sudo().search([
                     ('course_id', '=', occurrence.course_id.id),
                     ('provider', '=', provider_code),

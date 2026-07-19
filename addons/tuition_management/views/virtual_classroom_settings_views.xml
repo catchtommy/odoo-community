@@ -26,13 +26,11 @@
                         </setting>
                     </block>
                     <block title="Google Meet" name="tuition_google_meet_settings">
-                        <setting string="Google Calendar API">
+                        <setting string="Google Workspace Service Account"
+                                 help="Create a service account in Google Cloud, enable domain-wide delegation, and in the Workspace Admin console authorize scopes https://www.googleapis.com/auth/calendar and https://www.googleapis.com/auth/meetings.space.created (the second scope lets meetings be created with open access, so invited participants join instantly instead of waiting for the host to admit them). Also enable the Google Calendar API and Google Meet API on the Cloud project. The host user pool is managed under Settings &gt; Google Meet Accounts.">
                             <div class="content-group">
-                                <field name="vc_google_client_id" placeholder="Client ID"/>
-                                <field name="vc_google_client_secret" password="True" placeholder="Client Secret"/>
-                                <field name="vc_google_redirect_uri" placeholder="Redirect URI"/>
-                                <field name="vc_google_organizer_email" placeholder="organizer@example.com"/>
-                                <field name="vc_google_refresh_token" password="True" placeholder="OAuth Refresh Token"/>
+                                <field name="vc_google_service_account_email" placeholder="service-account@project.iam.gserviceaccount.com"/>
+                                <field name="vc_google_service_account_private_key" password="True" placeholder="-----BEGIN PRIVATE KEY-----..."/>
                             </div>
                         </setting>
                     </block>
