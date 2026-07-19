@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="ir_cron_expire_virtual_classroom_meetings" model="ir.cron">
+        <field name="name">Virtual Classroom: Expire stale Zoom/Google Meet links</field>
+        <field name="model_id" ref="model_virtual_classroom_meeting"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_expire_meetings()</field>
+        <field name="interval_number">10</field>
+        <field name="interval_type">minutes</field>
+        <field name="active">True</field>
+    </record>
+</odoo>

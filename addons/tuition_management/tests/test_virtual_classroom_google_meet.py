@@ -184,6 +184,49 @@ class TestVirtualClassroomGoogleMeet(TransactionCase):
         self.assertEqual(meeting.google_account_id, acc2)
         self.assertTrue(acc1.last_check_error)
 
+    def test_google_meet_gets_expires_at_set(self):
+        self._make_account('Account1', 10, 'acc1@example.com')
+        occ = self.make_occurrence('Lesson')
+
+        with patch('odoo.addons.tuition_management.providers.google_meet.requests.post') as post:
+            post.side_effect = _token_post_side_effect(itertools.count(1))
+            meeting = self.service.start_meeting(occ, 'google_meet')
+
+        self.assertEqual(meeting.expires_at, occ.stop_datetime + timedelta(minutes=30))
+
+    def test_google_meet_cron_expires_past_due_meeting_and_revokes_access(self):
+        self._make_account('Account1', 10, 'acc1@example.com')
+        occ = self.make_occurrence('Lesson')
+
+        with patch('odoo.addons.tuition_management.providers.google_meet.requests.post') as post:
+            post.side_effect = _token_post_side_effect(itertools.count(1))
+            meeting = self.service.start_meeting(occ, 'google_meet')
+
+        meeting.write({'expires_at': fields.Datetime.now() - timedelta(minutes=1)})
+
+        with patch('odoo.addons.tuition_management.providers.google_meet.requests.post') as post, \
+             patch('odoo.addons.tuition_management.providers.google_meet.requests.patch') as patch_req:
+            post.side_effect = _token_post_side_effect(itertools.count(100))
+            patch_req.return_value = _response(200, {})
+            self.env['virtual.classroom.meeting']._cron_expire_meetings()
+
+        self.assertEqual(meeting.state, 'expired')
+        self.assertTrue(patch_req.called)
+
+    def test_google_meet_cron_leaves_not_yet_due_meeting_untouched(self):
+        self._make_account('Account1', 10, 'acc1@example.com')
+        occ = self.make_occurrence('Lesson')
+
+        with patch('odoo.addons.tuition_management.providers.google_meet.requests.post') as post:
+            post.side_effect = _token_post_side_effect(itertools.count(1))
+            meeting = self.service.start_meeting(occ, 'google_meet')
+
+        with patch('odoo.addons.tuition_management.providers.google_meet.requests.patch') as patch_req:
+            self.env['virtual.classroom.meeting']._cron_expire_meetings()
+
+        self.assertEqual(meeting.state, 'ready')
+        self.assertFalse(patch_req.called)
+
     def test_student_join_url_does_not_reuse_other_occurrence_google_meeting(self):
         self._make_account('Account1', 10, 'acc1@example.com')
         occ_a = self.make_occurrence('Lesson A')

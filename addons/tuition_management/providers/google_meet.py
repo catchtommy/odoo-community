@@ -201,3 +201,23 @@ class GoogleMeetProvider(VirtualClassroomProvider):
             'provider_payload': {'space': space, 'event': data},
             'google_account_id': account.id,
         }
+
+    def cancel_meeting(self, meeting):
+        """Switch the space's access type from OPEN back to RESTRICTED so
+        new participants need the host to actively admit them, without
+        ending a call already in progress. Safe to call on a space created
+        directly via _create_open_space (unlike one created implicitly
+        through the Calendar API, this resource name stays addressable)."""
+        if not meeting.google_account_id or not meeting.external_id:
+            return True
+        token = self._access_token(meeting.google_account_id.host_email, scope=MEET_SCOPE)
+        response = requests.patch(
+            'https://meet.googleapis.com/v2/%s' % meeting.external_id,
+            params={'updateMask': 'config.accessType'},
+            json={'config': {'accessType': 'RESTRICTED'}},
+            headers={'Authorization': 'Bearer %s' % token},
+            timeout=20,
+        )
+        if response.status_code >= 400:
+            raise UserError('Google Meet space revocation failed: %s' % response.text[:300])
+        return True

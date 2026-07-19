@@ -21,6 +21,7 @@
         "security/tuition_permission_security.xml",
         "security/ir.model.access.csv",
         "data/ir_sequence_data.xml",
+        "data/virtual_classroom_cron.xml",
         "views/master_views.xml",
         "views/profile_views.xml",
         "views/hr_employee_views.xml",

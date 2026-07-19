@@ -1,10 +1,20 @@
 # -*- coding: utf-8 -*-
+import logging
+from datetime import timedelta
 from urllib.parse import urlparse
 
 from odoo import fields, models
 from odoo.exceptions import AccessError, UserError
 
 from ..providers import PROVIDERS
+
+_logger = logging.getLogger(__name__)
+
+# Per-occurrence links (Zoom, Google Meet) are revoked this many minutes
+# after the lesson's scheduled end time, so a leaked/reused link can't be
+# exploited indefinitely. BigBlueButton intentionally reuses one persistent
+# link per course and is not subject to this.
+EXPIRY_GRACE_MINUTES = 30
 
 
 class VirtualClassroomService(models.AbstractModel):
@@ -87,19 +97,35 @@ class VirtualClassroomService(models.AbstractModel):
         reused across sessions) so each start picks whichever of the
         configured host accounts is currently free. Only re-used if this
         exact occurrence already has a ready meeting for this provider
-        (idempotent against a double click)."""
-        existing = occurrence.virtual_meeting_id
-        if existing and existing.provider == provider_code and existing.state == 'ready':
-            return existing
+        (idempotent against a double click).
 
-        meeting = self.env['virtual.classroom.meeting'].sudo().create({
-            'occurrence_id': occurrence.id,
-            'provider': provider_code,
-            'state': 'creating',
-        })
+        Looks up any existing meeting row for this (occurrence, provider)
+        pair — not just occurrence.virtual_meeting_id — and reuses/updates
+        it in place when retrying after a failure. occurrence.virtual_meeting_id
+        is only ever set on success, so a prior failed attempt leaves a
+        'failed' row behind without linking it; blindly creating a new row
+        here would collide with the (occurrence_id, provider) unique
+        constraint against that leftover row."""
+        meeting = self.env['virtual.classroom.meeting'].sudo().search([
+            ('occurrence_id', '=', occurrence.id),
+            ('provider', '=', provider_code),
+        ], limit=1)
+        if meeting and meeting.state == 'ready':
+            occurrence.sudo().write({'virtual_meeting_id': meeting.id})
+            return meeting
+
+        if not meeting:
+            meeting = self.env['virtual.classroom.meeting'].sudo().create({
+                'occurrence_id': occurrence.id,
+                'provider': provider_code,
+                'state': 'creating',
+            })
+        else:
+            meeting.write({'state': 'creating', 'error_message': False})
         try:
             vals = self._provider(provider_code).create_or_get_meeting(meeting) or {}
             vals.update({'state': 'ready', 'last_sync_at': fields.Datetime.now()})
+            vals.setdefault('expires_at', occurrence.stop_datetime + timedelta(minutes=EXPIRY_GRACE_MINUTES))
             meeting.write(vals)
             occurrence.sudo().write({'virtual_meeting_id': meeting.id})
         except Exception as exc:
@@ -154,6 +180,14 @@ class VirtualClassroomService(models.AbstractModel):
 
         provider_code = self._selected_provider(occurrence, provider_code)
         return self._ensure_meeting(occurrence, provider_code)
+
+    def expire_meeting(self, meeting):
+        meeting.ensure_one()
+        try:
+            self._provider(meeting.provider).cancel_meeting(meeting)
+        except Exception as exc:
+            _logger.warning('Failed to revoke external access for meeting %s: %s', meeting.id, exc)
+        meeting.write({'state': 'expired'})
 
     def get_tutor_start_url(self, meeting, tutor=False):
         meeting.ensure_one()

@@ -137,3 +137,19 @@ class ZoomProvider(VirtualClassroomProvider):
             'provider_payload': data,
             'zoom_account_id': account.id if getattr(account, 'id', False) else False,
         }
+
+    def cancel_meeting(self, meeting):
+        """Delete the scheduled meeting so its join/start URLs stop working
+        for anyone joining fresh. A live session already in progress on
+        Zoom's infrastructure is not disconnected by this — only future
+        joins are blocked."""
+        if not meeting.zoom_account_id or not meeting.meeting_id:
+            return True
+        response = requests.delete(
+            'https://api.zoom.us/v2/meetings/%s' % meeting.meeting_id,
+            headers={'Authorization': 'Bearer %s' % self._access_token(meeting.zoom_account_id)},
+            timeout=20,
+        )
+        if response.status_code >= 400 and response.status_code != 404:
+            raise UserError('Zoom meeting deletion failed: %s' % response.text[:300])
+        return True

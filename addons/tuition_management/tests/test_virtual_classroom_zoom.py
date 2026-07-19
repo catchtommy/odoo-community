@@ -127,6 +127,34 @@ class TestVirtualClassroomZoom(TransactionCase):
             with self.assertRaises(UserError):
                 self.service.start_meeting(occ, 'zoom')
 
+    def test_zoom_retry_after_failure_reuses_meeting_row(self):
+        # A failed attempt leaves a 'failed' meeting row unlinked from
+        # occurrence.virtual_meeting_id (that link is only set on success).
+        # Retrying must reuse/update that row instead of blindly creating a
+        # new one, which would collide with the (occurrence_id, provider)
+        # unique constraint against the leftover failed row.
+        occ = self.make_occurrence('Lesson')
+        self._make_account('Account1', 10, 'acc1@example.com')
+
+        with patch('odoo.addons.tuition_management.providers.zoom.requests.post') as post, \
+             patch('odoo.addons.tuition_management.providers.zoom.requests.get') as get:
+            post.side_effect = _token_post_side_effect(itertools.count(1))
+            get.side_effect = _availability_get_side_effect({'acc1@example.com': 'busy'})
+            with self.assertRaises(UserError):
+                self.service.start_meeting(occ, 'zoom')
+
+        with patch('odoo.addons.tuition_management.providers.zoom.requests.post') as post, \
+             patch('odoo.addons.tuition_management.providers.zoom.requests.get') as get:
+            post.side_effect = _token_post_side_effect(itertools.count(1))
+            get.side_effect = _availability_get_side_effect({})
+            meeting = self.service.start_meeting(occ, 'zoom')
+
+        self.assertEqual(meeting.state, 'ready')
+        count = self.env['virtual.classroom.meeting'].search_count([
+            ('occurrence_id', '=', occ.id), ('provider', '=', 'zoom'),
+        ])
+        self.assertEqual(count, 1)
+
     def test_zoom_account_check_error_is_skipped(self):
         occ = self.make_occurrence('Lesson')
         acc1 = self._make_account('Account1', 10, 'acc1@example.com')
@@ -185,6 +213,55 @@ class TestVirtualClassroomZoom(TransactionCase):
 
         self.assertEqual(join_url_b, 'https://zoom.us/j/2')
         self.assertNotEqual(occ_a.virtual_meeting_id, occ_b.virtual_meeting_id)
+
+    def test_zoom_meeting_gets_expires_at_set(self):
+        self._make_account('Account1', 10, 'acc1@example.com')
+        occ = self.make_occurrence('Lesson')
+
+        with patch('odoo.addons.tuition_management.providers.zoom.requests.post') as post, \
+             patch('odoo.addons.tuition_management.providers.zoom.requests.get') as get:
+            post.side_effect = _token_post_side_effect(itertools.count(1))
+            get.side_effect = _availability_get_side_effect({})
+            meeting = self.service.start_meeting(occ, 'zoom')
+
+        self.assertEqual(meeting.expires_at, occ.stop_datetime + timedelta(minutes=30))
+
+    def test_zoom_cron_expires_past_due_meeting_and_revokes_access(self):
+        self._make_account('Account1', 10, 'acc1@example.com')
+        occ = self.make_occurrence('Lesson')
+
+        with patch('odoo.addons.tuition_management.providers.zoom.requests.post') as post, \
+             patch('odoo.addons.tuition_management.providers.zoom.requests.get') as get:
+            post.side_effect = _token_post_side_effect(itertools.count(1))
+            get.side_effect = _availability_get_side_effect({})
+            meeting = self.service.start_meeting(occ, 'zoom')
+
+        meeting.write({'expires_at': fields.Datetime.now() - timedelta(minutes=1)})
+
+        with patch('odoo.addons.tuition_management.providers.zoom.requests.post') as post, \
+             patch('odoo.addons.tuition_management.providers.zoom.requests.delete') as delete:
+            post.side_effect = _token_post_side_effect(itertools.count(100))
+            delete.return_value = _response(200, {})
+            self.env['virtual.classroom.meeting']._cron_expire_meetings()
+
+        self.assertEqual(meeting.state, 'expired')
+        self.assertTrue(delete.called)
+
+    def test_zoom_cron_leaves_not_yet_due_meeting_untouched(self):
+        self._make_account('Account1', 10, 'acc1@example.com')
+        occ = self.make_occurrence('Lesson')
+
+        with patch('odoo.addons.tuition_management.providers.zoom.requests.post') as post, \
+             patch('odoo.addons.tuition_management.providers.zoom.requests.get') as get:
+            post.side_effect = _token_post_side_effect(itertools.count(1))
+            get.side_effect = _availability_get_side_effect({})
+            meeting = self.service.start_meeting(occ, 'zoom')
+
+        with patch('odoo.addons.tuition_management.providers.zoom.requests.delete') as delete:
+            self.env['virtual.classroom.meeting']._cron_expire_meetings()
+
+        self.assertEqual(meeting.state, 'ready')
+        self.assertFalse(delete.called)
 
     def test_constraint_unique_occurrence_provider(self):
         occ = self.make_occurrence('Lesson')

@@ -81,6 +81,17 @@ class VirtualClassroomMeeting(models.Model):
         self.write({'state': 'cancelled'})
         return True
 
+    def _cron_expire_meetings(self):
+        now = fields.Datetime.now()
+        meetings = self.sudo().search([
+            ('state', '=', 'ready'),
+            ('provider', 'in', ('zoom', 'google_meet')),
+            ('expires_at', '<=', now),
+        ])
+        service = self.env['virtual.classroom.service']
+        for meeting in meetings:
+            service.expire_meeting(meeting)
+
 
 class VirtualClassroomStartWizard(models.TransientModel):
     _name = 'virtual.classroom.start.wizard'
