@@ -456,7 +456,8 @@ class TutorPortal(http.Controller, PortalMixin):
             'is_tutor': True, 'is_student': False, 'is_parent': False,
             'tutor': tutor,
             'course': course,
-            'assignments': course.assignment_ids,
+            'assignments': request.env['course.assignment'].sudo().search(
+                [('course_id', '=', course.id)], order='create_date desc'),
             'page_name': 'tutor_assignments',
             'csrf_token': request.csrf_token(),
         })
@@ -662,6 +663,18 @@ class TutorPortal(http.Controller, PortalMixin):
         assignment.sudo().unlink()
         return request.redirect(f'/my/tutor/courses/{course_id}/assignments?deleted=1')
 
+    @http.route(['/my/tutor/assignment/<int:assignment_id>/assign'], type='http',
+                auth='user', website=True, methods=['POST'], csrf=True)
+    def portal_tutor_assignment_assign(self, assignment_id, **kw):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        assignment = request.env['course.assignment'].sudo().browse(assignment_id)
+        if not assignment.exists() or not self._tutor_has_course_access(tutor, assignment.course_id):
+            return request.redirect('/my/tutor/courses')
+        assignment.sudo().action_assign()
+        return request.redirect(f'/my/tutor/assignment/{assignment_id}?assigned=1')
+
     @http.route(['/my/tutor/submission/<int:submission_id>/grade'], type='http',
                 auth='user', website=True, methods=['POST'], csrf=True)
     def portal_tutor_grade_submission(self, submission_id, **kw):
@@ -720,7 +733,7 @@ class TutorPortal(http.Controller, PortalMixin):
             domain.append(('submission_ids', '=', False))
         if filter_student:
             domain.append(('submission_ids.student_id.name', 'ilike', filter_student))
-        assignments = request.env['course.assignment'].sudo().search(domain, order='due_date desc')
+        assignments = request.env['course.assignment'].sudo().search(domain, order='create_date desc')
         return request.render('tuition_management.portal_tutor_all_assignments', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,

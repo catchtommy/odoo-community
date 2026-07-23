@@ -290,7 +290,7 @@ class StudentPortal(http.Controller, PortalMixin):
         all_assignments = request.env['course.assignment'].sudo().search([
             ('course_id', 'in', course_ids),
             ('status', 'in', ['assigned', 'pending_review', 'completed']),
-        ], order='due_date asc')
+        ], order='create_date desc')
         submission_map = {}
         for asgn in all_assignments:
             sub = asgn.submission_ids.filtered(lambda s: s.student_id.id == student.id)
@@ -315,6 +315,18 @@ class StudentPortal(http.Controller, PortalMixin):
         else:
             assignments = all_assignments
 
+        status_counts = {'pending': 0, 'under_review': 0, 'submitted': 0, 'completed': 0}
+        for asgn in all_assignments:
+            disp = _display_status(asgn)
+            if disp in ('pending', 'rework'):
+                status_counts['pending'] += 1
+            elif disp == 'under_review':
+                status_counts['under_review'] += 1
+            elif disp == 'submitted':
+                status_counts['submitted'] += 1
+            elif disp == 'completed':
+                status_counts['completed'] += 1
+
         return request.render('tuition_management.portal_student_assignments', {
             'user': request.env.user,
             'is_student': True, 'is_tutor': False, 'is_parent': False,
@@ -323,6 +335,7 @@ class StudentPortal(http.Controller, PortalMixin):
             'student': student,
             'page_name': 'assignments',
             'status_filter': status_filter,
+            'status_counts': status_counts,
         })
 
     @http.route(['/my/assignments/<int:assignment_id>'], type='http', auth='user', website=True)

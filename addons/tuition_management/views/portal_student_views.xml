@@ -302,6 +302,49 @@
 
         <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-tasks"/> My Assignments</h5>
 
+        <div class="tm-stat-grid" style="margin-bottom:18px;">
+            <a t-attf-href="/my/assignments?status_filter=pending" class="tm-stat-card"
+               t-attf-style="text-decoration:none;color:inherit;display:block;#{status_filter == 'pending' and 'border-color:#f97316;' or ''}">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="status_counts.get('pending', 0)"/></div>
+                        <div class="tm-stat-label">Pending</div>
+                    </div>
+                    <div class="tm-stat-icon orange"><i class="fa fa-clock-o"/></div>
+                </div>
+            </a>
+            <a t-attf-href="/my/assignments?status_filter=under_review" class="tm-stat-card"
+               t-attf-style="text-decoration:none;color:inherit;display:block;#{status_filter == 'under_review' and 'border-color:#a855f7;' or ''}">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="status_counts.get('under_review', 0)"/></div>
+                        <div class="tm-stat-label">Under Review</div>
+                    </div>
+                    <div class="tm-stat-icon purple"><i class="fa fa-hourglass-half"/></div>
+                </div>
+            </a>
+            <a t-attf-href="/my/assignments?status_filter=submitted" class="tm-stat-card"
+               t-attf-style="text-decoration:none;color:inherit;display:block;#{status_filter == 'submitted' and 'border-color:#3b82f6;' or ''}">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="status_counts.get('submitted', 0)"/></div>
+                        <div class="tm-stat-label">Submitted</div>
+                    </div>
+                    <div class="tm-stat-icon blue"><i class="fa fa-paper-plane"/></div>
+                </div>
+            </a>
+            <a t-attf-href="/my/assignments?status_filter=completed" class="tm-stat-card"
+               t-attf-style="text-decoration:none;color:inherit;display:block;#{status_filter == 'completed' and 'border-color:#22c55e;' or ''}">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="status_counts.get('completed', 0)"/></div>
+                        <div class="tm-stat-label">Completed</div>
+                    </div>
+                    <div class="tm-stat-icon green"><i class="fa fa-check-circle"/></div>
+                </div>
+            </a>
+        </div>
+
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;">
             <a t-attf-href="/my/assignments?status_filter=all"
                t-attf-class="tm-btn tm-btn-sm #{(status_filter or 'all') == 'all' and 'tm-btn-primary' or 'tm-btn-outline'}">All</a>
@@ -309,6 +352,8 @@
                t-attf-class="tm-btn tm-btn-sm #{status_filter == 'pending' and 'tm-btn-primary' or 'tm-btn-outline'}">Pending</a>
             <a t-attf-href="/my/assignments?status_filter=under_review"
                t-attf-class="tm-btn tm-btn-sm #{status_filter == 'under_review' and 'tm-btn-primary' or 'tm-btn-outline'}">Under Review</a>
+            <a t-attf-href="/my/assignments?status_filter=submitted"
+               t-attf-class="tm-btn tm-btn-sm #{status_filter == 'submitted' and 'tm-btn-primary' or 'tm-btn-outline'}">Submitted</a>
             <a t-attf-href="/my/assignments?status_filter=completed"
                t-attf-class="tm-btn tm-btn-sm #{status_filter == 'completed' and 'tm-btn-primary' or 'tm-btn-outline'}">Completed</a>
         </div>
@@ -491,6 +536,10 @@
                                         <i class="fa fa-eye"/> Preview
                                     </a>
                                 </t>
+                                <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
+                                   class="tm-btn tm-btn-sm tm-btn-outline" style="white-space:nowrap;">
+                                    <i class="fa fa-download"/> Download
+                                </a>
                             </div>
                         </t>
                     </div>
@@ -566,6 +615,10 @@
                                             <i class="fa fa-eye"/> Preview
                                         </a>
                                     </t>
+                                    <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
+                                       class="tm-btn tm-btn-sm tm-btn-outline" style="white-space:nowrap;">
+                                        <i class="fa fa-download"/> Download
+                                    </a>
                                     <form t-attf-action="/my/assignments/#{assignment.id}/submission/delete-file/#{att.id}"
                                           method="POST" style="display:inline;margin:0;">
                                         <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
