@@ -163,10 +163,12 @@ class TuitionPortal(CustomerPortal, PortalMixin):
         if parent:
             child_data = []
             total_enrollments = 0
+            all_course_ids = []
             for child in parent.student_ids:
                 enrollments = request.env['course.enrollment'].sudo().search([
                     ('student_id', '=', child.id), ('status', '=', 'active')])
                 total_enrollments += len(enrollments)
+                all_course_ids += enrollments.mapped('course_id').ids
                 child_data.append({'student': child, 'enrollments': enrollments})
             child_partners = parent.student_ids.mapped('partner_id').ids
             all_partners = list(set([parent.partner_id.id] + child_partners)) if parent.partner_id else child_partners
@@ -176,12 +178,33 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 ('payment_state', '!=', 'paid'),
                 ('state', '=', 'posted'),
             ])
+            # Next upcoming session across all children — informational only, no join option for parents.
+            next_session = request.env['class.schedule.occurrence'].sudo().search([
+                ('course_id', 'in', all_course_ids),
+                ('lesson_status', '=', 'scheduled'),
+                ('start_datetime', '>=', fields.Datetime.now()),
+            ], order='start_datetime asc', limit=1)
+            next_session_dt_str = (
+                self._fmt_dt(next_session.start_datetime, '%a %d %b %Y, %H:%M %Z')
+                if next_session else '—'
+            )
+            next_session_student = None
+            if next_session:
+                enr = request.env['course.enrollment'].sudo().search([
+                    ('course_id', '=', next_session.course_id.id),
+                    ('student_id', 'in', parent.student_ids.ids),
+                    ('status', '=', 'active'),
+                ], limit=1)
+                next_session_student = enr.student_id if enr else None
             values.update({
                 'child_count': len(parent.student_ids),
                 'child_data': child_data,
                 'total_enrollments': total_enrollments,
                 'unpaid_invoices': len(invoices),
                 'amount_due': sum(invoices.mapped('amount_residual')),
+                'next_session': next_session,
+                'next_session_dt_str': next_session_dt_str,
+                'next_session_student': next_session_student,
             })
             return request.render('tuition_management.portal_parent_dashboard', values)
 
