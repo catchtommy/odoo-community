@@ -23,6 +23,9 @@
             <form string="Virtual Classroom Meeting" create="false">
                 <header>
                     <button name="action_retry" type="object" string="Retry" class="btn-primary" invisible="state not in ('failed', 'expired')"/>
+                    <button name="action_force_regenerate" type="object" string="Force Regenerate"
+                            class="btn-secondary" invisible="provider not in ('zoom', 'google_meet')"
+                            confirm="This deletes the current Zoom/Google Meet room and creates a brand new one. Existing join/host links will stop working. Continue?"/>
                     <button name="action_mark_cancelled" type="object" string="Mark Cancelled" class="btn-secondary" invisible="state == 'cancelled'"/>
                     <field name="state" widget="statusbar"/>
                 </header>

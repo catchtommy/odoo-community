@@ -8,12 +8,13 @@
             <xpath expr="//form" position="inside">
                 <app data-string="Virtual Classroom Integrations" string="Virtual Classroom Integrations" name="virtual_classroom_integrations">
                     <block title="Zoom" name="tuition_zoom_settings">
-                        <setting string="Zoom API">
+                        <setting string="Zoom Master Account"
+                                 help="Create one Server-to-Server OAuth app in the Zoom Marketplace for your account. Zoom's newer apps use granular scopes, not the old classic ones — add: user:read:list_users:admin (list users), meeting:read:list_meetings:admin (check who's free), meeting:write:meeting:admin (create a meeting for a user), meeting:delete:meeting:admin (cancel a meeting). If Zoom rejects a call with 'Invalid access token, does not contain scopes: [...]', the bracketed name is the exact scope to add in the Marketplace app and retry. With these in place, classes automatically pick whichever active Zoom user under this account is currently free — no need to register a separate app per host. 'Preferred Host Email' is optional and only controls which user is tried first when free; leave it blank to let the system pick freely. This master account is used only when the Zoom Accounts list below is empty — add rows there instead if you need explicit control over which separate Zoom accounts/apps are used.">
                             <div class="content-group">
                                 <field name="vc_zoom_client_id" placeholder="Client ID"/>
                                 <field name="vc_zoom_client_secret" password="True" placeholder="Client Secret"/>
                                 <field name="vc_zoom_account_id" placeholder="Account ID"/>
-                                <field name="vc_zoom_host_email" placeholder="host@example.com"/>
+                                <field name="vc_zoom_host_email" placeholder="Preferred Host Email (optional)"/>
                             </div>
                         </setting>
                     </block>

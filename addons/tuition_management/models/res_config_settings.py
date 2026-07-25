@@ -18,8 +18,11 @@ class ResConfigSettings(models.TransientModel):
         config_parameter='tuition_management.zoom_account_id',
     )
     vc_zoom_host_email = fields.Char(
-        string='Host Email',
+        string='Preferred Host Email',
         config_parameter='tuition_management.zoom_host_email',
+        help='Optional. When set, this Zoom user is tried first (if free) before '
+             'the system checks other active users under the master account. '
+             'Leave blank to let it pick freely.',
     )
     vc_bbb_server_url = fields.Char(
         string='Server URL',

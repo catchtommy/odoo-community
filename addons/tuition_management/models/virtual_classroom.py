@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
+import logging
+
 from odoo import api, fields, models
 from odoo.exceptions import UserError
+
+_logger = logging.getLogger(__name__)
 
 
 class VirtualClassroomMeeting(models.Model):
@@ -79,6 +83,41 @@ class VirtualClassroomMeeting(models.Model):
 
     def action_mark_cancelled(self):
         self.write({'state': 'cancelled'})
+        return True
+
+    def action_force_regenerate(self):
+        """Discard this meeting's remote Zoom/Google Meet room entirely and
+        create a brand new one in its place — unlike Retry (which only fills
+        in a failed/expired row), this also works on a 'ready' meeting, so it's
+        the way to pick up a settings/config fix (e.g. a corrected Zoom
+        registration setting) for a class that was already started once."""
+        service = self.env['virtual.classroom.service']
+        for meeting in self:
+            provider = service._provider(meeting.provider)
+            try:
+                provider.cancel_meeting(meeting)
+            except Exception as exc:
+                _logger.warning(
+                    'Failed to cancel old meeting %s during force-regenerate: %s',
+                    meeting.id, exc,
+                )
+            meeting.occurrence_id.sudo().write({'virtual_meeting_id': False})
+            meeting.write({
+                'state': 'cancelled',
+                'meeting_id': False,
+                'external_id': False,
+                'join_url': False,
+                'host_url': False,
+                'moderator_url': False,
+                'google_event_id': False,
+                'google_conference_id': False,
+                'provider_payload': False,
+                'error_message': False,
+                'expires_at': False,
+                'zoom_account_id': False,
+                'google_account_id': False,
+            })
+            service.start_meeting(meeting.occurrence_id, meeting.provider)
         return True
 
     def _cron_expire_meetings(self):

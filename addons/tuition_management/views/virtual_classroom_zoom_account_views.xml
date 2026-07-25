@@ -45,5 +45,23 @@
         <field name="name">Zoom Accounts</field>
         <field name="res_model">virtual.classroom.zoom.account</field>
         <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No manually curated Zoom accounts yet — and that's fine.
+            </p>
+            <p>
+                Leave this list empty to use the master Zoom account configured under
+                Settings &gt; Virtual Classroom Integrations instead: with one
+                Server-to-Server OAuth app carrying the granular scopes
+                user:read:list_users:admin, meeting:read:list_meetings:admin,
+                meeting:write:meeting:admin and meeting:delete:meeting:admin, the
+                system automatically discovers every active user under that account
+                and picks whichever one is free — no need to add a row per host here.
+            </p>
+            <p>
+                Only add rows here if you specifically need separate Zoom
+                accounts/apps (e.g. accounts outside the master one) in the rotation.
+            </p>
+        </field>
     </record>
 </odoo>
