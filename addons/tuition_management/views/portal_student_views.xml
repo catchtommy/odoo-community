@@ -490,10 +490,11 @@
                     <div>
                         <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:2px;">Status</div>
                         <div style="font-size:13px;">
-                            <span t-if="assignment.status == 'assigned'"    style="color:#3b82f6;">Assigned</span>
-                            <span t-elif="assignment.status == 'completed'" style="color:#22c55e;">Completed</span>
-                            <span t-elif="assignment.status == 'draft'"     style="color:#9ca3af;">Draft</span>
-                            <span t-else=""                                 style="color:var(--tm-text);"><t t-esc="assignment.status"/></span>
+                            <span t-if="assignment.status == 'assigned'"        style="color:#3b82f6;">Assigned</span>
+                            <span t-elif="assignment.status == 'completed'"     style="color:#22c55e;">Completed</span>
+                            <span t-elif="assignment.status == 'draft'"         style="color:#9ca3af;">Draft</span>
+                            <span t-elif="assignment.status == 'pending_review'" style="color:#f97316;">Pending for tutor review</span>
+                            <span t-else=""                                     style="color:var(--tm-text);"><t t-esc="assignment.status"/></span>
                         </div>
                     </div>
                     <t t-if="assignment.due_date">
@@ -640,30 +641,6 @@
                             </div>
                         </div>
                     </t>
-                    <!-- Re-submit form -->
-                    <div style="padding-top:16px;border-top:1px solid var(--tm-border);">
-                        <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);text-transform:uppercase;letter-spacing:.4px;margin-bottom:10px;">
-                            <t t-if="submission.status == 'rework'">Resubmit</t>
-                            <t t-else="">Re-submit</t>
-                        </div>
-                        <t t-if="submission.status == 'rework'">
-                            <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#dc2626;">
-                                <i class="fa fa-info-circle me-1"/>Your tutor has requested a rework. Please review the feedback above and resubmit.
-                            </div>
-                        </t>
-                        <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
-                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                            <div style="margin-bottom:10px;">
-                                <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Upload File (optional)</label>
-                                <input type="file" name="submission_file" class="form-control" style="width:100%;min-width:0;"/>
-                            </div>
-                            <div style="margin-bottom:12px;">
-                                <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Add a Note (optional)</label>
-                                <textarea name="student_note" class="form-control form-control-sm" rows="3" placeholder="Add any notes for your tutor..." style="width:100%;"/>
-                            </div>
-                            <button type="submit" class="tm-btn tm-btn-blue tm-btn-sm"><i class="fa fa-upload"/> Re-submit</button>
-                        </form>
-                    </div>
                 </t>
                 <t t-if="not submission">
                     <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
@@ -681,6 +658,34 @@
                 </t>
             </div>
         </div>
+
+        <!-- ── Resubmit — deliberately separated from "Your Submission" above so it reads as its own step ── -->
+        <t t-if="submission">
+            <div class="tm-card" style="margin-top:20px;border:1px solid #fdba74;">
+                <div class="tm-card-header" style="background:#f97316;">
+                    <div class="tm-card-title"><i class="fa fa-refresh"/> Resubmit This Assignment</div>
+                </div>
+                <div class="tm-card-body">
+                    <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;color:#9a3412;">
+                        <i class="fa fa-info-circle me-1"/>
+                        <t t-if="submission.status == 'rework'">Your tutor has requested a rework. Review the feedback above, then use this section to resubmit — it will replace your file/note above with a new attempt.</t>
+                        <t t-else="">Already submitted, but need to make a change? Use this section only if you want to replace your submission above with a new attempt.</t>
+                    </div>
+                    <form t-attf-action="/my/assignments/#{assignment.id}/submit" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <div style="margin-bottom:10px;">
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Upload File (optional)</label>
+                            <input type="file" name="submission_file" class="form-control" style="width:100%;min-width:0;"/>
+                        </div>
+                        <div style="margin-bottom:12px;">
+                            <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Add a Note (optional)</label>
+                            <textarea name="student_note" class="form-control form-control-sm" rows="3" placeholder="Add any notes for your tutor..." style="width:100%;"/>
+                        </div>
+                        <button type="submit" class="tm-btn tm-btn-blue tm-btn-sm"><i class="fa fa-upload"/> Resubmit</button>
+                    </form>
+                </div>
+            </div>
+        </t>
     </t>
 </template>
 

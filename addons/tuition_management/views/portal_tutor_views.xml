@@ -354,7 +354,10 @@
                                 <td><span class="tm-badge tm-badge-grey"><t t-esc="asgn.assignment_type or '—'"/></span></td>
                                 <td style="white-space:nowrap;"><t t-esc="asgn.create_date.strftime('%d %b %Y') if asgn.create_date else '—'"/></td>
                                 <td style="white-space:nowrap;"><t t-esc="asgn.due_date.strftime('%d %b %Y') if asgn.due_date else '—'"/></td>
-                                <td><span t-attf-class="tm-badge #{asgn.status == 'completed' and 'tm-badge-green' or asgn.status == 'assigned' and 'tm-badge-blue' or 'tm-badge-grey'}"><t t-esc="asgn.status.capitalize()"/></span></td>
+                                <td><span t-attf-class="tm-badge #{asgn.status == 'completed' and 'tm-badge-green' or asgn.status == 'assigned' and 'tm-badge-blue' or asgn.status == 'pending_review' and 'tm-badge-orange' or 'tm-badge-grey'}">
+                                    <t t-if="asgn.status == 'pending_review'">Pending for tutor review</t>
+                                    <t t-else=""><t t-esc="asgn.status.capitalize()"/></t>
+                                </span></td>
                                 <td><span class="tm-badge tm-badge-purple"><t t-esc="len(asgn.submission_ids)"/></span></td>
                                 <td><a t-attf-href="/my/tutor/assignment/#{asgn.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-eye"/> Review</a></td>
                             </tr>
@@ -477,13 +480,13 @@
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Title <span style="color:#e53935;">*</span></label>
                             <input type="text" name="name" class="form-control" required="required"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;"
                                    t-att-value="report.name"/>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Overall Rating</label>
                             <select name="overall_rating" class="form-select"
-                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;">
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;">
                                 <option value="">Select rating...</option>
                                 <option value="excellent" t-att-selected="report.overall_rating == 'excellent' and 'selected' or None">⭐ Excellent</option>
                                 <option value="good" t-att-selected="report.overall_rating == 'good' and 'selected' or None">👍 Good</option>
@@ -494,7 +497,7 @@
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Student <span style="color:#e53935;">*</span></label>
                             <select name="student_id" class="form-select" required="required"
-                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;">
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;">
                                 <t t-foreach="enrolled_students" t-as="enr">
                                     <option t-att-value="enr.student_id.id" t-att-selected="enr.student_id.id == report.student_id.id and 'selected' or None">
                                         <t t-esc="enr.student_id.name"/>
@@ -505,19 +508,19 @@
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Score</label>
                             <input type="number" name="score" class="form-control" step="0.1" min="0"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;"
                                    t-att-value="report.score or ''"/>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Date</label>
                             <input type="date" name="report_date" class="form-control"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;"
                                    t-att-value="report.report_date and str(report.report_date) or ''"/>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Max Score</label>
                             <input type="number" name="max_score" class="form-control" step="0.1" min="0"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;"
                                    t-att-value="report.max_score or 100"/>
                         </div>
                     </div>
@@ -590,12 +593,12 @@
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Title <span style="color:#e53935;">*</span></label>
                             <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Monthly Progress Report"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"/>
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;"/>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Overall Rating</label>
                             <select name="overall_rating" class="form-select"
-                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;">
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;">
                                 <option value="">Select rating...</option>
                                 <option value="excellent">⭐ Excellent</option>
                                 <option value="good">👍 Good</option>
@@ -606,7 +609,7 @@
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Student <span style="color:#e53935;">*</span></label>
                             <select name="student_id" class="form-select" required="required"
-                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;">
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;">
                                 <option value="">Select student...</option>
                                 <t t-foreach="enrolled_students" t-as="enr">
                                     <option t-att-value="enr.student_id.id"><t t-esc="enr.student_id.name"/></option>
@@ -616,17 +619,17 @@
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Score</label>
                             <input type="number" name="score" class="form-control" step="0.1" min="0" placeholder="e.g. 85"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"/>
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;"/>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Date</label>
                             <input type="date" name="report_date" class="form-control"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"/>
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;"/>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Max Score</label>
                             <input type="number" name="max_score" class="form-control" step="0.1" min="0" value="100"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"/>
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;width:100%;box-sizing:border-box;"/>
                         </div>
                     </div>
 
@@ -1373,7 +1376,7 @@
                                         <td>
                                             <span t-if="asgn.status == 'draft'" class="tm-badge tm-badge-grey">Draft</span>
                                             <span t-if="asgn.status == 'assigned'" class="tm-badge tm-badge-blue">Assigned</span>
-                                            <span t-if="asgn.status == 'pending_review'" class="tm-badge tm-badge-orange">Pending Review</span>
+                                            <span t-if="asgn.status == 'pending_review'" class="tm-badge tm-badge-orange">Pending for tutor review</span>
                                             <span t-if="asgn.status == 'completed'" class="tm-badge tm-badge-green">Completed</span>
                                             <span t-if="asgn.status == 'cancelled'" class="tm-badge tm-badge-red">Cancelled</span>
                                         </td>
@@ -1423,7 +1426,7 @@
                 <div class="d-flex gap-2 align-items-center flex-wrap">
                     <span t-if="assignment.status == 'draft'"        class="tm-badge tm-badge-grey"   style="font-size:12px; padding:6px 12px;">Draft</span>
                     <span t-if="assignment.status == 'assigned'"     class="tm-badge tm-badge-blue"   style="font-size:12px; padding:6px 12px;">Assigned</span>
-                    <span t-if="assignment.status == 'pending_review'" class="tm-badge tm-badge-orange" style="font-size:12px; padding:6px 12px;">Pending Review</span>
+                    <span t-if="assignment.status == 'pending_review'" class="tm-badge tm-badge-orange" style="font-size:12px; padding:6px 12px;">Pending for tutor review</span>
                     <span t-if="assignment.status == 'completed'"    class="tm-badge tm-badge-green"  style="font-size:12px; padding:6px 12px;">Completed</span>
                     <span t-if="assignment.status == 'cancelled'"    class="tm-badge tm-badge-red"    style="font-size:12px; padding:6px 12px;">Cancelled</span>
                     <!-- Publish/Submit button (draft -> assigned) -->
@@ -1799,7 +1802,7 @@
                                         <!-- Status badge -->
                                         <span t-if="sub.status == 'pending'"        class="tm-badge tm-badge-grey">Not Submitted</span>
                                         <span t-if="sub.status == 'submitted'"      class="tm-badge tm-badge-blue">Submitted</span>
-                                        <span t-if="sub.status == 'pending_review'" class="tm-badge tm-badge-orange">Pending Review</span>
+                                        <span t-if="sub.status == 'pending_review'" class="tm-badge tm-badge-orange">Pending for tutor review</span>
                                         <span t-if="sub.status == 'completed'"      class="tm-badge tm-badge-green">Completed</span>
                                         <span t-if="sub.status == 'rework'"         class="tm-badge tm-badge-red">Rework Required</span>
                                     </div>

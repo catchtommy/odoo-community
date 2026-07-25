@@ -100,7 +100,10 @@
                                 <tr>
                                     <td class="fw-bold"><t t-esc="a.name"/></td>
                                     <td><t t-esc="a.due_date or '—'"/></td>
-                                    <td><span t-attf-class="tm-badge #{a.status == 'completed' and 'tm-badge-green' or a.status == 'assigned' and 'tm-badge-orange' or 'tm-badge-grey'}"><t t-esc="a.status.capitalize()"/></span></td>
+                                    <td><span t-attf-class="tm-badge #{a.status == 'completed' and 'tm-badge-green' or a.status == 'assigned' and 'tm-badge-orange' or a.status == 'pending_review' and 'tm-badge-orange' or 'tm-badge-grey'}">
+                                        <t t-if="a.status == 'pending_review'">Pending for tutor review</t>
+                                        <t t-else=""><t t-esc="a.status.capitalize()"/></t>
+                                    </span></td>
                                 </tr>
                             </t>
                         </tbody>
