@@ -13,7 +13,7 @@
 
         <!-- Upcoming Session Card — TOP PRIORITY -->
         <t t-if="next_session">
-            <div class="tm-card" style="margin-bottom:20px;border-left:4px solid var(--tm-primary);">
+            <div class="tm-card" style="margin-bottom:20px;">
                 <div class="tm-card-header">
                     <div class="tm-card-title"><i class="fa fa-video-camera"/> Next Upcoming Session</div>
                     <a href="/my/student/schedule" class="tm-card-action">Full Schedule →</a>

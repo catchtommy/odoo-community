@@ -72,6 +72,35 @@ class PortalMixin:
 
         return start_utc, end_utc, monday, sunday, week_label
 
+    def _tz_month_bounds(self, month_offset=0):
+        """
+        Return (start_utc, end_utc, first_day_local, last_day_local, month_label)
+        for the calendar month `month_offset` months from the current one,
+        with 00:00/23:59:59 boundaries in the user's timezone.
+        """
+        user_tz = self._user_pytz()
+        local_today = datetime.now(user_tz).date()
+        month_index = local_today.month - 1 + month_offset
+        year = local_today.year + month_index // 12
+        month = month_index % 12 + 1
+        first_day = local_today.replace(year=year, month=month, day=1)
+        if month == 12:
+            next_month_first = first_day.replace(year=year + 1, month=1, day=1)
+        else:
+            next_month_first = first_day.replace(month=month + 1, day=1)
+        last_day = next_month_first - timedelta(days=1)
+
+        start_utc = (user_tz.localize(datetime(first_day.year, first_day.month, first_day.day, 0, 0, 0))
+                     .astimezone(pytz.UTC).replace(tzinfo=None))
+        end_utc   = (user_tz.localize(datetime(last_day.year, last_day.month, last_day.day, 23, 59, 59))
+                     .astimezone(pytz.UTC).replace(tzinfo=None))
+
+        month_label = first_day.strftime('%B %Y')
+        if month_offset == 0:
+            month_label = 'This Month (%s)' % month_label
+
+        return start_utc, end_utc, first_day, last_day, month_label
+
     def _tz_date_bounds(self, start_date, end_date):
         """
         Return (start_utc, end_utc) as naive UTC datetimes for an arbitrary

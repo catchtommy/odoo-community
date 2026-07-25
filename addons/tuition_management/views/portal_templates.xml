@@ -23,54 +23,56 @@
         <form action="/my/profile/save" method="POST">
             <input type="hidden" name="csrf_token" t-att-value="csrf_token"/>
 
-            <div class="row g-4">
+            <div class="tm-grid-2">
 
                 <!-- Contact Details -->
-                <div class="col-lg-6">
-                    <div class="tm-card h-100">
-                        <div class="tm-card-header" style="background:linear-gradient(135deg,var(--tm-blue),var(--tm-blue-dark));">
-                            <span><i class="fa fa-envelope me-2"/>Contact Details</span>
-                        </div>
-                        <div class="tm-card-body">
-                            <div class="mb-3">
+                <div class="tm-card">
+                    <div class="tm-card-header">
+                        <span class="tm-card-title"><i class="fa fa-envelope me-2"/>Contact Details</span>
+                    </div>
+                    <div class="tm-card-body">
+                        <div class="tm-field-row-2" style="margin-bottom:16px;">
+                            <div>
                                 <label class="form-label fw-bold" style="font-size:12px;">Email Address</label>
                                 <input type="email" name="email" class="form-control" style="border-radius:8px;font-size:13px;"
                                        t-att-value="partner.email or ''"/>
                             </div>
-                            <div class="mb-3">
+                            <div>
                                 <label class="form-label fw-bold" style="font-size:12px;">Phone Number</label>
                                 <input type="text" name="phone" class="form-control" style="border-radius:8px;font-size:13px;"
                                        t-att-value="partner.phone or ''"/>
                             </div>
-                            <hr style="border-color:#f1f3f5;margin:20px 0 16px;"/>
-                            <div class="mb-2" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6c757d;">
-                                Address
-                            </div>
-                            <div class="mb-3">
+                        </div>
+                        <hr style="border-color:#f1f3f5;margin:20px 0 16px;"/>
+                        <div class="mb-2" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:#6c757d;">
+                            Address
+                        </div>
+                        <div class="tm-field-row-2" style="margin-bottom:16px;">
+                            <div>
                                 <label class="form-label fw-bold" style="font-size:12px;">Street</label>
                                 <input type="text" name="street" class="form-control" style="border-radius:8px;font-size:13px;"
                                        placeholder="Street and number"
                                        t-att-value="partner.street or ''"/>
                             </div>
-                            <div class="mb-3">
+                            <div>
                                 <label class="form-label fw-bold" style="font-size:12px;">Street 2 <span style="font-weight:400;color:#adb5bd;">(optional)</span></label>
                                 <input type="text" name="street2" class="form-control" style="border-radius:8px;font-size:13px;"
                                        placeholder="Apartment, suite, unit…"
                                        t-att-value="partner.street2 or ''"/>
                             </div>
-                            <div class="row g-2 mb-3">
-                                <div class="col-6">
-                                    <label class="form-label fw-bold" style="font-size:12px;">City</label>
-                                    <input type="text" name="city" class="form-control" style="border-radius:8px;font-size:13px;"
-                                           t-att-value="partner.city or ''"/>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label fw-bold" style="font-size:12px;">Zip / Postal Code</label>
-                                    <input type="text" name="zip" class="form-control" style="border-radius:8px;font-size:13px;"
-                                           t-att-value="partner.zip or ''"/>
-                                </div>
+                        </div>
+                        <div class="tm-field-row-2">
+                            <div>
+                                <label class="form-label fw-bold" style="font-size:12px;">City</label>
+                                <input type="text" name="city" class="form-control" style="border-radius:8px;font-size:13px;"
+                                       t-att-value="partner.city or ''"/>
                             </div>
-                            <div class="mb-0">
+                            <div>
+                                <label class="form-label fw-bold" style="font-size:12px;">Zip / Postal Code</label>
+                                <input type="text" name="zip" class="form-control" style="border-radius:8px;font-size:13px;"
+                                       t-att-value="partner.zip or ''"/>
+                            </div>
+                            <div>
                                 <label class="form-label fw-bold" style="font-size:12px;">Country</label>
                                 <select name="country_id" class="form-select" style="border-radius:8px;font-size:13px;">
                                     <option value="">— Select country —</option>
@@ -87,22 +89,22 @@
                 </div>
 
                 <!-- Change Password -->
-                <div class="col-lg-6">
-                    <div class="tm-card">
-                        <div class="tm-card-header" style="background:linear-gradient(135deg,var(--tm-orange),#E07040);">
-                            <span><i class="fa fa-key me-2"/>Change Password</span>
+                <div class="tm-card">
+                    <div class="tm-card-header">
+                        <span class="tm-card-title"><i class="fa fa-key me-2"/>Change Password</span>
+                    </div>
+                    <div class="tm-card-body">
+                        <div class="p-2 mb-3" style="background:#f8f9fa;border-radius:8px;font-size:12px;color:#6c757d;">
+                            <i class="fa fa-info-circle me-1"/> Leave blank to keep your current password.
                         </div>
-                        <div class="tm-card-body">
-                            <div class="p-2 mb-3" style="background:#f8f9fa;border-radius:8px;font-size:12px;color:#6c757d;">
-                                <i class="fa fa-info-circle me-1"/> Leave blank to keep your current password.
-                            </div>
-                            <div class="mb-3">
+                        <div class="tm-field-row-2">
+                            <div>
                                 <label class="form-label fw-bold" style="font-size:12px;">New Password</label>
                                 <input type="password" name="new_password" class="form-control"
                                        style="border-radius:8px;font-size:13px;"
                                        placeholder="Min. 6 characters" autocomplete="new-password"/>
                             </div>
-                            <div class="mb-0">
+                            <div>
                                 <label class="form-label fw-bold" style="font-size:12px;">Confirm New Password</label>
                                 <input type="password" name="confirm_password" class="form-control"
                                        style="border-radius:8px;font-size:13px;"
@@ -112,9 +114,9 @@
                     </div>
                 </div>
 
-            </div><!-- .row -->
+            </div>
 
-            <div class="d-flex justify-content-end gap-2 mt-4 mb-4">
+            <div style="display:flex;justify-content:flex-end;gap:12px;margin-top:20px;margin-bottom:20px;">
                 <a href="/my/dashboard" class="tm-btn tm-btn-outline">Cancel</a>
                 <button type="submit" class="tm-btn tm-btn-green" style="padding:10px 28px;">
                     <i class="fa fa-save me-1"/> Save Changes

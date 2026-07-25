@@ -8,7 +8,7 @@
 <template id="portal_sidebar_layout">
     <t t-call="web.layout">
         <t t-set="head_portal">
-            <link rel="stylesheet" href="/tuition_management/static/src/css/portal.css"/>
+            <link rel="stylesheet" href="/tuition_management/static/src/css/portal.css?v=8"/>
             <t t-call="tuition_management.portal_tuition_css"/>
             <script type="text/javascript" src="/tuition_management/static/src/js/portal_assignment_annotator.js"/>
             <t t-out="head or ''"/>
@@ -18,156 +18,111 @@
         <body class="o_portal tm-portal-layout">
             <div class="tm-layout">
 
-                <!-- ── SIDEBAR ── -->
-                <aside class="tm-sidebar" id="tm-sidebar">
-                    <!-- Logo -->
-                    <a href="/my/dashboard" class="tm-sidebar-logo">
-                        <div class="tm-sidebar-logo-icon">
-                            <i class="fa fa-graduation-cap"/>
-                        </div>
-                        <div>
-                            <div class="tm-sidebar-logo-text">ShiningAce</div>
-                            <div class="tm-sidebar-logo-sub">Student Portal</div>
-                        </div>
-                    </a>
-
-                    <!-- Nav -->
-                    <nav class="tm-sidebar-nav">
-                        <t t-if="is_student or is_tutor or is_parent">
-                            <div class="tm-sidebar-section">Main</div>
-                        </t>
-
-                        <a href="/my/dashboard"
-                           t-attf-class="tm-nav-item #{page_name == 'dashboard' and 'active' or ''}">
-                            <i class="fa fa-th-large"/>
-                            Dashboard
+                <!-- ── TOP NAVBAR ── -->
+                <header class="tm-topnav">
+                    <div class="tm-topnav-inner">
+                        <a href="/my/dashboard" class="tm-topnav-brand">
+                            <img src="/tuition_management/static/src/img/shiningace_logo.png" alt="ShiningAce" class="tm-topnav-logo"/>
                         </a>
 
-                        <t t-if="is_student">
-                            <div class="tm-sidebar-section">Learning</div>
-                            <a href="/my/courses"
-                               t-attf-class="tm-nav-item #{page_name == 'my_courses' and 'active' or ''}">
-                                <i class="fa fa-book"/>
-                                My Courses
-                                <t t-if="course_count">
-                                    <span class="tm-nav-badge"><t t-esc="course_count"/></span>
-                                </t>
-                            </a>
-                            <a href="/my/assignments"
-                               t-attf-class="tm-nav-item #{page_name == 'assignments' and 'active' or ''}">
-                                <i class="fa fa-tasks"/>
-                                Assignments
-                                <t t-if="assignment_count">
-                                    <span class="tm-nav-badge"><t t-esc="assignment_count"/></span>
-                                </t>
-                            </a>
-                            <a href="/my/student/schedule"
-                               t-attf-class="tm-nav-item #{page_name == 'student_schedule' and 'active' or ''}">
-                                <i class="fa fa-calendar"/>
-                                Schedule
-                            </a>
-                        </t>
+                        <button type="button" class="tm-topnav-toggle" id="tm-nav-toggle" aria-label="Toggle navigation">
+                            <i class="fa fa-bars"/>
+                        </button>
 
-                        <t t-if="is_tutor">
-                            <div class="tm-sidebar-section">Teaching</div>
-                            <a href="/my/tutor/courses"
-                               t-attf-class="tm-nav-item #{page_name in ('tutor_courses','tutor_course_detail') and 'active' or ''}">
-                                <i class="fa fa-book"/>
-                                My Courses
-                            </a>
-                            <a href="/my/tutor/schedule"
-                               t-attf-class="tm-nav-item #{page_name == 'tutor_schedule' and 'active' or ''}">
-                                <i class="fa fa-calendar"/>
-                                Schedule
-                            </a>
-                            <a href="/my/tutor/all-assignments"
-                               t-attf-class="tm-nav-item #{page_name == 'tutor_all_assignments' and 'active' or ''}">
-                                <i class="fa fa-tasks"/>
-                                Assignments
-                            </a>
-                            <a href="/my/tutor/progress"
-                               t-attf-class="tm-nav-item #{page_name == 'tutor_progress' and 'active' or ''}">
-                                <i class="fa fa-line-chart"/>
-                                Progress
-                            </a>
-                            <div class="tm-sidebar-section">Billing</div>
-                            <a href="/my/tutor/payments"
-                               t-attf-class="tm-nav-item #{page_name == 'tutor_payments' and 'active' or ''}">
-                                <i class="fa fa-money"/>
-                                Payments
-                            </a>
-                        </t>
+                        <t t-set="_page" t-value="str(page_name or '')"/>
+                        <nav class="tm-topnav-links" id="tm-nav-links">
+                            <t t-if="is_student or is_tutor or is_parent">
+                                <a href="/my/dashboard"
+                                   t-attf-class="tm-nav-item #{_page == 'dashboard' and 'active' or ''}">
+                                    Home
+                                </a>
+                            </t>
 
-                        <t t-if="is_parent">
-                            <div class="tm-sidebar-section">Family</div>
-                            <a href="/my/parent/children"
-                               t-attf-class="tm-nav-item #{page_name == 'parent_children' and 'active' or ''}">
-                                <i class="fa fa-users"/>
-                                My Children
-                            </a>
-                            <a href="/my/parent/schedule"
-                               t-attf-class="tm-nav-item #{page_name == 'parent_schedule' and 'active' or ''}">
-                                <i class="fa fa-calendar"/>
-                                Schedules
-                            </a>
-                            <a href="/my/parent/progress"
-                               t-attf-class="tm-nav-item #{page_name == 'parent_progress' and 'active' or ''}">
-                                <i class="fa fa-line-chart"/>
-                                Progress
-                            </a>
-                            <a href="/my/tuition/invoices"
-                               t-attf-class="tm-nav-item #{page_name == 'tuition_invoices' and 'active' or ''}">
-                                <i class="fa fa-file-text-o"/>
-                                Invoices
-                            </a>
-                        </t>
+                            <t t-if="is_student">
+                                <a href="/my/courses"
+                                   t-attf-class="tm-nav-item #{_page == 'my_courses' and 'active' or ''}">
+                                    My Courses
+                                    <t t-if="course_count">
+                                        <span class="tm-nav-badge"><t t-esc="course_count"/></span>
+                                    </t>
+                                </a>
+                                <a href="/my/student/schedule"
+                                   t-attf-class="tm-nav-item #{_page == 'student_schedule' and 'active' or ''}">
+                                    Schedule
+                                </a>
+                                <a href="/my/assignments"
+                                   t-attf-class="tm-nav-item #{_page == 'assignments' and 'active' or ''}">
+                                    Assignments
+                                    <t t-if="assignment_count">
+                                        <span class="tm-nav-badge"><t t-esc="assignment_count"/></span>
+                                    </t>
+                                </a>
+                            </t>
 
-                        <div class="tm-sidebar-section">Account</div>
-                        <a href="/my/profile"
-                           t-attf-class="tm-nav-item #{page_name == 'settings' and 'active' or ''}">
-                            <i class="fa fa-cog"/>
-                            Settings
-                        </a>
-                    </nav>
+                            <t t-if="is_tutor">
+                                <a href="/my/tutor/courses"
+                                   t-attf-class="tm-nav-item #{_page in ('tutor_courses','tutor_course_detail') and 'active' or ''}">
+                                    My Courses
+                                </a>
+                                <a href="/my/tutor/schedule"
+                                   t-attf-class="tm-nav-item #{_page == 'tutor_schedule' and 'active' or ''}">
+                                    Schedule
+                                </a>
+                                <a href="/my/tutor/all-assignments"
+                                   t-attf-class="tm-nav-item #{_page == 'tutor_all_assignments' and 'active' or ''}">
+                                    Assignments
+                                </a>
+                                <a href="/my/tutor/progress"
+                                   t-attf-class="tm-nav-item #{_page == 'tutor_progress' and 'active' or ''}">
+                                    Progress
+                                </a>
+                                <a href="/my/tutor/payments"
+                                   t-attf-class="tm-nav-item #{_page == 'tutor_payments' and 'active' or ''}">
+                                    Payments
+                                </a>
+                            </t>
 
-                    <!-- User footer -->
-                    <div class="tm-sidebar-footer">
-                        <div class="tm-sidebar-user">
-                            <div class="tm-sidebar-avatar">
-                                <t t-esc="(user.name or 'U')[:1].upper()"/>
-                            </div>
-                            <div class="tm-sidebar-user-info">
-                                <div class="tm-sidebar-user-name"><t t-esc="user.name"/></div>
-                                <div class="tm-sidebar-user-role">
-                                    <t t-if="is_student">Student</t>
-                                    <t t-elif="is_tutor">Tutor</t>
-                                    <t t-elif="is_parent">Parent</t>
-                                    <t t-else="">Portal User</t>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </aside>
+                            <t t-if="is_parent">
+                                <a href="/my/parent/children"
+                                   t-attf-class="tm-nav-item #{_page == 'parent_children' and 'active' or ''}">
+                                    My Children
+                                </a>
+                                <a href="/my/parent/schedule"
+                                   t-attf-class="tm-nav-item #{_page == 'parent_schedule' and 'active' or ''}">
+                                    Schedules
+                                </a>
+                                <a href="/my/parent/progress"
+                                   t-attf-class="tm-nav-item #{_page == 'parent_progress' and 'active' or ''}">
+                                    Progress
+                                </a>
+                                <a href="/my/tuition/invoices"
+                                   t-attf-class="tm-nav-item #{_page == 'tuition_invoices' and 'active' or ''}">
+                                    Invoices
+                                </a>
+                            </t>
 
-                <!-- ── MAIN ── -->
-                <div class="tm-main">
-                    <!-- Top Header -->
-                    <header class="tm-header">
-                        <h1 class="tm-header-title"><t t-esc="page_title or 'Portal'"/></h1>
-                        <div class="tm-header-right">
+                            <a href="/my/profile"
+                               t-attf-class="tm-nav-item #{_page == 'settings' and 'active' or ''}">
+                                Settings
+                            </a>
+                        </nav>
+
+                        <div class="tm-topnav-right">
                             <a href="/my/profile" class="tm-header-user">
                                 <div class="tm-header-avatar">
-                                    <t t-esc="(user.name or 'U')[:1].upper()"/>
+                                    <i class="fa fa-user"/>
                                 </div>
                                 <span class="tm-header-username"><t t-esc="user.name"/></span>
                             </a>
                             <a href="/web/session/logout?redirect=/web/login" class="tm-header-logout">
-                                <i class="fa fa-sign-out"/>
                                 Logout
                             </a>
                         </div>
-                    </header>
+                    </div>
+                </header>
 
+                <!-- ── MAIN ── -->
+                <div class="tm-main">
                     <!-- Page Body -->
                     <div class="tm-content">
                         <t t-out="0"/>
@@ -176,14 +131,14 @@
 
             </div><!-- .tm-layout -->
 
-            <!-- Mobile sidebar toggle -->
+            <!-- Mobile nav toggle -->
             <script>
                 document.addEventListener('DOMContentLoaded', function() {
-                    var toggle = document.getElementById('tm-sidebar-toggle');
-                    var sidebar = document.getElementById('tm-sidebar');
-                    if (toggle &amp;&amp; sidebar) {
+                    var toggle = document.getElementById('tm-nav-toggle');
+                    var links = document.getElementById('tm-nav-links');
+                    if (toggle &amp;&amp; links) {
                         toggle.addEventListener('click', function() {
-                            sidebar.classList.toggle('open');
+                            links.classList.toggle('open');
                         });
                     }
                     // Close dropdown menus on outside click

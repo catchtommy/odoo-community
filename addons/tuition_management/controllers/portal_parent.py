@@ -40,7 +40,7 @@ class ParentPortal(http.Controller, PortalMixin):
         
         unpaid_invoices = invoices.filtered(lambda inv: inv.payment_state != 'paid')
         
-        return request.render('tuition_management.portal_parent_dashboard', {
+        return request.render('tuition_management.portal_parent_children', {
             'user': request.env.user,
             'is_parent': True, 'is_student': False, 'is_tutor': False,
             'parent': parent,
@@ -101,11 +101,21 @@ class ParentPortal(http.Controller, PortalMixin):
             ('student_id', 'in', child_ids), ('status', '=', 'active'),
         ]).mapped('course_id').ids
 
+        view_mode = kw.get('view_mode') if kw.get('view_mode') in ('week', 'month') else 'week'
+
         try:
             week_offset = int(kw.get('week_offset', 0))
         except (ValueError, TypeError):
             week_offset = 0
-        start_utc, end_utc, start_of_week, end_of_week, week_label = self._tz_week_bounds(week_offset)
+        try:
+            month_offset = int(kw.get('month_offset', 0))
+        except (ValueError, TypeError):
+            month_offset = 0
+
+        if view_mode == 'month':
+            start_utc, end_utc, _start, _end, period_label = self._tz_month_bounds(month_offset)
+        else:
+            start_utc, end_utc, _start, _end, period_label = self._tz_week_bounds(week_offset)
 
         occurrences = request.env['class.schedule.occurrence'].sudo().search([
             ('course_id', 'in', course_ids),
@@ -145,8 +155,10 @@ class ParentPortal(http.Controller, PortalMixin):
             'is_parent': True, 'is_student': False, 'is_tutor': False,
             'parent': parent,
             'occ_data': occ_data,
+            'view_mode': view_mode,
             'week_offset': week_offset,
-            'week_label': week_label,
+            'month_offset': month_offset,
+            'week_label': period_label,
             'user_tz': self._get_user_tz(),
             'page_name': 'parent_schedule',
             'page_title': 'Schedules',
@@ -240,17 +252,15 @@ class ParentPortal(http.Controller, PortalMixin):
     def portal_progress_report_detail(self, report_id, **kw):
         parent = self._get_parent()
         student = self._get_student()
-        if not parent and not student:
+        if not parent:
+            # Students are not permitted to view their own progress reports.
             return request.redirect('/my')
 
         report = request.env['progress.report'].sudo().browse(report_id)
         if not report.exists():
             return request.redirect('/my')
 
-        if parent:
-            allowed_student_ids = parent.student_ids.ids if parent.student_ids else []
-        else:
-            allowed_student_ids = [student.id] if student else []
+        allowed_student_ids = parent.student_ids.ids if parent.student_ids else []
 
         if report.student_id.id not in allowed_student_ids:
             return request.redirect('/my')

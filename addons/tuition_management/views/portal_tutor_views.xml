@@ -55,7 +55,7 @@
         <!-- Next Session Card — displayed prominently on dashboard -->
         <t t-set="_next" t-value="upcoming_lessons and upcoming_lessons[0] or False"/>
         <t t-if="_next">
-            <div class="tm-card" style="margin-bottom:20px;border-left:4px solid var(--tm-primary);">
+            <div class="tm-card" style="margin-bottom:20px;">
                 <div class="tm-card-header">
                     <div class="tm-card-title"><i class="fa fa-video-camera"/> Next Session</div>
                     <a href="/my/tutor/schedule" class="tm-card-action">Full Schedule →</a>
@@ -472,20 +472,29 @@
                 <form t-attf-action="/my/tutor/progress/#{report.id}/update" method="POST">
                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
 
-                    <!-- Title -->
-                    <div class="tm-form-group" style="margin-bottom:20px;">
-                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Title <span style="color:#e53935;">*</span></label>
-                        <input type="text" name="name" class="form-control" required="required"
-                               style="font-size:15px;padding:10px 14px;border-radius:8px;"
-                               t-att-value="report.name"/>
-                    </div>
-
-                    <!-- Student + Date -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+                    <!-- Report Details: 3 fields left column, 3 fields right column, uniform sizing -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Title <span style="color:#e53935;">*</span></label>
+                            <input type="text" name="name" class="form-control" required="required"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"
+                                   t-att-value="report.name"/>
+                        </div>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Overall Rating</label>
+                            <select name="overall_rating" class="form-select"
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;">
+                                <option value="">Select rating...</option>
+                                <option value="excellent" t-att-selected="report.overall_rating == 'excellent' and 'selected' or None">⭐ Excellent</option>
+                                <option value="good" t-att-selected="report.overall_rating == 'good' and 'selected' or None">👍 Good</option>
+                                <option value="satisfactory" t-att-selected="report.overall_rating == 'satisfactory' and 'selected' or None">✔ Satisfactory</option>
+                                <option value="needs_improvement" t-att-selected="report.overall_rating == 'needs_improvement' and 'selected' or None">⚠ Needs Improvement</option>
+                            </select>
+                        </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Student <span style="color:#e53935;">*</span></label>
                             <select name="student_id" class="form-select" required="required"
-                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:auto;">
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;">
                                 <t t-foreach="enrolled_students" t-as="enr">
                                     <option t-att-value="enr.student_id.id" t-att-selected="enr.student_id.id == report.student_id.id and 'selected' or None">
                                         <t t-esc="enr.student_id.name"/>
@@ -494,38 +503,21 @@
                             </select>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
-                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Date</label>
-                            <input type="date" name="report_date" class="form-control"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"
-                                   t-att-value="report.report_date and str(report.report_date) or ''"/>
-                        </div>
-                    </div>
-
-                    <!-- Overall Rating -->
-                    <div class="tm-form-group" style="margin-bottom:20px;">
-                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Overall Rating</label>
-                        <select name="overall_rating" class="form-select"
-                                style="font-size:15px;padding:10px 14px;border-radius:8px;height:auto;">
-                            <option value="">Select rating...</option>
-                            <option value="excellent" t-att-selected="report.overall_rating == 'excellent' and 'selected' or None">⭐ Excellent</option>
-                            <option value="good" t-att-selected="report.overall_rating == 'good' and 'selected' or None">👍 Good</option>
-                            <option value="satisfactory" t-att-selected="report.overall_rating == 'satisfactory' and 'selected' or None">✔ Satisfactory</option>
-                            <option value="needs_improvement" t-att-selected="report.overall_rating == 'needs_improvement' and 'selected' or None">⚠ Needs Improvement</option>
-                        </select>
-                    </div>
-
-                    <!-- Score + Max Score -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
-                        <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Score</label>
                             <input type="number" name="score" class="form-control" step="0.1" min="0"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"
                                    t-att-value="report.score or ''"/>
+                        </div>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Date</label>
+                            <input type="date" name="report_date" class="form-control"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"
+                                   t-att-value="report.report_date and str(report.report_date) or ''"/>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Max Score</label>
                             <input type="number" name="max_score" class="form-control" step="0.1" min="0"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"
                                    t-att-value="report.max_score or 100"/>
                         </div>
                     </div>
@@ -537,7 +529,7 @@
                         <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-thumbs-up" style="color:var(--tm-success);margin-right:6px;"/>Strengths</label>
                         <textarea name="strengths" class="form-control"
                                   placeholder="What does the student excel at? Note specific skills, topics, or behaviours..."
-                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.strengths or ''"/></textarea>
+                                  style="width:100%;min-height:140px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.strengths or ''"/></textarea>
                     </div>
 
                     <!-- Areas for Improvement -->
@@ -545,7 +537,7 @@
                         <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-arrow-up" style="color:var(--tm-warning);margin-right:6px;"/>Areas for Improvement</label>
                         <textarea name="areas_for_improvement" class="form-control"
                                   placeholder="Where does the student need to focus? Be specific and constructive..."
-                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.areas_for_improvement or ''"/></textarea>
+                                  style="width:100%;min-height:140px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.areas_for_improvement or ''"/></textarea>
                     </div>
 
                     <!-- Homework / Next Steps -->
@@ -553,7 +545,7 @@
                         <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-pencil-square-o" style="color:var(--tm-primary);margin-right:6px;"/>Homework / Next Steps</label>
                         <textarea name="homework_notes" class="form-control"
                                   placeholder="Homework assigned and what the student should prepare or focus on next..."
-                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.homework_notes or ''"/></textarea>
+                                  style="width:100%;min-height:140px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.homework_notes or ''"/></textarea>
                     </div>
 
                     <!-- Comments -->
@@ -561,7 +553,7 @@
                         <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-comment" style="color:var(--tm-primary);margin-right:6px;"/>Additional Comments</label>
                         <textarea name="comments" class="form-control"
                                   placeholder="Any general comments, context, or notes for the parent/student..."
-                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.comments or ''"/></textarea>
+                                  style="width:100%;min-height:140px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"><t t-esc="report.comments or ''"/></textarea>
                     </div>
 
                     <div style="display:flex;justify-content:flex-end;gap:12px;">
@@ -593,19 +585,28 @@
                 <form t-attf-action="/my/tutor/courses/#{course.id}/progress/create" method="POST">
                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
 
-                    <!-- Row 1: Title (full width) -->
-                    <div class="tm-form-group" style="margin-bottom:20px;">
-                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Title <span style="color:#e53935;">*</span></label>
-                        <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Monthly Progress Report"
-                               style="font-size:15px;padding:10px 14px;border-radius:8px;"/>
-                    </div>
-
-                    <!-- Row 2: Student + Date -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+                    <!-- Report Details: 3 fields left column, 3 fields right column, uniform sizing -->
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Title <span style="color:#e53935;">*</span></label>
+                            <input type="text" name="name" class="form-control" required="required" placeholder="e.g. Monthly Progress Report"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"/>
+                        </div>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Overall Rating</label>
+                            <select name="overall_rating" class="form-select"
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;">
+                                <option value="">Select rating...</option>
+                                <option value="excellent">⭐ Excellent</option>
+                                <option value="good">👍 Good</option>
+                                <option value="satisfactory">✔ Satisfactory</option>
+                                <option value="needs_improvement">⚠ Needs Improvement</option>
+                            </select>
+                        </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Student <span style="color:#e53935;">*</span></label>
                             <select name="student_id" class="form-select" required="required"
-                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:auto;">
+                                    style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;">
                                 <option value="">Select student...</option>
                                 <t t-foreach="enrolled_students" t-as="enr">
                                     <option t-att-value="enr.student_id.id"><t t-esc="enr.student_id.name"/></option>
@@ -613,36 +614,19 @@
                             </select>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
-                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Date</label>
-                            <input type="date" name="report_date" class="form-control"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"/>
-                        </div>
-                    </div>
-
-                    <!-- Row 3: Overall Rating (full width with visual pills) -->
-                    <div class="tm-form-group" style="margin-bottom:20px;">
-                        <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Overall Rating</label>
-                        <select name="overall_rating" class="form-select"
-                                style="font-size:15px;padding:10px 14px;border-radius:8px;height:auto;">
-                            <option value="">Select rating...</option>
-                            <option value="excellent">⭐ Excellent</option>
-                            <option value="good">👍 Good</option>
-                            <option value="satisfactory">✔ Satisfactory</option>
-                            <option value="needs_improvement">⚠ Needs Improvement</option>
-                        </select>
-                    </div>
-
-                    <!-- Row 4: Score + Max Score -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
-                        <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Score</label>
                             <input type="number" name="score" class="form-control" step="0.1" min="0" placeholder="e.g. 85"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"/>
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"/>
+                        </div>
+                        <div class="tm-form-group" style="margin-bottom:0;">
+                            <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Report Date</label>
+                            <input type="date" name="report_date" class="form-control"
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"/>
                         </div>
                         <div class="tm-form-group" style="margin-bottom:0;">
                             <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;">Max Score</label>
                             <input type="number" name="max_score" class="form-control" step="0.1" min="0" value="100"
-                                   style="font-size:15px;padding:10px 14px;border-radius:8px;"/>
+                                   style="font-size:15px;padding:10px 14px;border-radius:8px;height:44px;"/>
                         </div>
                     </div>
 
@@ -652,28 +636,28 @@
                     <div class="tm-form-group" style="margin-bottom:20px;">
                         <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-thumbs-up" style="color:var(--tm-success);margin-right:6px;"/>Strengths</label>
                         <textarea name="strengths" class="form-control" placeholder="What does the student excel at? Note specific skills, topics, or behaviours..."
-                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
+                                  style="width:100%;min-height:140px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
                     </div>
 
                     <!-- Areas for Improvement -->
                     <div class="tm-form-group" style="margin-bottom:20px;">
                         <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-arrow-up" style="color:var(--tm-warning);margin-right:6px;"/>Areas for Improvement</label>
                         <textarea name="areas_for_improvement" class="form-control" placeholder="Where does the student need to focus? Be specific and constructive..."
-                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
+                                  style="width:100%;min-height:140px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
                     </div>
 
                     <!-- Homework / Next Steps -->
                     <div class="tm-form-group" style="margin-bottom:20px;">
                         <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-pencil-square-o" style="color:var(--tm-primary);margin-right:6px;"/>Homework / Next Steps</label>
                         <textarea name="homework_notes" class="form-control" placeholder="Homework assigned and what the student should prepare or focus on next..."
-                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
+                                  style="width:100%;min-height:140px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
                     </div>
 
                     <!-- Comments -->
                     <div class="tm-form-group" style="margin-bottom:24px;">
                         <label class="tm-form-label" style="font-size:13px;font-weight:600;margin-bottom:6px;display:block;"><i class="fa fa-comment" style="color:var(--tm-primary);margin-right:6px;"/>Additional Comments</label>
                         <textarea name="comments" class="form-control" placeholder="Any general comments, context, or notes for the parent/student..."
-                                  style="width:100%;min-height:280px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
+                                  style="width:100%;min-height:140px;font-size:14px;line-height:1.7;padding:12px 14px;border-radius:8px;resize:vertical;box-sizing:border-box;"/>
                     </div>
 
                     <div style="display:flex;justify-content:flex-end;gap:12px;">
@@ -817,13 +801,13 @@
                 <table class="tm-table">
                     <thead>
                         <tr>
-                            <th style="background:#4A7CC9;color:#fff;">Course Name</th>
-                            <th style="background:#4A7CC9;color:#fff;">Subject</th>
-                            <th style="background:#4A7CC9;color:#fff;">Grade</th>
-                            <th style="background:#4A7CC9;color:#fff;">Students</th>
-                            <th style="background:#4A7CC9;color:#fff;">Assignments</th>
-                            <th style="background:#4A7CC9;color:#fff;">Dates</th>
-                            <th style="background:#4A7CC9;color:#fff;"></th>
+                            <th>Course Name</th>
+                            <th>Subject</th>
+                            <th>Grade</th>
+                            <th>Students</th>
+                            <th>Assignments</th>
+                            <th>Dates</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -1317,36 +1301,39 @@
         </t>
 
         <div class="tm-stat-grid" style="margin-bottom:18px;">
-            <div class="tm-stat-card">
+            <a t-attf-href="/my/tutor/courses/#{course.id}/assignments?status_filter=pending" class="tm-stat-card"
+               t-attf-style="#{status_filter == 'pending' and 'border-color:var(--tm-primary);' or ''}">
                 <div class="tm-stat-card-top">
                     <div>
-                        <div class="tm-stat-value"><t t-esc="len(assignments.filtered(lambda a: a.status == 'assigned')) or 0"/></div>
+                        <div class="tm-stat-value"><t t-esc="len(all_assignments.filtered(lambda a: a.status == 'assigned')) or 0"/></div>
                         <div class="tm-stat-label">Pending</div>
                     </div>
                     <div class="tm-stat-icon orange"><i class="fa fa-clock-o"/></div>
                 </div>
                 <div class="tm-stat-action">Assigned to students →</div>
-            </div>
-            <div class="tm-stat-card">
+            </a>
+            <a t-attf-href="/my/tutor/courses/#{course.id}/assignments?status_filter=all" class="tm-stat-card"
+               t-attf-style="#{status_filter == 'all' and 'border-color:var(--tm-primary);' or ''}">
                 <div class="tm-stat-card-top">
                     <div>
-                        <div class="tm-stat-value"><t t-esc="len(assignments) or 0"/></div>
+                        <div class="tm-stat-value"><t t-esc="len(all_assignments) or 0"/></div>
                         <div class="tm-stat-label">Total</div>
                     </div>
                     <div class="tm-stat-icon purple"><i class="fa fa-list"/></div>
                 </div>
-                <div class="tm-stat-action">All assignments</div>
-            </div>
-            <div class="tm-stat-card">
+                <div class="tm-stat-action">All assignments →</div>
+            </a>
+            <a t-attf-href="/my/tutor/courses/#{course.id}/assignments?status_filter=submissions" class="tm-stat-card"
+               t-attf-style="#{status_filter == 'submissions' and 'border-color:var(--tm-primary);' or ''}">
                 <div class="tm-stat-card-top">
                     <div>
-                        <div class="tm-stat-value"><t t-esc="sum([len(a.submission_ids) for a in assignments]) or 0"/></div>
+                        <div class="tm-stat-value"><t t-esc="sum([len(a.submission_ids) for a in all_assignments]) or 0"/></div>
                         <div class="tm-stat-label">Submissions</div>
                     </div>
                     <div class="tm-stat-icon green"><i class="fa fa-inbox"/></div>
                 </div>
-                <div class="tm-stat-action">Total submissions</div>
-            </div>
+                <div class="tm-stat-action">With submissions →</div>
+            </a>
         </div>
 
         <!-- ── ASSIGNMENTS TABLE ── -->

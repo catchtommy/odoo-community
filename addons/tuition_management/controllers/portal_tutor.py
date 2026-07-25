@@ -444,20 +444,29 @@ class TutorPortal(http.Controller, PortalMixin):
     # ──────────────────────────────────────────────
 
     @http.route(['/my/tutor/courses/<int:course_id>/assignments'], type='http', auth='user', website=True)
-    def portal_tutor_assignments(self, course_id, **kw):
+    def portal_tutor_assignments(self, course_id, status_filter='all', **kw):
         tutor = self._get_tutor()
         if not tutor:
             return request.redirect('/my')
         course = request.env['course.master'].sudo().browse(course_id)
         if not course.exists() or not self._tutor_has_course_access(tutor, course):
             return request.redirect('/my/tutor/courses')
+        all_assignments = request.env['course.assignment'].sudo().search(
+            [('course_id', '=', course.id)], order='create_date desc')
+        if status_filter == 'pending':
+            assignments = all_assignments.filtered(lambda a: a.status == 'assigned')
+        elif status_filter == 'submissions':
+            assignments = all_assignments.filtered(lambda a: a.submission_ids)
+        else:
+            assignments = all_assignments
         return request.render('tuition_management.portal_tutor_assignments', {
             'user': request.env.user,
             'is_tutor': True, 'is_student': False, 'is_parent': False,
             'tutor': tutor,
             'course': course,
-            'assignments': request.env['course.assignment'].sudo().search(
-                [('course_id', '=', course.id)], order='create_date desc'),
+            'all_assignments': all_assignments,
+            'assignments': assignments,
+            'status_filter': status_filter,
             'page_name': 'tutor_assignments',
             'csrf_token': request.csrf_token(),
         })
