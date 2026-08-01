@@ -10,8 +10,25 @@
                     <field name="is_enrolled_stage" invisible="1"/>
                     <field name="is_enrolled" invisible="1"/>
                     <field name="can_convert_course" invisible="1"/>
+                    <field name="possible_duplicate_parent_id" invisible="1"/>
+                    <button name="action_attach_existing_parent" type="object" string="Attach to Existing Parent"
+                            class="btn-primary" icon="fa-link" invisible="not possible_duplicate_parent_id"/>
+                    <button name="action_create_new_parent_and_student" type="object" string="Create New Parent &amp; Student"
+                            class="btn-secondary" icon="fa-user-plus" invisible="not possible_duplicate_parent_id"
+                            confirm="Create a brand new parent and student profile even though this matches an existing family?"/>
                     <button name="action_enroll_to_course" type="object" string="Convert to Course" class="btn-primary" icon="fa-graduation-cap" invisible="not can_convert_course"/>
                 </header>
+                <div class="alert alert-warning" role="status" invisible="not possible_duplicate_parent_id">
+                    <strong><i class="fa fa-exclamation-triangle"/> Possible duplicate found.</strong>
+                    This enquiry's email/phone matches an existing parent — no parent or student profile has
+                    been created yet. Review the match below, then use "Attach to Existing Parent" if it's the
+                    same family, or "Create New Parent &amp; Student" if it's a different person.
+                    <div class="mt-2">
+                        <field name="possible_duplicate_parent_id" readonly="1" nolabel="1"/>
+                        <span invisible="not possible_duplicate_parent_email"> — <field name="possible_duplicate_parent_email" readonly="1" nolabel="1" class="oe_inline"/></span>
+                        <span invisible="not possible_duplicate_parent_phone"> — <field name="possible_duplicate_parent_phone" readonly="1" nolabel="1" class="oe_inline"/></span>
+                    </div>
+                </div>
                 <div class="alert alert-success" role="status" invisible="not is_enrolled">
                     <strong><i class="fa fa-check-circle"/> Enrolled!</strong> This enquiry has been converted to a course enrollment.
                 </div>
@@ -37,7 +54,7 @@
                         <field name="status" invisible="1"/>
                     </group>
                     <group string="Parent Information" readonly="not can_edit_enquiry">
-                        <field name="parent_profile_id" string="Parent" readonly="is_enrolled" invisible="is_enrolled" required="1"/>
+                        <field name="parent_profile_id" string="Parent" readonly="is_enrolled" invisible="is_enrolled" required="not possible_duplicate_parent_id"/>
                         <field name="name" string="Parent Name" readonly="1" force_save="1"/>
                         <field name="email" readonly="1" force_save="1"/>
                         <field name="partner_id" readonly="1" force_save="1"/>
@@ -48,7 +65,7 @@
                         </div>
                     </group>
                     <group string="Student Information" readonly="not can_edit_enquiry">
-                        <field name="student_profile_id" string="Student" domain="[('parent_id', '=', parent_profile_id)]" readonly="is_enrolled" invisible="is_enrolled or not parent_profile_id" required="1"/>
+                        <field name="student_profile_id" string="Student" domain="[('parent_id', '=', parent_profile_id)]" readonly="is_enrolled" invisible="is_enrolled or not parent_profile_id" required="not possible_duplicate_parent_id"/>
                         <field name="student_name" readonly="1" force_save="1"/>
                         <field name="student_age" string="Student Age"/>
                     </group>
@@ -69,11 +86,32 @@
         <field name="name">enquiry.list</field>
         <field name="model">enquiry</field>
         <field name="arch" type="xml">
-            <list string="Enquiries">
+            <list string="Enquiries" decoration-warning="possible_duplicate_parent_id">
                 <field name="enquiry_name"/><field name="name" string="Parent Name"/>
                 <field name="student_name"/><field name="student_age"/><field name="email"/><field name="phone"/>
                 <field name="subject_id"/><field name="grade_id"/><field name="stage_id"/>
+                <field name="possible_duplicate_parent_id" string="Possible Duplicate Of" readonly="1" optional="show"/>
             </list>
+        </field>
+    </record>
+    <record id="view_enquiry_search" model="ir.ui.view">
+        <field name="name">enquiry.search</field>
+        <field name="model">enquiry</field>
+        <field name="arch" type="xml">
+            <search string="Enquiries">
+                <field name="enquiry_name"/>
+                <field name="name" string="Parent Name"/>
+                <field name="student_name"/>
+                <field name="email"/>
+                <field name="phone"/>
+                <field name="subject_id"/>
+                <field name="grade_id"/>
+                <filter name="possible_duplicates" string="Possible Duplicates"
+                        domain="[('possible_duplicate_parent_id', '!=', False)]"/>
+                <group>
+                    <filter name="group_by_stage" string="Stage" context="{'group_by': 'stage_id'}"/>
+                </group>
+            </search>
         </field>
     </record>
     <record id="view_enquiry_kanban" model="ir.ui.view">
@@ -90,6 +128,7 @@
                 <field name="grade_id"/>
                 <field name="stage_id"/>
                 <field name="enquiry_date"/>
+                <field name="possible_duplicate_parent_id"/>
                 <templates>
                     <t t-name="card">
                         <div class="oe_kanban_content">
@@ -97,6 +136,9 @@
                                 <div class="o_kanban_record_headings">
                                     <strong class="o_kanban_record_title"><field name="enquiry_name"/></strong>
                                 </div>
+                                <span t-if="record.possible_duplicate_parent_id.raw_value" class="badge text-bg-warning">
+                                    <i class="fa fa-exclamation-triangle me-1"/>Possible Duplicate
+                                </span>
                             </div>
                             <div class="o_kanban_record_body">
                                 <div class="mb-1"><strong>Parent:</strong> <field name="name"/></div>
@@ -113,6 +155,38 @@
                     </t>
                 </templates>
             </kanban>
+        </field>
+    </record>
+    <record id="view_enquiry_attach_parent_wizard_form" model="ir.ui.view">
+        <field name="name">enquiry.attach.parent.wizard.form</field>
+        <field name="model">enquiry.attach.parent.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Confirm Attach to Existing Parent">
+                <field name="enquiry_id" invisible="1"/>
+                <field name="is_new_student" invisible="1"/>
+                <group string="Attaching to this Parent">
+                    <field name="parent_id" readonly="1"/>
+                    <field name="parent_email" readonly="1" invisible="not parent_email"/>
+                    <field name="parent_phone" readonly="1" invisible="not parent_phone"/>
+                </group>
+                <div class="alert alert-info mb-0" role="status" invisible="not is_new_student">
+                    <i class="fa fa-user-plus me-1"/>
+                    A new student profile "<field name="student_name" readonly="1" class="oe_inline fw-bold" nolabel="1"/>"
+                    will be created under this parent.
+                </div>
+                <div class="alert alert-success mb-0" role="status" invisible="is_new_student">
+                    <i class="fa fa-check-circle me-1"/>
+                    This matches an existing student under this parent — the enquiry will attach to:
+                    <group>
+                        <field name="matching_student_id" readonly="1"/>
+                        <field name="matching_student_grade_id" readonly="1" string="Grade" invisible="not matching_student_grade_id"/>
+                    </group>
+                </div>
+                <footer>
+                    <button name="action_confirm" type="object" string="Confirm" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
         </field>
     </record>
     <record id="view_enquiry_form_quick_create" model="ir.ui.view">

@@ -231,7 +231,8 @@
                             invisible="not id or lesson_status in ('cancelled', 'completed')"/>
                     <button name="action_cancel_lesson" type="object"
                             string="Cancel Lesson" class="btn-danger" icon="fa-ban"
-                            invisible="not id or lesson_status == 'cancelled'"/>
+                            invisible="not id or lesson_status == 'cancelled'"
+                            groups="tuition_management.group_tuition_lesson_cancel,base.group_system"/>
                     <field name="lesson_status" widget="statusbar"
                            statusbar_visible="scheduled,completed,cancelled,under_review"
                            invisible="not id"/>

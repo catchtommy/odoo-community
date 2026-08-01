@@ -1,29 +1,40 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <data noupdate="1">
+        <!-- company_id explicitly False on all four: these must be global
+             sequences shared across every company, not scoped to whichever
+             company happened to be active on install. Without this,
+             ir.sequence.next_by_code() silently returns False for any other
+             company (see next_by_code's company_id in [current, False]
+             filter), and the calling code's `or 'New'` fallback then stores
+             the literal string "New" as a permanent record name. -->
         <record id="seq_enquiry" model="ir.sequence">
             <field name="name">Enquiry Sequence</field>
             <field name="code">enquiry</field>
             <field name="prefix">ENQ/</field>
             <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
         </record>
         <record id="seq_course_enrollment" model="ir.sequence">
             <field name="name">Enrollment Sequence</field>
             <field name="code">course.enrollment</field>
             <field name="prefix">ENRL/</field>
             <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
         </record>
         <record id="seq_tutor_payment_run" model="ir.sequence">
             <field name="name">Tutor Payroll Run Sequence</field>
             <field name="code">tutor.payment.run</field>
             <field name="prefix">TPR/</field>
             <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
         </record>
         <record id="seq_parent_billing_run" model="ir.sequence">
             <field name="name">Parent Billing Run Sequence</field>
             <field name="code">parent.billing.run</field>
             <field name="prefix">PBR/</field>
             <field name="padding">4</field>
+            <field name="company_id" eval="False"/>
         </record>
     </data>
 </odoo>

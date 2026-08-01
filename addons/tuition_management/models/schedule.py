@@ -9,6 +9,7 @@ from odoo.exceptions import UserError, ValidationError
 from datetime import datetime, time, timedelta
 import pytz
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE, COMMON_TIMEZONES
+from .user_permission import user_has_permission
 
 
 class ClassSchedule(models.Model):
@@ -1010,8 +1011,14 @@ class ClassScheduleOccurrence(models.Model):
 
     def write(self, vals):
         if vals.get('lesson_status') == 'cancelled':
-            if not self.env.user.has_group('base.group_system') and not self.env.user.has_group('base.group_erp_manager'):
-                raise UserError("Only administrators or managers can cancel a lesson.")
+            # Dedicated "Cancel Lesson" permission (distinct from "Cancel
+            # Courses", which governs cancelling a whole course.master
+            # record) — respects the app's own fine-grained permission
+            # system rather than hardcoding Odoo's generic System/Access-
+            # Rights admin groups. user_has_permission already lets
+            # base.group_system through automatically.
+            if not user_has_permission(self.env.user, 'lesson_cancel'):
+                raise UserError("Only administrators or managers with the 'Cancel Lesson' permission can cancel a lesson.")
         reschedule_fields = {'tutor_id'}
         if reschedule_fields & set(vals.keys()) and 'lesson_status' not in vals:
             for rec in self:

@@ -5,7 +5,7 @@
         <field name="model">course.master</field>
         <field name="inherit_id" ref="tuition_management.view_course_master_form"/>
         <field name="arch" type="xml">
-            <xpath expr="//page[@name='lessons']" position="before">
+            <xpath expr="//page[@name='demo_sessions']" position="after">
                 <page string="Curriculum" name="education_curriculum">
                     <div class="mb-3">
                         <button name="action_assign_curriculum_version" type="object" class="btn-secondary"

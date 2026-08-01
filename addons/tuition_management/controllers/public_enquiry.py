@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
 import json
+import logging
+
 from odoo import http
 from odoo.http import request
+
+_logger = logging.getLogger(__name__)
 
 
 class PublicEnquiryController(http.Controller):
@@ -75,29 +79,49 @@ class PublicEnquiryController(http.Controller):
         if error:
             return request.render('tuition_management.public_enquiry_form', dict(base_values, error=error, form_data=form_data))
 
+        try:
+            student_age = int(form_data['student_age']) if form_data.get('student_age') else 0
+            grade_id = int(form_data['grade_id'])
+            subject_id = int(form_data['subject_id'])
+            category_id = int(form_data['category_id']) if form_data['category_id'] else False
+        except ValueError:
+            return request.render('tuition_management.public_enquiry_form',
+                dict(base_values, error='Please check the Student Age, Grade and Subject fields.', form_data=form_data))
+
         # Find the first stage (New)
         first_stage = request.env['enquiry.stage'].sudo().search([], order='sequence asc', limit=1)
 
-        # Create the enquiry
+        # Create the enquiry. If the email/phone matches an existing parent,
+        # enquiry.create() -> _auto_create_parent_and_student() will leave
+        # parent_profile_id/student_profile_id unset and flag
+        # possible_duplicate_parent_id instead of creating a duplicate parent
+        # or student — staff resolve that from the Enquiry form in the backend,
+        # never on this public-facing page.
         vals = {
             'name': form_data['parent_name'],
             'email': form_data['email'] or False,
             'country_code': form_data['country_code'] or False,
             'phone': form_data['phone'] or False,
             'student_name': form_data['student_name'],
-            'student_age': int(form_data['student_age']) if form_data.get('student_age') else 0,
-            'grade_id': int(form_data['grade_id']),
-            'subject_id': int(form_data['subject_id']),
+            'student_age': student_age,
+            'grade_id': grade_id,
+            'subject_id': subject_id,
             'notes': form_data['notes'] or False,
+            # Website submissions come from an anonymous visitor — the field's
+            # default (self.env.user) would otherwise assign this to Odoo's
+            # built-in "Public User" record, which is meaningless as a staff
+            # assignment. Leave it unset so it's assigned manually.
+            'assigned_user_id': False,
         }
-        if form_data['category_id']:
-            vals['category_id'] = int(form_data['category_id'])
+        if category_id:
+            vals['category_id'] = category_id
         if first_stage:
             vals['stage_id'] = first_stage.id
 
         try:
             request.env['enquiry'].sudo().create(vals)
         except Exception:
+            _logger.exception("Public enquiry submission failed. form_data=%s vals=%s", form_data, vals)
             return request.render('tuition_management.public_enquiry_form',
                 dict(base_values, error='Something went wrong. Please try again later.', form_data=form_data))
 

@@ -1,6 +1,6 @@
 from markupsafe import Markup
 from odoo import models, fields, api
-from odoo.exceptions import ValidationError
+from odoo.exceptions import UserError, ValidationError
 from datetime import timedelta
 import logging
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
@@ -96,6 +96,14 @@ class Enquiry(models.Model):
     enrollment_id = fields.Many2one('course.enrollment', string='Enrollment')
     parent_profile_id = fields.Many2one('parent.profile', string='Parent Profile', tracking=True)
     student_profile_id = fields.Many2one('student.profile', string='Student Profile', tracking=True)
+    possible_duplicate_parent_id = fields.Many2one(
+        'parent.profile', string='Possible Duplicate Parent', readonly=True, copy=False,
+        help='Set automatically when this enquiry\'s email/phone matches an existing parent, '
+             'and no parent/student profile has been auto-created yet. Staff must resolve this '
+             '(attach to the existing parent, or create a new one) from the Enquiry form.',
+    )
+    possible_duplicate_parent_email = fields.Char(related='possible_duplicate_parent_id.email', string='Matched Email')
+    possible_duplicate_parent_phone = fields.Char(related='possible_duplicate_parent_id.phone', string='Matched Phone')
 
     can_convert_course = fields.Boolean(compute='_compute_can_convert_course')
     can_edit_enquiry = fields.Boolean(string='Can Edit Enquiry', compute='_compute_can_edit_enquiry')
@@ -237,7 +245,13 @@ class Enquiry(models.Model):
         return records
 
     def write(self, vals):
-        require_permission(self.env.user, 'enquiry_edit')
+        # Skip the manual permission check for sudo'd writes (e.g. the public
+        # enquiry form auto-provisioning a parent/student profile via
+        # _auto_create_parent_and_student() as a public/unauthenticated
+        # visitor) — sudo() is exactly how trusted internal flows are meant
+        # to bypass business-level checks intended for logged-in staff.
+        if not self.env.su:
+            require_permission(self.env.user, 'enquiry_edit')
         if vals.get('status') and not vals.get('stage_id'):
             vals = dict(vals)
             stage_id = self._stage_id_from_status(vals.pop('status'))
@@ -358,11 +372,25 @@ class Enquiry(models.Model):
                 self.parent_profile_id = self.student_profile_id.parent_id.id
 
     def _auto_create_parent_and_student(self):
-        """Auto-create parent profile, student profile, and contacts on enquiry creation."""
+        """Auto-create parent profile, student profile, and contacts on enquiry creation.
+
+        If the email/phone matches an existing parent, no parent or student is
+        created — `possible_duplicate_parent_id` is set instead and staff must
+        resolve it from the Enquiry form (action_attach_existing_parent /
+        action_create_new_parent_and_student) before either profile exists.
+        Callers that already know they want a brand-new parent regardless of
+        any match (e.g. the resolution action itself) pass `force_new_parent`
+        in context to skip this check.
+        """
         self.ensure_one()
 
         # --- Parent ---
         if not self.parent_profile_id:
+            if not self.env.context.get('force_new_parent'):
+                existing = self._search_existing_parent(self.email, self.phone, self.country_code)
+                if existing:
+                    self.possible_duplicate_parent_id = existing.id
+                    return
             parent = self._find_or_create_parent()
             self.parent_profile_id = parent.id
 
@@ -371,23 +399,41 @@ class Enquiry(models.Model):
             student = self._find_or_create_student(self.parent_profile_id)
             self.student_profile_id = student.id
 
+    @api.model
+    def _search_existing_parent(self, email, phone, country_code):
+        """Find an existing parent.profile by exact email, then exact phone+country_code.
+
+        Shared by `_find_or_create_parent` and the public enquiry controller's
+        duplicate-confirmation step, so both use identical matching rules.
+        Returns an empty recordset if nothing matches.
+        """
+        Parent = self.env['parent.profile']
+        if email:
+            existing = Parent.search([('email', '=', email)], limit=1)
+            if existing:
+                return existing
+        if phone:
+            existing = Parent.search([
+                ('phone', '=', phone),
+                ('country_code', '=', country_code or '+1'),
+            ], limit=1)
+            if existing:
+                return existing
+        return Parent.browse()
+
     def _find_or_create_parent(self):
-        """Find existing parent by email/phone or create a new one with contact."""
+        """Find existing parent by email/phone or create a new one with contact.
+
+        Skips the existing-parent search entirely when called with
+        `force_new_parent` in context — set by the public enquiry controller
+        when the submitter has explicitly confirmed "this is a different
+        person" after being shown a possible duplicate match.
+        """
         Parent = self.env['parent.profile']
         Partner = self.env['res.partner']
 
-        # Try to find existing parent by email
-        if self.email:
-            existing = Parent.search([('email', '=', self.email)], limit=1)
-            if existing:
-                return existing
-
-        # Try to find existing parent by phone
-        if self.phone:
-            existing = Parent.search([
-                ('phone', '=', self.phone),
-                ('country_code', '=', self.country_code or '+1'),
-            ], limit=1)
+        if not self.env.context.get('force_new_parent'):
+            existing = self._search_existing_parent(self.email, self.phone, self.country_code)
             if existing:
                 return existing
 
@@ -458,6 +504,48 @@ class Enquiry(models.Model):
 
         student = Student.create(student_vals)
         return student
+
+    def action_attach_existing_parent(self):
+        """Staff clicked "Attach to Existing Parent": open a confirmation wizard
+        showing exactly which parent this will attach to, and whether the
+        student is a new profile or an existing match — nothing is changed
+        until the wizard is confirmed."""
+        self.ensure_one()
+        if not self.possible_duplicate_parent_id:
+            raise UserError('There is no possible duplicate to resolve on this enquiry.')
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Confirm Attach to Existing Parent',
+            'res_model': 'enquiry.attach.parent.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {'default_enquiry_id': self.id},
+        }
+
+    def _do_attach_existing_parent(self):
+        """Actually perform the attach — called by EnquiryAttachParentWizard
+        after the user confirms. Attaches this enquiry to the existing parent
+        (never mutates the existing parent's own data) and finds-or-creates
+        the student under that parent — reusing an existing student with a
+        matching name if one exists, or adding a new student to that existing
+        family otherwise.
+        """
+        self.ensure_one()
+        if not self.possible_duplicate_parent_id:
+            raise UserError('There is no possible duplicate to resolve on this enquiry.')
+        self.parent_profile_id = self.possible_duplicate_parent_id.id
+        self.possible_duplicate_parent_id = False
+        if not self.student_profile_id and self.student_name:
+            self.student_profile_id = self._find_or_create_student(self.parent_profile_id).id
+
+    def action_create_new_parent_and_student(self):
+        """Staff-resolved: the possible duplicate is NOT the same person —
+        create a brand new parent/student despite the matching email/phone."""
+        self.ensure_one()
+        if not self.possible_duplicate_parent_id:
+            raise UserError('There is no possible duplicate to resolve on this enquiry.')
+        self.possible_duplicate_parent_id = False
+        self.with_context(force_new_parent=True)._auto_create_parent_and_student()
 
     def action_enroll_to_course(self):
         """Convert enquiry to a course with enrollment, reusing existing parent/student."""
@@ -532,6 +620,47 @@ class Enquiry(models.Model):
     def unlink(self):
         require_permission(self.env.user, 'enquiry_delete')
         return super().unlink()
+
+
+class EnquiryAttachParentWizard(models.TransientModel):
+    """Confirmation step for Enquiry.action_attach_existing_parent(): shows
+    which parent the enquiry will attach to, and whether the student will be
+    a newly-created profile or an existing match, before anything is changed.
+    """
+    _name = 'enquiry.attach.parent.wizard'
+    _description = 'Confirm Attach Enquiry to Existing Parent'
+
+    enquiry_id = fields.Many2one('enquiry', required=True, readonly=True)
+    student_name = fields.Char(related='enquiry_id.student_name', readonly=True)
+
+    parent_id = fields.Many2one('parent.profile', required=True, readonly=True)
+    parent_email = fields.Char(related='parent_id.email', readonly=True)
+    parent_phone = fields.Char(related='parent_id.phone', readonly=True)
+
+    matching_student_id = fields.Many2one('student.profile', readonly=True)
+    matching_student_grade_id = fields.Many2one(related='matching_student_id.grade_id', readonly=True)
+    is_new_student = fields.Boolean(readonly=True)
+
+    @api.model
+    def default_get(self, fields_list):
+        res = super().default_get(fields_list)
+        enquiry_id = res.get('enquiry_id') or self.env.context.get('default_enquiry_id')
+        if enquiry_id:
+            enquiry = self.env['enquiry'].browse(enquiry_id)
+            parent = enquiry.possible_duplicate_parent_id
+            res['parent_id'] = parent.id
+            existing_student = self.env['student.profile'].search([
+                ('name', '=', enquiry.student_name),
+                ('parent_id', '=', parent.id),
+            ], limit=1)
+            res['matching_student_id'] = existing_student.id
+            res['is_new_student'] = not bool(existing_student)
+        return res
+
+    def action_confirm(self):
+        self.ensure_one()
+        self.enquiry_id._do_attach_existing_parent()
+        return {'type': 'ir.actions.act_window_close'}
 
 
 class DemoSession(models.Model):
