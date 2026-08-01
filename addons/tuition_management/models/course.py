@@ -10,6 +10,7 @@ class CourseMaster(models.Model):
     _name = 'course.master'
     _description = 'Course Master'
     _inherit = ['mail.thread', 'mail.activity.mixin']
+    _order = 'create_date desc, id desc'
 
     name = fields.Char(string='Course Name', required=True)
     subject_id = fields.Many2one('subject.master', string='Subject', tracking=True)
@@ -470,6 +471,7 @@ class CourseMaster(models.Model):
 class CourseEnrollment(models.Model):
     _name = 'course.enrollment'
     _description = 'Course Enrollment'
+    _order = 'create_date desc, id desc'
 
     name = fields.Char(string='Enrollment Reference', required=True, copy=False, readonly=True, default='New')
     course_id = fields.Many2one('course.master', string='Course', required=True, ondelete='cascade')

@@ -100,7 +100,10 @@ class PortalAccessWizard(models.TransientModel):
         if not profile.partner_id:
             country = getattr(profile, 'country_code', '') or ''
             phonen = getattr(profile, 'phone', '') or ''
-            partner = self.env['res.partner'].create({
+            # sudo(): auto-provisioning a linked Contact is an internal
+            # implementation detail, not something that should require the
+            # acting user to separately hold Sales/Contact-Creation access.
+            partner = self.env['res.partner'].sudo().create({
                 'name': profile.name, 'email': profile.email,
                 'phone': f"{country}{phonen}"
             })

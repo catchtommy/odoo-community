@@ -438,7 +438,10 @@ class TutorProfile(models.Model):
         records = super().create(vals_list)
         for rec in records:
             if not rec.partner_id:
-                partner = self.env['res.partner'].create({
+                # sudo(): auto-provisioning a linked Contact is an internal
+                # implementation detail, not something that should require the
+                # acting user to separately hold Sales/Contact-Creation access.
+                partner = self.env['res.partner'].sudo().create({
                     'name': rec.name,
                     'email': rec.email,
                     'phone': '%s%s' % (rec.country_code or '', rec.phone or '') if rec.phone else False,

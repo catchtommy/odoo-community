@@ -77,7 +77,10 @@ class ParentProfile(models.Model):
                     'email': vals.get('email'),
                     'phone': '%s%s' % (vals.get('country_code', ''), vals.get('phone', '')) if vals.get('phone') else False,
                 }
-                partner = self.env['res.partner'].create(partner_vals)
+                # sudo(): auto-provisioning a linked Contact is an internal
+                # implementation detail, not something that should require the
+                # acting user to separately hold Sales/Contact-Creation access.
+                partner = self.env['res.partner'].sudo().create(partner_vals)
                 vals['partner_id'] = partner.id
         records = super().create(vals_list)
         return records

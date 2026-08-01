@@ -24,6 +24,7 @@ class Enquiry(models.Model):
     _description = 'Enquiry'
     _inherit = ['mail.thread', 'mail.activity.mixin']
     _rec_name = 'enquiry_name'
+    _order = 'enquiry_date desc, id desc'
 
     _STATUS_STAGE_MAP = {
         'new': 'New',
@@ -437,9 +438,13 @@ class Enquiry(models.Model):
             if existing:
                 return existing
 
-        # Create contact (res.partner)
+        # Create contact (res.partner). sudo(): auto-provisioning a linked
+        # Contact is an internal implementation detail, not something that
+        # should require the acting user to separately hold Sales/
+        # Contact-Creation access (this runs from plain button clicks like
+        # "Convert to Course", not just the sudo'd public-website flow).
         phone_full = '%s%s' % (self.country_code or '', self.phone or '')
-        partner = Partner.create({
+        partner = Partner.sudo().create({
             'name': self.name,
             'email': self.email,
             'phone': phone_full,
@@ -492,7 +497,8 @@ class Enquiry(models.Model):
         }
         if parent and parent.partner_id:
             student_partner_vals['parent_id'] = parent.partner_id.id
-        student_partner = Partner.create(student_partner_vals)
+        # sudo(): see the matching comment in _find_or_create_parent above.
+        student_partner = Partner.sudo().create(student_partner_vals)
 
         student_vals = {
             'name': self.student_name,
