@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_education_lesson_content_list" model="ir.ui.view">
+        <field name="name">education.lesson.content.list</field>
+        <field name="model">education.lesson.content</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="lesson_id"/>
+                <field name="content_type_id"/>
+                <field name="visibility"/>
+                <field name="state" widget="badge"/>
+                <field name="version"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_education_lesson_content_form" model="ir.ui.view">
+        <field name="name">education.lesson.content.form</field>
+        <field name="model">education.lesson.content</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_new_version" type="object" string="New Version" class="btn-secondary"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="lesson_id"/>
+                            <field name="content_type_id"/>
+                            <field name="content_category_id"/>
+                            <field name="sequence"/>
+                        </group>
+                        <group>
+                            <field name="visibility"/>
+                            <field name="language_id"/>
+                            <field name="publish_date"/>
+                            <field name="expiry_date"/>
+                            <field name="is_downloadable"/>
+                            <field name="is_previewable"/>
+                            <field name="version" readonly="1"/>
+                            <field name="previous_version_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="File / Link">
+                            <group>
+                                <field name="attachment_id"/>
+                                <field name="external_url"/>
+                            </group>
+                        </page>
+                        <page string="Rich Text">
+                            <field name="body"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_education_lesson_content_search" model="ir.ui.view">
+        <field name="name">education.lesson.content.search</field>
+        <field name="model">education.lesson.content</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="lesson_id"/>
+                <field name="content_type_id"/>
+                <filter name="published" string="Published" domain="[('state', '=', 'published')]"/>
+                <group>
+                    <filter name="group_by_type" string="Content Type" context="{'group_by': 'content_type_id'}"/>
+                    <filter name="group_by_lesson" string="Lesson" context="{'group_by': 'lesson_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_education_lesson_content" model="ir.actions.act_window">
+        <field name="name">Lesson Content</field>
+        <field name="res_model">education.lesson.content</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

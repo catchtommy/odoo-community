@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="demo_curriculum_gcse_maths" model="education.curriculum">
+        <field name="name">GCSE Mathematics (AQA)</field>
+        <field name="code">GCSE-MATHS-AQA</field>
+        <field name="subject_id" ref="education_core.demo_subject_maths"/>
+        <field name="education_system_id" ref="education_core.demo_system_uk_national"/>
+        <field name="board_id" ref="education_core.demo_board_aqa"/>
+        <field name="academic_level_id" ref="education_core.demo_level_gcse"/>
+    </record>
+
+    <record id="demo_curriculum_gcse_maths_v1" model="education.curriculum.version">
+        <field name="curriculum_id" ref="demo_curriculum_gcse_maths"/>
+        <field name="version_label">2025-2026</field>
+        <field name="version_number">1</field>
+    </record>
+
+    <record id="demo_topic_algebra" model="education.topic">
+        <field name="name">Algebra</field>
+        <field name="code">ALG</field>
+        <field name="curriculum_version_id" ref="demo_curriculum_gcse_maths_v1"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="demo_subtopic_linear_equations" model="education.subtopic">
+        <field name="name">Linear Equations</field>
+        <field name="topic_id" ref="demo_topic_algebra"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="demo_objective_solve_linear" model="education.learning.objective">
+        <field name="name">Solve linear equations with one unknown</field>
+        <field name="topic_id" ref="demo_topic_algebra"/>
+        <field name="bloom_level">apply</field>
+        <field name="expected_completion_minutes">30</field>
+    </record>
+
+    <record id="demo_skill_one_step" model="education.skill">
+        <field name="name">Solve one-step linear equations</field>
+        <field name="topic_id" ref="demo_topic_algebra"/>
+        <field name="difficulty_level">foundation</field>
+    </record>
+
+    <!-- Publish the version now that its topics exist (topic creation is
+         blocked once a version is published — see education.topic.create()). -->
+    <record id="demo_curriculum_gcse_maths_v1" model="education.curriculum.version">
+        <field name="state">published</field>
+        <field name="published_date" eval="DateTime.now()"/>
+    </record>
+</odoo>

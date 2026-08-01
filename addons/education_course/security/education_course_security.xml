@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Defense-in-depth only: portal access to these models is primarily
+         governed by the tuition_management portal controllers' own sudo()
+         + explicit ownership checks (_get_tutor()/_get_student()), the same
+         convention already used throughout that app. These record rules
+         provide a backstop for direct ORM/API access. -->
+
+    <record id="rule_education_lesson_assignment_tutor_own" model="ir.rule">
+        <field name="name">Lesson Assignment: tutor sees own</field>
+        <field name="model_id" ref="model_education_lesson_assignment"/>
+        <field name="domain_force">[('tutor_id.partner_id.user_ids', 'in', user.id)]</field>
+        <field name="groups" eval="[(4, ref('education_core.group_education_tutor'))]"/>
+    </record>
+
+    <record id="rule_education_student_progress_student_own" model="ir.rule">
+        <field name="name">Student Progress: student sees own</field>
+        <field name="model_id" ref="model_education_student_progress"/>
+        <field name="domain_force">[('student_id.partner_id.user_ids', 'in', user.id)]</field>
+        <field name="groups" eval="[(4, ref('education_core.group_education_student'))]"/>
+    </record>
+
+    <!-- See education_curriculum_security.xml for why this is needed: without
+         it, Curriculum Manager/Administrator (which implies Tutor/Student)
+         would incorrectly inherit the "own records only" restrictions above. -->
+    <record id="rule_education_lesson_assignment_manager_full" model="ir.rule">
+        <field name="name">Lesson Assignment: full access for Curriculum Manager</field>
+        <field name="model_id" ref="model_education_lesson_assignment"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('education_core.group_education_curriculum_manager'))]"/>
+    </record>
+
+    <record id="rule_education_student_progress_manager_full" model="ir.rule">
+        <field name="name">Student Progress: full access for Curriculum Manager</field>
+        <field name="model_id" ref="model_education_student_progress"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('education_core.group_education_curriculum_manager'))]"/>
+    </record>
+</odoo>

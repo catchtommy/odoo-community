@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="content_type_rich_text" model="education.content.type">
+        <field name="name">Rich Text</field><field name="code">rich_text</field>
+        <field name="icon">fa-file-text-o</field><field name="sequence">10</field>
+    </record>
+    <record id="content_type_pdf" model="education.content.type">
+        <field name="name">PDF</field><field name="code">pdf</field>
+        <field name="icon">fa-file-pdf-o</field><field name="sequence">20</field>
+    </record>
+    <record id="content_type_word" model="education.content.type">
+        <field name="name">Word Document</field><field name="code">word</field>
+        <field name="icon">fa-file-word-o</field><field name="sequence">30</field>
+    </record>
+    <record id="content_type_powerpoint" model="education.content.type">
+        <field name="name">PowerPoint</field><field name="code">powerpoint</field>
+        <field name="icon">fa-file-powerpoint-o</field><field name="sequence">40</field>
+    </record>
+    <record id="content_type_excel" model="education.content.type">
+        <field name="name">Excel</field><field name="code">excel</field>
+        <field name="icon">fa-file-excel-o</field><field name="sequence">50</field>
+    </record>
+    <record id="content_type_video" model="education.content.type">
+        <field name="name">Video</field><field name="code">video</field>
+        <field name="icon">fa-file-video-o</field><field name="sequence">60</field>
+    </record>
+    <record id="content_type_audio" model="education.content.type">
+        <field name="name">Audio</field><field name="code">audio</field>
+        <field name="icon">fa-file-audio-o</field><field name="sequence">70</field>
+    </record>
+    <record id="content_type_worksheet" model="education.content.type">
+        <field name="name">Worksheet</field><field name="code">worksheet</field>
+        <field name="icon">fa-file-o</field><field name="sequence">80</field>
+    </record>
+    <record id="content_type_homework" model="education.content.type">
+        <field name="name">Homework</field><field name="code">homework</field>
+        <field name="icon">fa-pencil</field><field name="sequence">90</field>
+    </record>
+    <record id="content_type_quiz" model="education.content.type">
+        <field name="name">Quiz</field><field name="code">quiz</field>
+        <field name="icon">fa-question-circle-o</field><field name="sequence">100</field>
+    </record>
+    <record id="content_type_interactive" model="education.content.type">
+        <field name="name">Interactive</field><field name="code">interactive</field>
+        <field name="icon">fa-mouse-pointer</field><field name="sequence">110</field>
+    </record>
+    <record id="content_type_image" model="education.content.type">
+        <field name="name">Image</field><field name="code">image</field>
+        <field name="icon">fa-file-image-o</field><field name="sequence">120</field>
+    </record>
+    <record id="content_type_external_url" model="education.content.type">
+        <field name="name">External URL</field><field name="code">external_url</field>
+        <field name="icon">fa-link</field><field name="is_downloadable" eval="False"/><field name="sequence">130</field>
+    </record>
+    <record id="content_type_youtube" model="education.content.type">
+        <field name="name">YouTube</field><field name="code">youtube</field>
+        <field name="icon">fa-youtube-play</field><field name="is_downloadable" eval="False"/><field name="sequence">140</field>
+    </record>
+    <record id="content_type_whiteboard" model="education.content.type">
+        <field name="name">Whiteboard</field><field name="code">whiteboard</field>
+        <field name="icon">fa-chalkboard</field><field name="sequence">150</field>
+    </record>
+    <record id="content_type_past_paper" model="education.content.type">
+        <field name="name">Past Paper</field><field name="code">past_paper</field>
+        <field name="icon">fa-file-pdf-o</field><field name="sequence">160</field>
+    </record>
+    <record id="content_type_answer_sheet" model="education.content.type">
+        <field name="name">Answer Sheet</field><field name="code">answer_sheet</field>
+        <field name="icon">fa-check-square-o</field><field name="sequence">170</field>
+    </record>
+    <record id="content_type_presentation" model="education.content.type">
+        <field name="name">Presentation</field><field name="code">presentation</field>
+        <field name="icon">fa-file-powerpoint-o</field><field name="sequence">180</field>
+    </record>
+    <record id="content_type_code_example" model="education.content.type">
+        <field name="name">Code Example</field><field name="code">code_example</field>
+        <field name="icon">fa-code</field><field name="sequence">190</field>
+    </record>
+    <record id="content_type_python_notebook" model="education.content.type">
+        <field name="name">Python Notebook</field><field name="code">python_notebook</field>
+        <field name="icon">fa-book</field><field name="sequence">200</field>
+    </record>
+    <record id="content_type_zip" model="education.content.type">
+        <field name="name">ZIP Archive</field><field name="code">zip</field>
+        <field name="icon">fa-file-archive-o</field><field name="sequence">210</field>
+    </record>
+</odoo>

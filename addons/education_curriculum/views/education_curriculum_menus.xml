@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_education_curriculum" name="Curricula" parent="education_core.menu_education_curriculum_root"
+              action="education_curriculum.action_education_curriculum" sequence="10"/>
+    <menuitem id="menu_education_curriculum_version" name="Versions" parent="education_core.menu_education_curriculum_root"
+              action="education_curriculum.action_education_curriculum_version" sequence="20"/>
+    <menuitem id="menu_education_topic" name="Topics" parent="education_core.menu_education_curriculum_root"
+              action="education_curriculum.action_education_topic" sequence="30"/>
+    <menuitem id="menu_education_subtopic" name="Subtopics" parent="education_core.menu_education_curriculum_root"
+              action="education_curriculum.action_education_subtopic" sequence="40"/>
+    <menuitem id="menu_education_learning_objective" name="Learning Objectives" parent="education_core.menu_education_curriculum_root"
+              action="education_curriculum.action_education_learning_objective" sequence="50"/>
+    <menuitem id="menu_education_skill" name="Skills" parent="education_core.menu_education_curriculum_root"
+              action="education_curriculum.action_education_skill" sequence="60"/>
+</odoo>

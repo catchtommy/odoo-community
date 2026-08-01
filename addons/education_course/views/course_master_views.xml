@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_course_master_form_curriculum" model="ir.ui.view">
+        <field name="name">course.master.form.curriculum</field>
+        <field name="model">course.master</field>
+        <field name="inherit_id" ref="tuition_management.view_course_master_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='lessons']" position="before">
+                <page string="Curriculum" name="education_curriculum">
+                    <div class="mb-3">
+                        <button name="action_assign_curriculum_version" type="object" class="btn-secondary"
+                                string="Assign Curriculum Version"/>
+                        <button name="action_view_lesson_assignments" type="object" class="btn-secondary"
+                                string="View Lesson Assignments"/>
+                    </div>
+                    <group>
+                        <field name="primary_curriculum_version_id" readonly="1"/>
+                        <field name="curriculum_ids" widget="many2many_tags" readonly="1"/>
+                    </group>
+                    <field name="course_curriculum_ids">
+                        <list editable="bottom">
+                            <field name="curriculum_version_id" domain="[('state', '=', 'published')]"/>
+                            <field name="is_primary"/>
+                            <field name="assigned_date" readonly="1"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

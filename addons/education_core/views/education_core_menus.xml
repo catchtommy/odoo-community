@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_education_root" name="Education" sequence="35"/>
+
+    <menuitem id="menu_education_curriculum_root" name="Curriculum" parent="menu_education_root" sequence="10"/>
+    <menuitem id="menu_education_content_root" name="Content" parent="menu_education_root" sequence="20"/>
+    <menuitem id="menu_education_course_root" name="Courses" parent="menu_education_root" sequence="30"/>
+
+    <menuitem id="menu_education_configuration_root" name="Configuration" parent="menu_education_root" sequence="90"
+              groups="education_core.group_education_curriculum_manager"/>
+
+    <menuitem id="menu_education_country" name="Countries" parent="menu_education_configuration_root"
+              action="action_education_country" sequence="10"/>
+    <menuitem id="menu_education_education_system" name="Education Systems" parent="menu_education_configuration_root"
+              action="action_education_education_system" sequence="20"/>
+    <menuitem id="menu_education_exam_board" name="Exam Boards" parent="menu_education_configuration_root"
+              action="action_education_exam_board" sequence="30"/>
+    <menuitem id="menu_education_academic_level" name="Academic Levels" parent="menu_education_configuration_root"
+              action="action_education_academic_level" sequence="40"/>
+    <menuitem id="menu_education_subject" name="Subjects" parent="menu_education_configuration_root"
+              action="action_education_subject" sequence="50"/>
+    <menuitem id="menu_education_curriculum_tag" name="Tags" parent="menu_education_configuration_root"
+              action="action_education_curriculum_tag" sequence="60"/>
+</odoo>

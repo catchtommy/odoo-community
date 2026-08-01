@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_education_course_curriculum" name="Course Curriculum Assignments"
+              parent="education_core.menu_education_course_root"
+              action="action_education_course_curriculum" sequence="10"/>
+    <menuitem id="menu_education_lesson_assignment" name="Lesson Assignments"
+              parent="education_core.menu_education_course_root"
+              action="action_education_lesson_assignment" sequence="20"/>
+    <menuitem id="menu_education_student_progress" name="Student Progress"
+              parent="education_core.menu_education_course_root"
+              action="action_education_student_progress" sequence="30"/>
+</odoo>

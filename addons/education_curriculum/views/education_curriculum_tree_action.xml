@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="action_education_curriculum_tree" model="ir.actions.client">
+        <field name="name">Curriculum Structure</field>
+        <field name="tag">education_curriculum_tree</field>
+    </record>
+</odoo>

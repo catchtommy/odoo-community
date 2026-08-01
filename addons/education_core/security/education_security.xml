@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- ============================================================
+         Education Curriculum Management — Privilege + Groups
+         Defined once here; every downstream education_* module
+         references these groups by external id, never redefines them.
+         ============================================================ -->
+    <record model="res.groups.privilege" id="privilege_education_management">
+        <field name="name">Curriculum Management</field>
+        <field name="sequence">50</field>
+        <field name="category_id" ref="base.module_category_services"/>
+    </record>
+
+    <record id="group_education_student" model="res.groups">
+        <field name="name">Education / Student</field>
+        <field name="privilege_id" ref="privilege_education_management"/>
+        <field name="comment">Read access to their own assigned curriculum, lessons and progress (mainly via portal).</field>
+    </record>
+
+    <record id="group_education_tutor" model="res.groups">
+        <field name="name">Education / Tutor</field>
+        <field name="privilege_id" ref="privilege_education_management"/>
+        <field name="comment">Read access to published curriculum; can add teaching notes, mark lessons complete, log feedback.</field>
+    </record>
+
+    <record id="group_education_reviewer" model="res.groups">
+        <field name="name">Education / Curriculum Reviewer</field>
+        <field name="privilege_id" ref="privilege_education_management"/>
+        <field name="comment">Can move curriculum versions Draft to Review to Approved, but cannot publish.</field>
+    </record>
+
+    <record id="group_education_curriculum_manager" model="res.groups">
+        <field name="name">Education / Curriculum Manager</field>
+        <field name="privilege_id" ref="privilege_education_management"/>
+        <field name="implied_ids" eval="[(4, ref('group_education_reviewer'))]"/>
+        <field name="comment">Full CRUD on curriculum structure; can publish and archive curriculum versions.</field>
+    </record>
+
+    <record id="group_education_administrator" model="res.groups">
+        <field name="name">Education / Administrator</field>
+        <field name="privilege_id" ref="privilege_education_management"/>
+        <field name="implied_ids" eval="[
+            (4, ref('group_education_curriculum_manager')),
+            (4, ref('group_education_tutor')),
+            (4, ref('group_education_student')),
+        ]"/>
+        <field name="comment">Full access to every Curriculum Management model and setting.</field>
+    </record>
+</odoo>

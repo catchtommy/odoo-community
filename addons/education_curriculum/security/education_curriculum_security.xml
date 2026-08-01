@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Ordinary users only see published/archived versions; reviewers and
+         curriculum managers see everything (drafts, in review, etc). -->
+    <record id="rule_education_curriculum_version_published_only" model="ir.rule">
+        <field name="name">Curriculum Version: published/archived only for ordinary users</field>
+        <field name="model_id" ref="model_education_curriculum_version"/>
+        <field name="domain_force">[('state', 'in', ('published', 'archived'))]</field>
+        <field name="groups" eval="[(4, ref('education_core.group_education_tutor')), (4, ref('education_core.group_education_student'))]"/>
+    </record>
+
+    <record id="rule_education_topic_published_only" model="ir.rule">
+        <field name="name">Topic: published/archived version only for ordinary users</field>
+        <field name="model_id" ref="model_education_topic"/>
+        <field name="domain_force">[('curriculum_version_id.state', 'in', ('published', 'archived'))]</field>
+        <field name="groups" eval="[(4, ref('education_core.group_education_tutor')), (4, ref('education_core.group_education_student'))]"/>
+    </record>
+
+    <!-- Curriculum Manager (and Administrator, which implies it) must see ALL
+         versions/topics regardless of state. Without an explicit permissive
+         rule here, a manager who is ALSO (via implied_ids) a member of the
+         Tutor/Student groups above would incorrectly inherit their
+         published-only restriction, since ir.rule OR-combines every rule
+         whose group the user belongs to. -->
+    <record id="rule_education_curriculum_version_manager_full" model="ir.rule">
+        <field name="name">Curriculum Version: full access for Curriculum Manager</field>
+        <field name="model_id" ref="model_education_curriculum_version"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('education_core.group_education_curriculum_manager'))]"/>
+    </record>
+
+    <record id="rule_education_topic_manager_full" model="ir.rule">
+        <field name="name">Topic: full access for Curriculum Manager</field>
+        <field name="model_id" ref="model_education_topic"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('education_core.group_education_curriculum_manager'))]"/>
+    </record>
+</odoo>

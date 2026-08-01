@@ -1,0 +1,322 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="education_curriculum.CurriculumTree">
+        <div class="ect-wrap p-4" style="height: calc(100vh - 50px); overflow-y: auto;">
+            <style>
+                .ect-wrap { background: #f7f7fa; }
+                .ect-container { max-width: 1100px; margin: 0 auto; }
+                .ect-topic-card {
+                    margin-bottom: 20px;
+                    border: 1px solid #e5e7eb;
+                    border-radius: 10px;
+                    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+                    overflow: hidden;
+                }
+                .ect-topic-header {
+                    cursor: pointer; user-select: none;
+                    padding: 14px 18px;
+                    background: #fbfbfd;
+                }
+                .ect-topic-header strong { font-size: 15px; }
+                .ect-topic-header:hover .ect-delete { visibility: visible; }
+                .ect-delete { visibility: hidden; color: #dc2626; cursor: pointer; padding: 4px; }
+                .ect-delete:hover { color: #991b1b; }
+                .ect-card-body { padding: 20px; }
+                .ect-section-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 20px;
+                }
+                @media (max-width: 900px) {
+                    .ect-section-grid { grid-template-columns: 1fr; }
+                }
+                .ect-section {
+                    background: #fafafa;
+                    border: 1px solid #ececef;
+                    border-radius: 8px;
+                    padding: 14px 16px;
+                }
+                .ect-section-title {
+                    font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em;
+                    font-weight: 700; color: #6b7280; margin-bottom: 10px;
+                    display: flex; align-items: center;
+                }
+                .ect-item-row {
+                    display: flex; align-items: center; gap: 8px;
+                    padding: 7px 8px; border-radius: 6px;
+                }
+                .ect-item-row + .ect-item-row { margin-top: 2px; }
+                .ect-item-row:hover { background: #f0f0f5; }
+                .ect-item-row:hover .ect-delete { visibility: visible; }
+                .ect-item-label { flex: 1; cursor: pointer; line-height: 1.5; }
+                .ect-add-pill {
+                    display: inline-flex; align-items: center; gap: 4px;
+                    color: #6366f1; font-size: 12px; font-weight: 600;
+                    cursor: pointer; padding: 5px 10px; border-radius: 10px;
+                    margin-top: 6px;
+                }
+                .ect-add-pill:hover { background: #eef2ff; }
+                .ect-add-row { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+                .ect-add-row input, .ect-add-row select {
+                    border: 1px solid #c7d2fe; border-radius: 6px; padding: 5px 10px; font-size: 13px; outline: none;
+                }
+                .ect-add-row input:focus, .ect-add-row select:focus { border-color: #6366f1; }
+                .ect-empty-hint { color: #9ca3af; font-style: italic; font-size: 12px; margin-bottom: 4px; }
+                .ect-topbar {
+                    background: white; border: 1px solid #e5e7eb; border-radius: 10px;
+                    padding: 18px 20px; margin-bottom: 24px;
+                }
+            </style>
+
+            <t t-if="state.loading">
+                <div class="text-muted fst-italic">Loading curriculum structure…</div>
+            </t>
+            <t t-elif="!state.curriculum">
+                <div class="text-muted fst-italic">No curriculum found for this action.</div>
+            </t>
+            <t t-else="">
+              <div class="ect-container">
+                <div class="ect-topbar d-flex justify-content-between align-items-start flex-wrap">
+                  <div>
+                    <h3 class="mb-0"><t t-esc="state.curriculum.name"/></h3>
+                    <small t-if="state.curriculum.code" class="text-muted" t-esc="state.curriculum.code"/>
+                  </div>
+                  <button class="btn btn-link btn-sm" t-on-click="() => this.openCurriculumDetails()">
+                      <i class="fa fa-pencil me-1"/>Edit Details
+                  </button>
+                  <div class="w-100">
+
+                    <t t-if="!state.versions.length">
+                        <div class="alert alert-info mt-3 mb-0">This curriculum has no versions yet.</div>
+                        <t t-if="isAddOpen('add-version')">
+                            <div class="ect-add-row">
+                                <input type="text" placeholder="Version label (e.g. v1)"
+                                       t-att-value="state.addValues['add-version']"
+                                       t-on-input="(ev) => this.onAddInput('add-version', ev)"
+                                       t-on-keydown="(ev) => this.onAddKeydown('add-version', () => this.submitAddVersion(), ev)"/>
+                                <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddVersion()">Add</button>
+                                <button class="btn btn-sm btn-secondary" t-on-click="() => this.cancelAdd('add-version')">Cancel</button>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <button class="btn btn-sm btn-primary mt-3" t-on-click="() => this.openAdd('add-version')">
+                                <i class="fa fa-plus me-1"/>Create First Version
+                            </button>
+                        </t>
+                    </t>
+
+                    <t t-else="">
+                        <!-- Version selector: a lightweight dropdown, NOT a nesting level -->
+                        <div class="d-flex align-items-center gap-2 mt-3 flex-wrap">
+                            <label class="mb-0 fw-bold small text-muted">Version</label>
+                            <select class="form-select form-select-sm" style="width: auto;" t-on-change="onVersionChange">
+                                <t t-foreach="state.versions" t-as="version" t-key="version.id">
+                                    <option t-att-value="version.id" t-att-selected="version.id === state.selectedVersionId">
+                                        <t t-esc="version.version_label"/> — <t t-esc="version.state"/>
+                                    </option>
+                                </t>
+                            </select>
+                            <t t-if="isAddOpen('add-version')">
+                                <input type="text" placeholder="New version label…" class="form-control form-control-sm" style="width: auto;"
+                                       t-att-value="state.addValues['add-version']"
+                                       t-on-input="(ev) => this.onAddInput('add-version', ev)"
+                                       t-on-keydown="(ev) => this.onAddKeydown('add-version', () => this.submitAddVersion(), ev)"/>
+                                <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddVersion()">Add</button>
+                                <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-version')">Cancel</button>
+                            </t>
+                            <t t-else="">
+                                <span class="ect-add-pill mt-0" t-on-click="() => this.openAdd('add-version')">
+                                    <i class="fa fa-plus"/> New Version
+                                </span>
+                            </t>
+                        </div>
+                    </t>
+                  </div>
+                </div>
+
+                <t t-if="state.versions.length and currentVersion">
+                        <t t-if="!currentVersion.topics.length">
+                            <div class="ect-empty-hint mb-2">No topics yet in this version.</div>
+                        </t>
+
+                        <t t-foreach="currentVersion.topics" t-as="topic" t-key="topic.id">
+                            <div class="card ect-topic-card">
+                                <div class="card-header d-flex justify-content-between align-items-center ect-topic-header"
+                                     t-on-click="() => this.toggleTopic(topic.id)">
+                                    <span>
+                                        <i t-attf-class="fa {{isTopicOpen(topic.id) ? 'fa-caret-down' : 'fa-caret-right'}} me-2"/>
+                                        <strong t-esc="topic.name"/>
+                                        <small t-if="topic.code" class="text-muted ms-1" t-esc="topic.code"/>
+                                    </span>
+                                    <i class="fa fa-trash ect-delete" title="Delete topic"
+                                       t-on-click.stop="() => this.deleteNode('education.topic', topic.id, topic.name)"/>
+                                </div>
+
+                                <t t-if="isTopicOpen(topic.id)">
+                                    <div class="ect-card-body">
+                                      <div class="ect-section-grid">
+                                        <!-- Subtopics -->
+                                        <div class="ect-section">
+                                            <div class="ect-section-title"><i class="fa fa-sitemap me-1"/>Subtopics</div>
+                                            <t t-if="!topic.subtopics.length and !isAddOpen('add-subtopic-' + topic.id)">
+                                                <div class="ect-empty-hint">No subtopics.</div>
+                                            </t>
+                                            <t t-foreach="topic.subtopics" t-as="subtopic" t-key="subtopic.id">
+                                                <div class="ect-item-row">
+                                                    <span class="ect-item-label" t-on-click="() => this.openRecord('education.subtopic', subtopic.id)" t-esc="subtopic.name"/>
+                                                    <i class="fa fa-trash ect-delete" title="Delete subtopic"
+                                                       t-on-click="() => this.deleteNode('education.subtopic', subtopic.id, subtopic.name)"/>
+                                                </div>
+                                            </t>
+                                            <t t-if="isAddOpen('add-subtopic-' + topic.id)">
+                                                <div class="ect-add-row">
+                                                    <input type="text" placeholder="New subtopic…"
+                                                           t-att-value="state.addValues['add-subtopic-' + topic.id]"
+                                                           t-on-input="(ev) => this.onAddInput('add-subtopic-' + topic.id, ev)"
+                                                           t-on-keydown="(ev) => this.onAddKeydown('add-subtopic-' + topic.id, () => this.submitAddSubtopic(topic.id), ev)"/>
+                                                    <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddSubtopic(topic.id)">Add</button>
+                                                    <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-subtopic-' + topic.id)">Cancel</button>
+                                                </div>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="ect-add-pill" t-on-click="() => this.openAdd('add-subtopic-' + topic.id)">
+                                                    <i class="fa fa-plus"/> Add Subtopic
+                                                </span>
+                                            </t>
+                                        </div>
+
+                                        <!-- Learning Objectives (topic-level + subtopic-level, merged) -->
+                                        <div class="ect-section">
+                                            <div class="ect-section-title"><i class="fa fa-bullseye me-1"/>Learning Objectives</div>
+                                            <t t-if="!topic.objectives.length and !isAddOpen('add-objective-' + topic.id)">
+                                                <div class="ect-empty-hint">No learning objectives.</div>
+                                            </t>
+                                            <t t-foreach="topic.objectives" t-as="objective" t-key="objective.id">
+                                                <div class="ect-item-row">
+                                                    <span class="ect-item-label" t-on-click="() => this.openRecord('education.learning.objective', objective.id)">
+                                                        <t t-esc="objective.name"/>
+                                                        <span t-if="objective.subtopicName" class="badge text-bg-light ms-1" t-esc="objective.subtopicName"/>
+                                                        <span t-if="objective.bloom_level" class="badge text-bg-secondary ms-1" t-esc="bloomLabel(objective.bloom_level)"/>
+                                                    </span>
+                                                    <i class="fa fa-trash ect-delete" title="Delete objective"
+                                                       t-on-click="() => this.deleteNode('education.learning.objective', objective.id, objective.name)"/>
+                                                </div>
+                                            </t>
+                                            <t t-if="isAddOpen('add-objective-' + topic.id)">
+                                                <div class="ect-add-row">
+                                                    <input type="text" placeholder="New learning objective…"
+                                                           t-att-value="state.addValues['add-objective-' + topic.id]"
+                                                           t-on-input="(ev) => this.onAddInput('add-objective-' + topic.id, ev)"
+                                                           t-on-keydown="(ev) => this.onAddKeydown('add-objective-' + topic.id, () => this.submitAddObjective(topic.id), ev)"/>
+                                                    <t t-if="topic.subtopics.length">
+                                                        <select t-on-change="(ev) => this.onSubtopicChoiceChange(topic.id, ev)">
+                                                            <option value="">(general — topic level)</option>
+                                                            <t t-foreach="topic.subtopics" t-as="subtopic" t-key="subtopic.id">
+                                                                <option t-att-value="subtopic.id" t-esc="subtopic.name"/>
+                                                            </t>
+                                                        </select>
+                                                    </t>
+                                                    <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddObjective(topic.id)">Add</button>
+                                                    <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-objective-' + topic.id)">Cancel</button>
+                                                </div>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="ect-add-pill" t-on-click="() => this.openAdd('add-objective-' + topic.id)">
+                                                    <i class="fa fa-plus"/> Add Learning Objective
+                                                </span>
+                                            </t>
+                                        </div>
+
+                                        <!-- Skills -->
+                                        <div class="ect-section">
+                                            <div class="ect-section-title"><i class="fa fa-star me-1"/>Skills</div>
+                                            <t t-if="!topic.skills.length and !isAddOpen('add-skill-' + topic.id)">
+                                                <div class="ect-empty-hint">No skills.</div>
+                                            </t>
+                                            <t t-foreach="topic.skills" t-as="skill" t-key="skill.id">
+                                                <div class="ect-item-row">
+                                                    <span class="ect-item-label" t-on-click="() => this.openRecord('education.skill', skill.id)">
+                                                        <span t-if="skill.unique_skill_code" class="text-muted font-monospace small me-1" t-esc="skill.unique_skill_code"/>
+                                                        <t t-esc="skill.name"/>
+                                                    </span>
+                                                    <i class="fa fa-trash ect-delete" title="Delete skill"
+                                                       t-on-click="() => this.deleteNode('education.skill', skill.id, skill.name)"/>
+                                                </div>
+                                            </t>
+                                            <t t-if="isAddOpen('add-skill-' + topic.id)">
+                                                <div class="ect-add-row">
+                                                    <input type="text" placeholder="New skill…"
+                                                           t-att-value="state.addValues['add-skill-' + topic.id]"
+                                                           t-on-input="(ev) => this.onAddInput('add-skill-' + topic.id, ev)"
+                                                           t-on-keydown="(ev) => this.onAddKeydown('add-skill-' + topic.id, () => this.submitAddSkill(topic.id), ev)"/>
+                                                    <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddSkill(topic.id)">Add</button>
+                                                    <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-skill-' + topic.id)">Cancel</button>
+                                                </div>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="ect-add-pill" t-on-click="() => this.openAdd('add-skill-' + topic.id)">
+                                                    <i class="fa fa-plus"/> Add Skill
+                                                </span>
+                                            </t>
+                                        </div>
+
+                                        <!-- Lessons -->
+                                        <div class="ect-section mb-0">
+                                            <div class="ect-section-title"><i class="fa fa-book me-1"/>Lessons</div>
+                                            <t t-if="!topic.lessons.length and !isAddOpen('add-lesson-' + topic.id)">
+                                                <div class="ect-empty-hint">No lessons.</div>
+                                            </t>
+                                            <t t-foreach="topic.lessons" t-as="lesson" t-key="lesson.id">
+                                                <div class="ect-item-row">
+                                                    <span class="ect-item-label" t-on-click="() => this.openRecord('education.lesson', lesson.id)">
+                                                        <t t-esc="lesson.name"/>
+                                                        <span class="badge text-bg-light ms-1" t-esc="lesson.duration_minutes + ' min'"/>
+                                                        <span class="badge text-bg-secondary ms-1" t-esc="lesson.state"/>
+                                                    </span>
+                                                    <i class="fa fa-trash ect-delete" title="Delete lesson"
+                                                       t-on-click="() => this.deleteNode('education.lesson', lesson.id, lesson.name)"/>
+                                                </div>
+                                            </t>
+                                            <t t-if="isAddOpen('add-lesson-' + topic.id)">
+                                                <div class="ect-add-row">
+                                                    <input type="text" placeholder="New lesson…"
+                                                           t-att-value="state.addValues['add-lesson-' + topic.id]"
+                                                           t-on-input="(ev) => this.onAddInput('add-lesson-' + topic.id, ev)"
+                                                           t-on-keydown="(ev) => this.onAddKeydown('add-lesson-' + topic.id, () => this.submitAddLesson(topic.id), ev)"/>
+                                                    <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddLesson(topic.id)">Add</button>
+                                                    <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-lesson-' + topic.id)">Cancel</button>
+                                                </div>
+                                            </t>
+                                            <t t-else="">
+                                                <span class="ect-add-pill" t-on-click="() => this.openAdd('add-lesson-' + topic.id)">
+                                                    <i class="fa fa-plus"/> Add Lesson
+                                                </span>
+                                            </t>
+                                        </div>
+                                      </div>
+                                    </div>
+                                </t>
+                            </div>
+                        </t>
+
+                        <t t-if="isAddOpen('add-topic')">
+                            <div class="ect-add-row">
+                                <input type="text" placeholder="New topic…" class="form-control form-control-sm" style="width: auto;"
+                                       t-att-value="state.addValues['add-topic']"
+                                       t-on-input="(ev) => this.onAddInput('add-topic', ev)"
+                                       t-on-keydown="(ev) => this.onAddKeydown('add-topic', () => this.submitAddTopic(), ev)"/>
+                                <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddTopic()">Add</button>
+                                <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-topic')">Cancel</button>
+                            </div>
+                        </t>
+                        <t t-else="">
+                            <button class="btn btn-sm btn-primary mt-1" t-on-click="() => this.openAdd('add-topic')">
+                                <i class="fa fa-plus me-1"/>Add Topic
+                            </button>
+                        </t>
+                    </t>
+              </div>
+            </t>
+        </div>
+    </t>
+</templates>

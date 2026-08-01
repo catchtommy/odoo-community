@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_education_curriculum_new_version_wizard_form" model="ir.ui.view">
+        <field name="name">education.curriculum.new.version.wizard.form</field>
+        <field name="model">education.curriculum.new.version.wizard</field>
+        <field name="arch" type="xml">
+            <form>
+                <p>
+                    This will clone <field name="topic_count" readonly="1" class="oe_inline"/> topic(s)
+                    (with their subtopics, objectives, skills and prerequisites) into a new Draft version.
+                    The current version will not be modified.
+                </p>
+                <footer>
+                    <button name="action_confirm" type="object" string="Create New Version" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_education_curriculum_new_version_wizard" model="ir.actions.act_window">
+        <field name="name">Create New Version</field>
+        <field name="res_model">education.curriculum.new.version.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+</odoo>

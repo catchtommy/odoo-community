@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Extends tuition_management's existing tutor "Lessons" portal page
+         (no new route) to show which curriculum lesson, if any, is assigned
+         to each scheduled occurrence. education_course's counterpart for the
+         student "Lessons" page is intentionally not implemented: the target
+         template ('tuition_management.portal_student_lessons') referenced by
+         PortalStudent.portal_course_lessons() does not currently exist in
+         tuition_management, so there is nothing to inherit from yet. -->
+    <template id="portal_tutor_lessons_curriculum_column" inherit_id="tuition_management.portal_tutor_lessons">
+        <xpath expr="//table[hasclass('tm-table')]/thead/tr/th[last()]" position="before">
+            <th>Curriculum Lesson</th>
+        </xpath>
+        <xpath expr="//table[hasclass('tm-table')]/tbody//tr/td[last()]" position="before">
+            <td>
+                <t t-set="_assignment" t-value="request.env['education.lesson.assignment'].sudo().search([('class_schedule_occurrence_id', '=', od['occ'].id)], limit=1)"/>
+                <t t-if="_assignment">
+                    <span class="tm-badge tm-badge-blue" t-esc="_assignment.lesson_id.name"/>
+                </t>
+                <t t-else="">
+                    <span class="text-muted">—</span>
+                </t>
+            </td>
+        </xpath>
+    </template>
+</odoo>

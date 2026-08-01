@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="demo_course_gcse_maths" model="course.master">
+        <field name="name">GCSE Mathematics — Group A</field>
+        <field name="status">active</field>
+    </record>
+
+    <record id="demo_course_curriculum_assignment" model="education.course.curriculum">
+        <field name="course_id" ref="demo_course_gcse_maths"/>
+        <field name="curriculum_version_id" ref="education_curriculum.demo_curriculum_gcse_maths_v1"/>
+        <field name="is_primary" eval="True"/>
+    </record>
+</odoo>

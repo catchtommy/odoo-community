@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_education_prerequisite_list" model="ir.ui.view">
+        <field name="name">education.prerequisite.list</field>
+        <field name="model">education.prerequisite</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="topic_id"/>
+                <field name="prerequisite_topic_id"/>
+                <field name="is_mandatory"/>
+                <field name="notes"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_education_prerequisite" model="ir.actions.act_window">
+        <field name="name">Prerequisites</field>
+        <field name="res_model">education.prerequisite</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

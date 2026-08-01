@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_education_resource_list" model="ir.ui.view">
+        <field name="name">education.resource.list</field>
+        <field name="model">education.resource</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="content_type_id"/>
+                <field name="subject_id"/>
+                <field name="visibility"/>
+                <field name="state" widget="badge"/>
+                <field name="lesson_count"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_education_resource_form" model="ir.ui.view">
+        <field name="name">education.resource.form</field>
+        <field name="model">education.resource</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="content_type_id"/>
+                            <field name="subject_id"/>
+                            <field name="academic_level_id"/>
+                            <field name="attachment_id"/>
+                            <field name="external_url"/>
+                        </group>
+                        <group>
+                            <field name="visibility"/>
+                            <field name="state"/>
+                            <field name="publish_date"/>
+                            <field name="expiry_date"/>
+                            <field name="tag_ids" widget="many2many_tags"/>
+                        </group>
+                    </group>
+                    <field name="lesson_ids" widget="many2many_tags"/>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_education_resource" model="ir.actions.act_window">
+        <field name="name">Resources</field>
+        <field name="res_model">education.resource</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

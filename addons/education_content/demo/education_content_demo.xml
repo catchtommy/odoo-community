@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="demo_lesson_equivalent_fractions" model="education.lesson">
+        <field name="name">Lesson 3: Equivalent Fractions</field>
+        <field name="topic_id" ref="education_curriculum.demo_topic_algebra"/>
+        <field name="duration_minutes">45</field>
+        <field name="state">published</field>
+    </record>
+
+    <record id="demo_lesson_plan_equivalent_fractions" model="education.lesson.plan">
+        <field name="name">Main Lesson Plan</field>
+        <field name="lesson_id" ref="demo_lesson_equivalent_fractions"/>
+        <field name="plan_text"><![CDATA[<p><strong>Starter:</strong> Recap fraction basics.</p><p><strong>Main:</strong> Introduce equivalent fractions with visual fraction bars.</p><p><strong>Plenary:</strong> Quick-fire equivalence quiz.</p>]]></field>
+        <field name="duration_minutes">45</field>
+        <field name="state">published</field>
+    </record>
+
+    <record id="demo_content_worksheet" model="education.lesson.content">
+        <field name="name">Equivalent Fractions Worksheet</field>
+        <field name="lesson_id" ref="demo_lesson_equivalent_fractions"/>
+        <field name="content_type_id" ref="content_type_worksheet"/>
+        <field name="body"><![CDATA[<p>Practice worksheet placeholder content.</p>]]></field>
+        <field name="visibility">student</field>
+        <field name="state">published</field>
+    </record>
+
+    <record id="demo_content_video" model="education.lesson.content">
+        <field name="name">Equivalent Fractions — Explainer Video</field>
+        <field name="lesson_id" ref="demo_lesson_equivalent_fractions"/>
+        <field name="content_type_id" ref="content_type_youtube"/>
+        <field name="external_url">https://www.youtube.com/watch?v=example_equivalent_fractions</field>
+        <field name="visibility">student</field>
+        <field name="state">published</field>
+    </record>
+</odoo>

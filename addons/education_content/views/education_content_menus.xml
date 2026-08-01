@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <menuitem id="menu_education_lesson" name="Lessons" parent="education_core.menu_education_content_root"
+              action="education_content.action_education_lesson" sequence="10"/>
+    <menuitem id="menu_education_lesson_content" name="Lesson Content" parent="education_core.menu_education_content_root"
+              action="education_content.action_education_lesson_content" sequence="20"/>
+    <menuitem id="menu_education_lesson_plan" name="Lesson Plans" parent="education_core.menu_education_content_root"
+              action="education_content.action_education_lesson_plan" sequence="30"/>
+    <menuitem id="menu_education_resource" name="Resources" parent="education_core.menu_education_content_root"
+              action="education_content.action_education_resource" sequence="40"/>
+
+    <menuitem id="menu_education_content_type" name="Content Types" parent="education_core.menu_education_configuration_root"
+              action="education_content.action_education_content_type" sequence="70"/>
+    <menuitem id="menu_education_content_category" name="Content Categories" parent="education_core.menu_education_configuration_root"
+              action="education_content.action_education_content_category" sequence="80"/>
+</odoo>

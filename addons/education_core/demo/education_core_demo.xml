@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="demo_country_uk" model="education.country">
+        <field name="name">United Kingdom</field>
+        <field name="code">UK</field>
+    </record>
+    <record id="demo_country_us" model="education.country">
+        <field name="name">United States</field>
+        <field name="code">US</field>
+    </record>
+    <record id="demo_country_in" model="education.country">
+        <field name="name">India</field>
+        <field name="code">IN</field>
+    </record>
+    <record id="demo_country_global" model="education.country">
+        <field name="name">International</field>
+        <field name="code">INTL</field>
+    </record>
+
+    <record id="demo_system_uk_national" model="education.education.system">
+        <field name="name">UK National Curriculum</field>
+        <field name="code">UK-NC</field>
+        <field name="country_id" ref="demo_country_uk"/>
+    </record>
+    <record id="demo_system_ib" model="education.education.system">
+        <field name="name">International Baccalaureate</field>
+        <field name="code">IB</field>
+        <field name="country_id" ref="demo_country_global"/>
+    </record>
+    <record id="demo_system_cbse" model="education.education.system">
+        <field name="name">CBSE</field>
+        <field name="code">CBSE</field>
+        <field name="country_id" ref="demo_country_in"/>
+    </record>
+
+    <record id="demo_board_aqa" model="education.exam.board">
+        <field name="name">AQA</field>
+        <field name="code">AQA</field>
+        <field name="country_id" ref="demo_country_uk"/>
+        <field name="education_system_id" ref="demo_system_uk_national"/>
+    </record>
+    <record id="demo_board_edexcel" model="education.exam.board">
+        <field name="name">Edexcel</field>
+        <field name="code">EDEXCEL</field>
+        <field name="country_id" ref="demo_country_uk"/>
+        <field name="education_system_id" ref="demo_system_uk_national"/>
+    </record>
+    <record id="demo_board_cambridge" model="education.exam.board">
+        <field name="name">Cambridge International</field>
+        <field name="code">CAIE</field>
+        <field name="country_id" ref="demo_country_global"/>
+    </record>
+
+    <record id="demo_level_ks3" model="education.academic.level">
+        <field name="name">Key Stage 3</field>
+        <field name="code">KS3</field>
+        <field name="level_type">group</field>
+        <field name="education_system_id" ref="demo_system_uk_national"/>
+        <field name="sequence">30</field>
+    </record>
+    <record id="demo_level_year7" model="education.academic.level">
+        <field name="name">Year 7</field>
+        <field name="code">Y7</field>
+        <field name="level_type">level</field>
+        <field name="education_system_id" ref="demo_system_uk_national"/>
+        <field name="parent_id" ref="demo_level_ks3"/>
+        <field name="sequence">10</field>
+    </record>
+    <record id="demo_level_gcse" model="education.academic.level">
+        <field name="name">GCSE (Year 10-11)</field>
+        <field name="code">GCSE</field>
+        <field name="level_type">group</field>
+        <field name="education_system_id" ref="demo_system_uk_national"/>
+        <field name="sequence">40</field>
+    </record>
+
+    <record id="demo_subject_maths" model="education.subject">
+        <field name="name">Mathematics</field>
+        <field name="code">M</field>
+    </record>
+    <record id="demo_subject_english" model="education.subject">
+        <field name="name">English</field>
+        <field name="code">E</field>
+    </record>
+    <record id="demo_subject_science" model="education.subject">
+        <field name="name">Science</field>
+        <field name="code">S</field>
+    </record>
+</odoo>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_education_curriculum_version_list" model="ir.ui.view">
+        <field name="name">education.curriculum.version.list</field>
+        <field name="model">education.curriculum.version</field>
+        <field name="arch" type="xml">
+            <list decoration-muted="state == 'archived'" decoration-success="state == 'published'">
+                <field name="curriculum_id"/>
+                <field name="version_label"/>
+                <field name="state" widget="badge"/>
+                <field name="topic_count"/>
+                <field name="published_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_education_curriculum_version_form" model="ir.ui.view">
+        <field name="name">education.curriculum.version.form</field>
+        <field name="model">education.curriculum.version</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_submit_review" type="object" string="Submit for Review" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'review'"/>
+                    <button name="action_reject" type="object" string="Reject" invisible="state != 'review'"/>
+                    <button name="action_publish" type="object" string="Publish" class="btn-primary" invisible="state != 'approved'"/>
+                    <button name="action_archive" type="object" string="Archive" invisible="state != 'published'"/>
+                    <button name="%(action_education_curriculum_new_version_wizard)d" type="action" string="Create New Version"
+                            context="{'default_source_version_id': id}"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,review,approved,published"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="%(action_education_topic)d" type="action" class="oe_stat_button" icon="fa-sitemap"
+                                context="{'default_curriculum_version_id': id, 'search_default_curriculum_version_id': id}">
+                            <field name="topic_count" widget="statinfo" string="Topics"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="curriculum_id" readonly="state != 'draft'"/>
+                            <field name="version_label" class="oe_inline"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="version_number" readonly="state != 'draft'"/>
+                            <field name="effective_from"/>
+                            <field name="effective_to"/>
+                            <field name="language_id"/>
+                        </group>
+                        <group>
+                            <field name="reviewer_id"/>
+                            <field name="approved_by" readonly="1"/>
+                            <field name="approved_date" readonly="1"/>
+                            <field name="published_date" readonly="1"/>
+                            <field name="archived_date" readonly="1"/>
+                            <field name="parent_version_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Topics">
+                            <field name="topic_ids">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="code"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Approval History">
+                            <field name="review_ids" readonly="1">
+                                <list>
+                                    <field name="review_date"/>
+                                    <field name="reviewer_id"/>
+                                    <field name="action"/>
+                                    <field name="state_from"/>
+                                    <field name="state_to"/>
+                                    <field name="comments"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_education_curriculum_version_search" model="ir.ui.view">
+        <field name="name">education.curriculum.version.search</field>
+        <field name="model">education.curriculum.version</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="curriculum_id"/>
+                <field name="version_label"/>
+                <field name="subject_id"/>
+                <filter name="state_draft" string="Draft" domain="[('state', '=', 'draft')]"/>
+                <filter name="state_review" string="In Review" domain="[('state', '=', 'review')]"/>
+                <filter name="state_published" string="Published" domain="[('state', '=', 'published')]"/>
+                <group>
+                    <filter name="group_by_curriculum" string="Curriculum" context="{'group_by': 'curriculum_id'}"/>
+                    <filter name="group_by_state" string="Status" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_education_curriculum_version" model="ir.actions.act_window">
+        <field name="name">Curriculum Versions</field>
+        <field name="res_model">education.curriculum.version</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

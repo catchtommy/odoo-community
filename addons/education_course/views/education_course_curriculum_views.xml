@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_education_course_curriculum_list" model="ir.ui.view">
+        <field name="name">education.course.curriculum.list</field>
+        <field name="model">education.course.curriculum</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="course_id"/>
+                <field name="curriculum_id"/>
+                <field name="curriculum_version_id"/>
+                <field name="is_primary"/>
+                <field name="assigned_date"/>
+                <field name="assigned_by"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_education_course_curriculum_form" model="ir.ui.view">
+        <field name="name">education.course.curriculum.form</field>
+        <field name="model">education.course.curriculum</field>
+        <field name="arch" type="xml">
+            <form>
+                <group>
+                    <field name="course_id"/>
+                    <field name="curriculum_version_id" domain="[('state', '=', 'published')]"/>
+                    <field name="is_primary"/>
+                    <field name="assigned_date" readonly="1"/>
+                    <field name="assigned_by" readonly="1"/>
+                </group>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_education_course_curriculum" model="ir.actions.act_window">
+        <field name="name">Course Curriculum Assignments</field>
+        <field name="res_model">education.course.curriculum</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

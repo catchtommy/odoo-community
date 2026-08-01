@@ -1,0 +1,13 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_education_curriculum_tag_user,education.curriculum.tag.user,model_education_curriculum_tag,base.group_user,1,0,0,0
+access_education_curriculum_tag_manager,education.curriculum.tag.manager,model_education_curriculum_tag,group_education_curriculum_manager,1,1,1,1
+access_education_country_user,education.country.user,model_education_country,base.group_user,1,0,0,0
+access_education_country_manager,education.country.manager,model_education_country,group_education_curriculum_manager,1,1,1,1
+access_education_education_system_user,education.education.system.user,model_education_education_system,base.group_user,1,0,0,0
+access_education_education_system_manager,education.education.system.manager,model_education_education_system,group_education_curriculum_manager,1,1,1,1
+access_education_exam_board_user,education.exam.board.user,model_education_exam_board,base.group_user,1,0,0,0
+access_education_exam_board_manager,education.exam.board.manager,model_education_exam_board,group_education_curriculum_manager,1,1,1,1
+access_education_academic_level_user,education.academic.level.user,model_education_academic_level,base.group_user,1,0,0,0
+access_education_academic_level_manager,education.academic.level.manager,model_education_academic_level,group_education_curriculum_manager,1,1,1,1
+access_education_subject_user,education.subject.user,model_education_subject,base.group_user,1,0,0,0
+access_education_subject_manager,education.subject.manager,model_education_subject,group_education_curriculum_manager,1,1,1,1
