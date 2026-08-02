@@ -5,7 +5,7 @@
         <field name="name">subject.category.list</field>
         <field name="model">subject.category</field>
         <field name="arch" type="xml">
-            <list js_class="subject_category_list"><field name="name"/><field name="description"/></list>
+            <list js_class="subject_category_list"><field name="name"/><field name="subject_ids" widget="many2many_tags"/></list>
         </field>
     </record>
     <record id="view_subject_category_form" model="ir.ui.view">
@@ -28,6 +28,14 @@
                                 </list>
                             </field>
                         </page>
+                        <page string="Subjects" name="subjects">
+                            <field name="subject_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="description"/>
+                                </list>
+                            </field>
+                        </page>
                     </notebook>
                 </sheet>
             </form>
@@ -39,7 +47,7 @@
         <field name="name">subject.master.list</field>
         <field name="model">subject.master</field>
         <field name="arch" type="xml">
-            <list js_class="subject_master_list" string="Subjects"><field name="category_id"/><field name="name"/><field name="description"/></list>
+            <list js_class="subject_master_list" string="Subjects"><field name="name"/><field name="category_id"/><field name="description"/></list>
         </field>
     </record>
     <record id="view_subject_master_form" model="ir.ui.view">

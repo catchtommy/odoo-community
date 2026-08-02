@@ -15,6 +15,7 @@ class SubjectCategory(models.Model):
         'grade_id',
         string='Grades',
     )
+    subject_ids = fields.One2many('subject.master', 'category_id', string='Subjects')
 
 
 class SubjectMaster(models.Model):

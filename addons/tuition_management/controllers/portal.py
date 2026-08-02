@@ -3,7 +3,7 @@ import pytz
 from odoo import http, fields
 from odoo.http import request
 from odoo.addons.portal.controllers.portal import CustomerPortal
-from datetime import timedelta, datetime
+from datetime import timedelta
 
 from .portal_mixin import PortalMixin
 
@@ -65,7 +65,7 @@ class TuitionPortal(CustomerPortal, PortalMixin):
             'is_parent': bool(parent),
         }
 
-        today = fields.Date.today()
+        today = self._tz_today()
 
         if student:
             enrollments = request.env['course.enrollment'].sudo().search([
@@ -96,13 +96,13 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 self._fmt_dt(next_session.start_datetime, '%a %d %b %Y, %H:%M %Z')
                 if next_session else '—'
             )
-            from datetime import datetime as _dt
             start_of_week = today - timedelta(days=today.weekday())
             end_of_week = start_of_week + timedelta(days=6)
+            week_start_utc, week_end_utc = self._tz_date_bounds(start_of_week, end_of_week)
             week_lesson_count = request.env['class.schedule.occurrence'].sudo().search_count([
                 ('course_id', 'in', course_ids),
-                ('start_datetime', '>=', _dt.combine(start_of_week, _dt.min.time())),
-                ('start_datetime', '<=', _dt.combine(end_of_week, _dt.max.time())),
+                ('start_datetime', '>=', week_start_utc),
+                ('start_datetime', '<=', week_end_utc),
             ])
             values.update({
                 'student': student,
@@ -123,25 +123,28 @@ class TuitionPortal(CustomerPortal, PortalMixin):
 
         if tutor:
             courses = request.env['course.master'].sudo().search([('tutor_id', '=', tutor.id)])
+            today_start_utc, today_end_utc = self._tz_date_bounds(today, today)
             today_sessions = request.env['class.schedule.occurrence'].sudo().search_count([
                 ('tutor_id', '=', tutor.id),
-                ('start_datetime', '>=', fields.Datetime.now().replace(hour=0, minute=0, second=0)),
-                ('start_datetime', '<=', fields.Datetime.now().replace(hour=23, minute=59, second=59)),
+                ('start_datetime', '>=', today_start_utc),
+                ('start_datetime', '<=', today_end_utc),
             ])
             student_ids = request.env['course.enrollment'].sudo().search([
                 ('course_id', 'in', courses.ids), ('status', '=', 'active')
             ]).mapped('student_id').ids
             start_of_week = today - timedelta(days=today.weekday())
             end_of_week = start_of_week + timedelta(days=6)
+            week_start_utc, week_end_utc = self._tz_date_bounds(start_of_week, end_of_week)
             this_week_lesson_count = request.env['class.schedule.occurrence'].sudo().search_count([
                 ('tutor_id', '=', tutor.id),
-                ('start_datetime', '>=', datetime.combine(start_of_week, datetime.min.time())),
-                ('start_datetime', '<=', datetime.combine(end_of_week, datetime.max.time())),
+                ('start_datetime', '>=', week_start_utc),
+                ('start_datetime', '<=', week_end_utc),
             ])
+            _, next_week_end_utc = self._tz_date_bounds(today + timedelta(days=7), today + timedelta(days=7))
             upcoming_lessons = request.env['class.schedule.occurrence'].sudo().search([
                 ('tutor_id', '=', tutor.id),
                 ('start_datetime', '>=', fields.Datetime.now()),
-                ('start_datetime', '<=', datetime.combine(today + timedelta(days=7), datetime.max.time())),
+                ('start_datetime', '<=', next_week_end_utc),
             ], order='start_datetime asc', limit=10)
             # Pre-format lesson times in the tutor's timezone for the template
             lesson_times = {}
