@@ -27,10 +27,10 @@ class EducationCurriculumTree extends Component {
             curriculum: null,
             versions: [],           // [{ id, version_label, state, version_number, topics: [...] }]
             selectedVersionId: null,
-            openTopicKeys: new Set(),  // only Topics expand/collapse — everything under a topic is always visible
+            openTopicKeys: new Set(),     // Topics expand/collapse
+            openSubtopicKeys: new Set(),  // Subtopics expand/collapse (nested inside an open topic)
             addOpenKeys: new Set(),    // which "+ add" inline inputs are currently shown
             addValues: {},             // key -> current text typed in the inline input
-            addSubtopicChoice: {},     // "add-objective-<topicId>" -> chosen subtopic id ("" = topic-level)
         });
 
         onWillStart(async () => {
@@ -47,6 +47,14 @@ class EducationCurriculumTree extends Component {
         // which curriculum was being shown. `curriculum_id` is kept as a
         // fallback for any older callers.
         return ctx.active_id || ctx.curriculum_id || ctx.default_curriculum_id;
+    }
+
+    get requestedVersionId() {
+        // Optional: lets callers (e.g. the Curriculum Version form's "View
+        // Structure Tree" button, or the New Version wizard) preselect a
+        // specific version instead of defaulting to published/newest.
+        const ctx = this.props.action.context || {};
+        return ctx.version_id || null;
     }
 
     get currentVersion() {
@@ -104,37 +112,40 @@ class EducationCurriculumTree extends Component {
             ? await this.orm.searchRead(
                   "education.lesson",
                   [["curriculum_version_id", "in", versionIds]],
-                  ["id", "name", "topic_id", "duration_minutes", "state"],
+                  ["id", "name", "topic_id", "subtopic_id", "duration_minutes", "state"],
                   { order: "sequence asc" }
               )
             : [];
 
         const topicsByVersion = groupBy(topics, (t) => t.curriculum_version_id && t.curriculum_version_id[0]);
         const subtopicsByTopic = groupBy(subtopics, (s) => s.topic_id && s.topic_id[0]);
+        // Topic-level objectives/lessons are, by construction, only the ones with
+        // no subtopic_id (a Learning Objective is exactly one of topic-level OR
+        // subtopic-level — see education.learning.objective's constraint; Lesson
+        // is a plain optional FK so we filter it explicitly below).
         const objectivesByTopic = groupBy(objectives, (o) => o.topic_id && o.topic_id[0]);
         const objectivesBySubtopic = groupBy(objectives, (o) => o.subtopic_id && o.subtopic_id[0]);
         const skillsByTopic = groupBy(skills, (s) => s.topic_id && s.topic_id[0]);
-        const lessonsByTopic = groupBy(lessonRecords, (l) => l.topic_id && l.topic_id[0]);
-        const subtopicNameById = {};
-        for (const s of subtopics) subtopicNameById[s.id] = s.name;
+        const topicLevelLessons = lessonRecords.filter((l) => !(l.subtopic_id && l.subtopic_id[0]));
+        const lessonsByTopic = groupBy(topicLevelLessons, (l) => l.topic_id && l.topic_id[0]);
+        const lessonsBySubtopic = groupBy(lessonRecords, (l) => l.subtopic_id && l.subtopic_id[0]);
 
         const builtVersions = versions.map((v) => ({
             ...v,
             topics: (topicsByVersion[v.id] || []).map((t) => {
-                const subtopicsForTopic = subtopicsByTopic[t.id] || [];
-                // Merge topic-level objectives and subtopic-level objectives into
-                // ONE flat list per topic, tagged with the subtopic name if any —
-                // this avoids showing objectives in two different nested places.
-                const allObjectives = [
-                    ...(objectivesByTopic[t.id] || []).map((o) => ({ ...o, subtopicName: null })),
-                    ...subtopicsForTopic.flatMap((st) =>
-                        (objectivesBySubtopic[st.id] || []).map((o) => ({ ...o, subtopicName: subtopicNameById[st.id] }))
-                    ),
-                ];
+                // Each Subtopic carries its OWN Learning Objectives and Lessons —
+                // this is real nesting (Topic > Subtopic > {Objectives, Lessons}),
+                // not a flat list with a badge, so the hierarchy the user is
+                // adding into is always visually obvious.
+                const subtopicsForTopic = (subtopicsByTopic[t.id] || []).map((st) => ({
+                    ...st,
+                    objectives: objectivesBySubtopic[st.id] || [],
+                    lessons: lessonsBySubtopic[st.id] || [],
+                }));
                 return {
                     ...t,
                     subtopics: subtopicsForTopic,
-                    objectives: allObjectives,
+                    objectives: objectivesByTopic[t.id] || [],
                     skills: skillsByTopic[t.id] || [],
                     lessons: lessonsByTopic[t.id] || [],
                 };
@@ -144,9 +155,12 @@ class EducationCurriculumTree extends Component {
         this.state.curriculum = curriculum;
         this.state.versions = builtVersions;
         if (!this.state.selectedVersionId || !builtVersions.some((v) => v.id === this.state.selectedVersionId)) {
-            // Default to the published version if there is one, otherwise the newest.
+            const requested = this.requestedVersionId;
+            const requestedMatch = requested && builtVersions.find((v) => v.id === requested);
+            // Default: the version an explicit caller asked for, else the
+            // published version if there is one, else the newest.
             const published = builtVersions.find((v) => v.state === "published");
-            this.state.selectedVersionId = (published || builtVersions[0] || {}).id || null;
+            this.state.selectedVersionId = (requestedMatch || published || builtVersions[0] || {}).id || null;
         }
         this.state.loading = false;
     }
@@ -176,6 +190,19 @@ class EducationCurriculumTree extends Component {
             this.state.openTopicKeys.add(topicId);
         }
         this.state.openTopicKeys = new Set(this.state.openTopicKeys);
+    }
+
+    isSubtopicOpen(subtopicId) {
+        return this.state.openSubtopicKeys.has(subtopicId);
+    }
+
+    toggleSubtopic(subtopicId) {
+        if (this.state.openSubtopicKeys.has(subtopicId)) {
+            this.state.openSubtopicKeys.delete(subtopicId);
+        } else {
+            this.state.openSubtopicKeys.add(subtopicId);
+        }
+        this.state.openSubtopicKeys = new Set(this.state.openSubtopicKeys);
     }
 
     openRecord(model, id) {
@@ -209,10 +236,6 @@ class EducationCurriculumTree extends Component {
 
     onAddInput(key, ev) {
         this.state.addValues[key] = ev.target.value;
-    }
-
-    onSubtopicChoiceChange(topicId, ev) {
-        this.state.addSubtopicChoice[`add-objective-${topicId}`] = ev.target.value;
     }
 
     async onAddKeydown(key, submitFn, ev) {
@@ -254,21 +277,33 @@ class EducationCurriculumTree extends Component {
         const key = `add-subtopic-${topicId}`;
         const name = (this.state.addValues[key] || "").trim();
         if (!name) return;
-        await this.orm.create("education.subtopic", [{ name, topic_id: topicId }]);
+        const [newId] = await this.orm.create("education.subtopic", [{ name, topic_id: topicId }]);
+        this.cancelAdd(key);
+        this.state.openTopicKeys.add(topicId);
+        this.state.openSubtopicKeys.add(newId);
+        await this.loadTree();
+    }
+
+    // Topic-level Learning Objective (no subtopic) — subtopic-scoped objectives
+    // are added from within that subtopic's own card, see submitAddSubtopicObjective.
+    async submitAddObjective(topicId) {
+        const key = `add-objective-${topicId}`;
+        const name = (this.state.addValues[key] || "").trim();
+        if (!name) return;
+        await this.orm.create("education.learning.objective", [{ name, topic_id: topicId }]);
         this.cancelAdd(key);
         this.state.openTopicKeys.add(topicId);
         await this.loadTree();
     }
 
-    async submitAddObjective(topicId) {
-        const key = `add-objective-${topicId}`;
+    async submitAddSubtopicObjective(topicId, subtopicId) {
+        const key = `add-objective-sub-${subtopicId}`;
         const name = (this.state.addValues[key] || "").trim();
         if (!name) return;
-        const subtopicId = parseInt(this.state.addSubtopicChoice[key]) || null;
-        const vals = subtopicId ? { name, subtopic_id: subtopicId } : { name, topic_id: topicId };
-        await this.orm.create("education.learning.objective", [vals]);
+        await this.orm.create("education.learning.objective", [{ name, subtopic_id: subtopicId }]);
         this.cancelAdd(key);
         this.state.openTopicKeys.add(topicId);
+        this.state.openSubtopicKeys.add(subtopicId);
         await this.loadTree();
     }
 
@@ -282,6 +317,8 @@ class EducationCurriculumTree extends Component {
         await this.loadTree();
     }
 
+    // Topic-level Lesson (no subtopic) — subtopic-scoped lessons are added
+    // from within that subtopic's own card, see submitAddSubtopicLesson.
     async submitAddLesson(topicId) {
         const key = `add-lesson-${topicId}`;
         const name = (this.state.addValues[key] || "").trim();
@@ -289,6 +326,17 @@ class EducationCurriculumTree extends Component {
         await this.orm.create("education.lesson", [{ name, topic_id: topicId }]);
         this.cancelAdd(key);
         this.state.openTopicKeys.add(topicId);
+        await this.loadTree();
+    }
+
+    async submitAddSubtopicLesson(topicId, subtopicId) {
+        const key = `add-lesson-sub-${subtopicId}`;
+        const name = (this.state.addValues[key] || "").trim();
+        if (!name) return;
+        await this.orm.create("education.lesson", [{ name, topic_id: topicId, subtopic_id: subtopicId }]);
+        this.cancelAdd(key);
+        this.state.openTopicKeys.add(topicId);
+        this.state.openSubtopicKeys.add(subtopicId);
         await this.loadTree();
     }
 

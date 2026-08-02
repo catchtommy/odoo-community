@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="shiningace_education_content.ContentPreviewButton">
+        <button type="button" class="btn btn-sm btn-outline-secondary text-nowrap me-2"
+                t-att-disabled="!info.available"
+                t-att-title="info.available ? 'Preview' : (info.reason === 'unsaved' ? 'Save first to preview' : 'Nothing to preview yet')"
+                t-on-click="openPreview">
+            <i class="fa fa-eye me-1"/>Preview
+        </button>
+    </t>
+</templates>

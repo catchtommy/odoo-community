@@ -12,6 +12,9 @@
                 <field name="visibility"/>
                 <field name="state" widget="badge"/>
                 <field name="version"/>
+                <field name="content_filename" column_invisible="1"/>
+                <field name="external_url" column_invisible="1"/>
+                <field name="id" widget="content_preview_button" string="Preview"/>
             </list>
         </field>
     </record>
@@ -50,8 +53,10 @@
                     <notebook>
                         <page string="File / Link">
                             <group>
-                                <field name="attachment_id"/>
-                                <field name="external_url"/>
+                                <field name="content_filename" invisible="1"/>
+                                <field name="content_file" widget="binary" filename="content_filename" string="File"/>
+                                <field name="external_url" placeholder="https://…"/>
+                                <field name="id" widget="content_preview_button" string="Preview"/>
                             </group>
                         </page>
                         <page string="Rich Text">

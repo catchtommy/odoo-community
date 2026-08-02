@@ -27,6 +27,7 @@
                     <button name="action_archive" type="object" string="Archive" invisible="state != 'published'"/>
                     <button name="%(action_education_curriculum_new_version_wizard)d" type="action" string="Create New Version"
                             context="{'default_source_version_id': id}"/>
+                    <button name="action_view_structure_tree" type="object" string="View Structure Tree" icon="fa-sitemap"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,review,approved,published"/>
                 </header>
                 <sheet>

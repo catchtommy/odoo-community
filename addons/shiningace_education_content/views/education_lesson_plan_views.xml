@@ -34,7 +34,23 @@
                             <field name="state"/>
                         </group>
                     </group>
-                    <field name="plan_text"/>
+                    <group>
+                        <field name="summary" placeholder="High-level overview of this lesson's core focus…"/>
+                    </group>
+                    <notebook>
+                        <page string="Key Concepts">
+                            <field name="key_concepts" placeholder="Key theoretical points covered…"/>
+                        </page>
+                        <page string="Agenda">
+                            <field name="agenda" placeholder="Step-by-step breakdown: Warm-up, Direct Instruction, Guided Practice, Exit Ticket/Assessment…"/>
+                        </page>
+                        <page string="Exam Tip">
+                            <field name="exam_tip" placeholder="Test-taking tip tailored to the relevant exam format, if applicable…"/>
+                        </page>
+                        <page string="Additional Notes">
+                            <field name="plan_text"/>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>

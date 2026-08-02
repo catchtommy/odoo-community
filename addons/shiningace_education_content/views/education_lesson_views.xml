@@ -45,9 +45,10 @@
                     <notebook>
                         <page string="Lesson Plans">
                             <field name="lesson_plan_ids">
-                                <list editable="bottom">
+                                <list>
                                     <field name="sequence" widget="handle"/>
                                     <field name="name"/>
+                                    <field name="summary"/>
                                     <field name="duration_minutes"/>
                                     <field name="state"/>
                                 </list>
@@ -59,8 +60,12 @@
                                     <field name="sequence" widget="handle"/>
                                     <field name="name"/>
                                     <field name="content_type_id"/>
+                                    <field name="content_filename" column_invisible="1"/>
+                                    <field name="content_file" widget="binary" filename="content_filename" string="File"/>
+                                    <field name="external_url" string="URL" placeholder="https://…"/>
                                     <field name="visibility"/>
                                     <field name="state"/>
+                                    <field name="id" widget="content_preview_button" string="Preview"/>
                                 </list>
                             </field>
                         </page>

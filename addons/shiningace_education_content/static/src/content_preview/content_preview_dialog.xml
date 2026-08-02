@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="shiningace_education_content.ContentPreviewDialog">
+        <Dialog title="props.info.name" size="'lg'" contentClass="'o_content_preview_dialog'">
+            <div class="d-flex justify-content-center align-items-center" style="min-height: 60vh;">
+                <t t-if="props.info.category === 'image'">
+                    <img t-att-src="props.info.url" class="img-fluid" style="max-height: 75vh;" alt=""/>
+                </t>
+                <t t-elif="props.info.category === 'video'">
+                    <video t-att-src="props.info.url" controls="controls" class="w-100" style="max-height: 75vh;"/>
+                </t>
+                <t t-elif="props.info.category === 'audio'">
+                    <audio t-att-src="props.info.url" controls="controls" class="w-100"/>
+                </t>
+                <t t-elif="props.info.category === 'pdf' or props.info.category === 'text'">
+                    <iframe t-att-src="props.info.url" style="width: 100%; height: 75vh; border: 0;"/>
+                </t>
+                <t t-elif="props.info.category === 'youtube'">
+                    <iframe t-att-src="props.info.url" style="width: 100%; height: 75vh; border: 0;" allowfullscreen="allowfullscreen"/>
+                </t>
+                <t t-elif="props.info.category === 'link'">
+                    <div class="text-center">
+                        <i class="fa fa-external-link fa-3x mb-3 text-muted"/>
+                        <p><t t-esc="props.info.name"/></p>
+                        <a t-att-href="props.info.url" target="_blank" class="btn btn-primary">
+                            <i class="fa fa-external-link me-1"/>Open Link
+                        </a>
+                    </div>
+                </t>
+                <t t-else="">
+                    <div class="text-center">
+                        <i class="fa fa-file-o fa-3x mb-3 text-muted"/>
+                        <p><t t-esc="props.info.name"/></p>
+                        <p class="text-muted">Preview isn't available for this file type.</p>
+                        <a t-att-href="props.info.downloadUrl" class="btn btn-primary">
+                            <i class="fa fa-download me-1"/>Download
+                        </a>
+                    </div>
+                </t>
+            </div>
+        </Dialog>
+    </t>
+</templates>

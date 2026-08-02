@@ -164,10 +164,22 @@ class EducationCurriculumVersion(models.Model):
         })
         for topic in self.topic_ids:
             topic.copy({'curriculum_version_id': new_version.id})
+        return new_version.action_view_structure_tree()
+
+    def action_view_structure_tree(self):
+        """Open the same Curriculum -> Version -> Topic -> Subtopic -> Learning
+        Objectives/Skills/Lessons collapsible tree used from the Curriculum
+        record (see education.curriculum.action_view_structure_tree and
+        static/src/curriculum_tree), pre-selected on this version.
+
+        Used as the landing view right after "Create New Version" so the
+        correct topic/subtopic categorisation is visible immediately when
+        adding lessons, learning objectives or skills into the new draft.
+        """
+        self.ensure_one()
         return {
-            'type': 'ir.actions.act_window',
-            'name': 'New Curriculum Version',
-            'res_model': 'education.curriculum.version',
-            'view_mode': 'form',
-            'res_id': new_version.id,
+            'type': 'ir.actions.client',
+            'tag': 'education_curriculum_tree',
+            'name': self.curriculum_id.name,
+            'context': {'active_id': self.curriculum_id.id, 'version_id': self.id},
         }

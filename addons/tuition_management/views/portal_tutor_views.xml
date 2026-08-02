@@ -32,7 +32,7 @@
                 </div>
                 <div class="tm-stat-action">View Schedule →</div>
             </a>
-            <div class="tm-stat-card">
+            <a href="/my/tutor/courses" class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div>
                         <div class="tm-stat-value"><t t-esc="total_students or 0"/></div>
@@ -40,8 +40,9 @@
                     </div>
                     <div class="tm-stat-icon green"><i class="fa fa-users"/></div>
                 </div>
-            </div>
-            <div class="tm-stat-card">
+                <div class="tm-stat-action">View Courses →</div>
+            </a>
+            <a href="/my/tutor/schedule?week=this" class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div>
                         <div class="tm-stat-value"><t t-esc="this_week_lesson_count or 0"/></div>
@@ -49,7 +50,8 @@
                     </div>
                     <div class="tm-stat-icon orange"><i class="fa fa-clock-o"/></div>
                 </div>
-            </div>
+                <div class="tm-stat-action">View Schedule →</div>
+            </a>
         </div>
 
         <!-- Next Session Card — displayed prominently on dashboard -->
@@ -281,8 +283,8 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_all_assignments</t>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h5 style="margin:0;font-weight:700;"><i class="fa fa-tasks"/> All Assignments</h5>
+        <div class="tm-page-header">
+            <h5><i class="fa fa-tasks"/> All Assignments</h5>
             <div style="position:relative;">
                 <button class="tm-btn tm-btn-green" onclick="document.getElementById('tm-new-asgn-picker').classList.toggle('tm-dropdown-open');" type="button">
                     <i class="fa fa-plus"/> Add New
@@ -377,8 +379,8 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_progress</t>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-            <h5 style="margin:0;font-weight:700;"><i class="fa fa-line-chart"/> Progress Reports</h5>
+        <div class="tm-page-header">
+            <h5><i class="fa fa-line-chart"/> Progress Reports</h5>
             <div style="position:relative;">
                 <button class="tm-btn tm-btn-green" onclick="document.getElementById('tm-new-prog-picker').classList.toggle('tm-dropdown-open');" type="button">
                     <i class="fa fa-plus"/> Add New
@@ -463,11 +465,10 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_progress</t>
 
-        <div style="margin-bottom:16px;">
+        <div class="tm-page-header">
             <a href="/my/tutor/progress" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Progress Reports</a>
+            <h5><i class="fa fa-pencil"/> Edit Progress Report — <t t-esc="course.name"/></h5>
         </div>
-
-        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-pencil"/> Edit Progress Report — <t t-esc="course.name"/></h5>
 
         <div class="tm-card">
             <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Report Details</div></div>
@@ -576,11 +577,10 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_course_detail</t>
 
-        <div style="margin-bottom:16px;">
+        <div class="tm-page-header">
             <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+            <h5><i class="fa fa-plus"/> New Progress Report — <t t-esc="course.name"/></h5>
         </div>
-
-        <h5 style="margin:0 0 16px;font-weight:700;"><i class="fa fa-plus"/> New Progress Report — <t t-esc="course.name"/></h5>
 
         <div class="tm-card">
             <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-line-chart"/> Report Details</div></div>
@@ -855,7 +855,7 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_course_detail</t>
 
-        <div style="margin-bottom:16px;">
+        <div class="tm-page-header">
             <a href="/my/tutor/courses" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Courses</a>
         </div>
 
@@ -880,30 +880,30 @@
         </div>
 
         <div class="tm-stat-grid" style="margin-bottom:20px;">
-            <div class="tm-stat-card">
+            <a href="#enrolled-students" class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div><div class="tm-stat-value"><t t-esc="len(enrolled_students)"/></div><div class="tm-stat-label">Students</div></div>
                     <div class="tm-stat-icon purple"><i class="fa fa-users"/></div>
                 </div>
-            </div>
-            <div class="tm-stat-card">
+            </a>
+            <a t-attf-href="/my/tutor/courses/#{course.id}/lessons" class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div><div class="tm-stat-value"><t t-esc="len(this_week_lessons)"/></div><div class="tm-stat-label">This Week's Lessons</div></div>
                     <div class="tm-stat-icon blue"><i class="fa fa-calendar"/></div>
                 </div>
-            </div>
-            <div class="tm-stat-card">
+            </a>
+            <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div><div class="tm-stat-value"><t t-esc="len(course_assignments)"/></div><div class="tm-stat-label">Assignments</div></div>
                     <div class="tm-stat-icon orange"><i class="fa fa-tasks"/></div>
                 </div>
-            </div>
-            <div class="tm-stat-card">
+            </a>
+            <a href="#course-progress-reports" class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div><div class="tm-stat-value"><t t-esc="len(course_progress_reports)"/></div><div class="tm-stat-label">Progress Reports</div></div>
                     <div class="tm-stat-icon green"><i class="fa fa-line-chart"/></div>
                 </div>
-            </div>
+            </a>
         </div>
 
         <!-- VC: Feedback messages -->
@@ -994,7 +994,7 @@
         </div>
 
         <div class="tm-grid-2">
-            <div class="tm-card">
+            <div class="tm-card" id="enrolled-students">
                 <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-users"/> Enrolled Students</div></div>
                 <t t-if="enrolled_students">
                     <table class="tm-table">
@@ -1075,7 +1075,7 @@
                 </t>
             </div>
 
-            <div class="tm-card">
+            <div class="tm-card" id="course-progress-reports">
                 <div class="tm-card-header">
                     <div class="tm-card-title"><i class="fa fa-line-chart"/> Progress Reports</div>
                     <a t-attf-href="/my/tutor/courses/#{course.id}/progress/new" class="tm-card-action"><i class="fa fa-plus"/> Add New</a>
@@ -1175,12 +1175,12 @@
             });
         </script>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+        <div class="tm-page-header">
+            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
             <div>
-                <h5 style="margin:0 0 4px;font-weight:700;"><i class="fa fa-check-square-o"/> Mark Attendance</h5>
+                <h5 style="margin:0 0 4px;"><i class="fa fa-check-square-o"/> Mark Attendance</h5>
                 <p style="margin:0;font-size:12px;color:var(--tm-text-light);"><t t-esc="occurrence.name"/> · <t t-esc="occurrence_dt_str"/></p>
             </div>
-            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
         </div>
 
         <form t-attf-action="/my/tutor/lesson/#{occurrence.id}/attendance/save" method="POST">
@@ -1189,12 +1189,24 @@
             <!-- Lesson Summary (top) -->
             <div class="tm-card" style="margin-bottom:16px;">
                 <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-book"/> Lesson Summary</div></div>
-                <div class="tm-card-body" style="display:flex;flex-direction:column;gap:16px;">
+                <div class="tm-card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
                     <div class="tm-form-group" style="margin:0;">
                         <label class="tm-form-label">Topic Covered <span class="tm-summary-required" style="color:#e53935;">*</span></label>
-                        <textarea id="topic_covered" name="topic_covered" class="form-control" rows="6" style="font-size:14px;line-height:1.6;" placeholder="What was taught in this lesson?"><t t-esc="occurrence.topic_covered or ''"/></textarea>
+                        <textarea id="topic_covered" name="topic_covered" class="form-control" rows="6" style="font-size:14px;line-height:1.6;width:90%;" placeholder="What was taught in this lesson?"><t t-esc="occurrence.topic_covered or ''"/></textarea>
                     </div>
                     <div class="tm-form-group" style="margin:0;">
+                        <label class="tm-form-label">Next Steps</label>
+                        <textarea name="next_steps" class="form-control" rows="6" style="font-size:14px;line-height:1.6;width:90%;" placeholder="What should students prepare or expect next?"><t t-esc="occurrence.next_steps or ''"/></textarea>
+                    </div>
+                    <div class="tm-form-group" style="margin:0;">
+                        <label class="tm-form-label">Homework Assigned</label>
+                        <textarea name="homework" class="form-control" rows="6" style="font-size:14px;line-height:1.6;width:90%;" placeholder="Describe any homework given..."><t t-esc="occurrence.homework or ''"/></textarea>
+                    </div>
+                    <div class="tm-form-group" style="margin:0;">
+                        <label class="tm-form-label">Tutor Comments</label>
+                        <textarea name="tutor_comments" class="form-control" rows="6" style="font-size:14px;line-height:1.6;width:90%;" placeholder="Any additional comments for the admin..."><t t-esc="occurrence.tutor_comments or ''"/></textarea>
+                    </div>
+                    <div class="tm-form-group" style="margin:0;grid-column:1 / -1;">
                         <label class="tm-form-label">Class Rating <span class="tm-summary-required" style="color:#e53935;">*</span></label>
                         <div class="tm-rating-radio">
                             <input type="radio" name="class_rating" id="rating_excellent" value="excellent" t-att-checked="'checked' if occurrence.class_rating == 'excellent' else None"/>
@@ -1204,18 +1216,6 @@
                             <input type="radio" name="class_rating" id="rating_satisfactory" value="satisfactory" t-att-checked="'checked' if occurrence.class_rating == 'satisfactory' else None"/>
                             <label for="rating_satisfactory">✔ Satisfactory</label>
                         </div>
-                    </div>
-                    <div class="tm-form-group" style="margin:0;">
-                        <label class="tm-form-label">Next Steps</label>
-                        <textarea name="next_steps" class="form-control" rows="6" style="font-size:14px;line-height:1.6;" placeholder="What should students prepare or expect next?"><t t-esc="occurrence.next_steps or ''"/></textarea>
-                    </div>
-                    <div class="tm-form-group" style="margin:0;">
-                        <label class="tm-form-label">Homework Assigned</label>
-                        <textarea name="homework" class="form-control" rows="6" style="font-size:14px;line-height:1.6;" placeholder="Describe any homework given..."><t t-esc="occurrence.homework or ''"/></textarea>
-                    </div>
-                    <div class="tm-form-group" style="margin:0;">
-                        <label class="tm-form-label">Tutor Comments</label>
-                        <textarea name="tutor_comments" class="form-control" rows="6" style="font-size:14px;line-height:1.6;" placeholder="Any additional comments for the admin..."><t t-esc="occurrence.tutor_comments or ''"/></textarea>
                     </div>
                 </div>
             </div>
@@ -1240,7 +1240,7 @@
                         </div>
                         <div class="tm-form-group" style="margin:0;">
                             <label class="tm-form-label">Issue Details</label>
-                            <textarea name="technical_issue_details" class="form-control" rows="3" placeholder="Describe the technical issue..."><t t-esc="occurrence.technical_issue_details or ''"/></textarea>
+                            <textarea name="technical_issue_details" class="form-control" rows="3" style="width:80%;" placeholder="Describe the technical issue..."><t t-esc="occurrence.technical_issue_details or ''"/></textarea>
                         </div>
                     </div>
                 </div>
@@ -1288,12 +1288,12 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_course_detail</t>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-            <h5 style="margin:0;font-weight:700;"><i class="fa fa-tasks"/> <t t-esc="course.name"/> — Assignments</h5>
-            <div style="display:flex;gap:8px;">
-                <a t-attf-href="/my/tutor/courses/#{course.id}/assignments/new" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-plus"/> New Assignment</a>
+        <div class="tm-page-header" style="flex-direction:column;align-items:flex-start;">
+            <div style="display:flex;gap:12px;flex-wrap:wrap;">
                 <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+                <a t-attf-href="/my/tutor/courses/#{course.id}/assignments/new" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-plus"/> New Assignment</a>
             </div>
+            <h5><i class="fa fa-tasks"/> <t t-esc="course.name"/> — Assignments</h5>
         </div>
 
         <!-- Deleted flash -->
@@ -1411,40 +1411,37 @@
         <div class="tm-page" style="padding-top:8px;">
 
             <!-- Page header -->
-            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
-                <div>
-                    <div style="font-size:11px; color:#888; text-transform:uppercase; letter-spacing:.5px; margin-bottom:2px;">
-                        <a t-attf-href="/my/tutor/courses/#{course.id}/assignments"
-                           style="color:#888; text-decoration:none;">
-                            <i class="fa fa-arrow-left me-1"/>Assignments
-                        </a>
-                    </div>
+            <div class="tm-page-header" style="flex-direction:column;align-items:flex-start;">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
                     <h5 class="mb-0 fw-bold" style="color:#1a1a2e; font-size:18px;">
                         <t t-out="assignment.name"/>
                     </h5>
-                </div>
-                <div class="d-flex gap-2 align-items-center flex-wrap">
                     <span t-if="assignment.status == 'draft'"        class="tm-badge tm-badge-grey"   style="font-size:12px; padding:6px 12px;">Draft</span>
                     <span t-if="assignment.status == 'assigned'"     class="tm-badge tm-badge-blue"   style="font-size:12px; padding:6px 12px;">Assigned</span>
                     <span t-if="assignment.status == 'pending_review'" class="tm-badge tm-badge-orange" style="font-size:12px; padding:6px 12px;">Pending for tutor review</span>
                     <span t-if="assignment.status == 'completed'"    class="tm-badge tm-badge-green"  style="font-size:12px; padding:6px 12px;">Completed</span>
                     <span t-if="assignment.status == 'cancelled'"    class="tm-badge tm-badge-red"    style="font-size:12px; padding:6px 12px;">Cancelled</span>
+                </div>
+                <div class="d-flex gap-2 align-items-center flex-wrap">
+                    <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm">
+                        <i class="fa fa-arrow-left"/> Back to Assignments
+                    </a>
                     <!-- Publish/Submit button (draft -> assigned) -->
                     <form t-if="assignment.status == 'draft'" t-attf-action="/my/tutor/assignment/#{assignment.id}/assign" method="POST" style="display:inline;"
                           onsubmit="return confirm('Submit this assignment and make it visible to students?')">
                         <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                        <button type="submit"
-                                style="font-size:12px; font-weight:600; color:#fff; background:#4a6cf7; border:1px solid #4a6cf7; border-radius:7px; padding:6px 14px; cursor:pointer;">
-                            <i class="fa fa-check me-1"/>Submit
+                        <button type="submit" class="tm-btn tm-btn-sm"
+                                style="color:#fff; background:#4a6cf7; border:1px solid #4a6cf7;">
+                            <i class="fa fa-check"/> Submit
                         </button>
                     </form>
                     <!-- Delete button -->
                     <form t-attf-action="/my/tutor/assignment/#{assignment.id}/delete" method="POST" style="display:inline;"
                           onsubmit="return confirm('Are you sure you want to delete this assignment? This cannot be undone.')">
                         <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
-                        <button type="submit"
-                                style="font-size:12px; font-weight:600; color:#dc2626; background:#fff5f5; border:1px solid #fecaca; border-radius:7px; padding:6px 14px; cursor:pointer;">
-                            <i class="fa fa-trash me-1"/>Delete
+                        <button type="submit" class="tm-btn tm-btn-sm"
+                                style="color:#dc2626; background:#fff5f5; border:1px solid #fecaca;">
+                            <i class="fa fa-trash"/> Delete
                         </button>
                     </form>
                 </div>
@@ -1807,21 +1804,21 @@
                                         <span t-if="sub.status == 'rework'"         class="tm-badge tm-badge-red">Rework Required</span>
                                     </div>
 
-                                    <!-- Submitted files -->
+                                    <!-- Submitted files (styled to match the Resources box on the left) -->
                                     <t t-if="sub.attachment_ids">
                                         <div style="margin-bottom:12px;">
                                             <t t-foreach="sub.attachment_ids" t-as="att">
-                                                <div style="display:inline-flex; align-items:center; gap:6px; padding:6px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:6px; font-size:11px; color:#555; margin-right:6px; margin-bottom:4px;">
-                                                    <i class="fa fa-paperclip" style="color:#4a6cf7;"/>
-                                                    <span t-out="att.name"/>
+                                                <div style="display:flex; align-items:center; gap:6px; padding:8px 10px; background:#f8f9fa; border:1px solid #e8eaed; border-radius:7px; margin-bottom:6px;">
+                                                    <i class="fa fa-file-o" style="color:#888;"/>
+                                                    <span style="flex:1; font-size:12px; color:#333;" t-out="att.name"/>
                                                     <t t-if="att in annotatable_atts">
                                                         <a t-attf-href="/my/tutor/assignment/#{assignment.id}/preview/#{att.id}"
-                                                           style="color:#4a6cf7; text-decoration:none; display:inline-flex; align-items:center; gap:3px; padding:2px 6px; border:1px solid #4a6cf7; border-radius:4px; font-size:10px;">
+                                                           style="font-size:11px; color:#4a6cf7; text-decoration:none; display:inline-flex; align-items:center; gap:3px; padding:3px 8px; border:1px solid #4a6cf7; border-radius:5px;">
                                                             <i class="fa fa-eye"/> Preview
                                                         </a>
                                                     </t>
                                                     <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
-                                                       style="color:#888; text-decoration:none;">
+                                                       style="font-size:11px; color:#888; text-decoration:none; display:inline-flex; align-items:center; gap:3px;">
                                                         <i class="fa fa-download"/>
                                                     </a>
                                                 </div>
@@ -1872,7 +1869,7 @@
                                                     <label style="font-size:10px; font-weight:700; color:#888; text-transform:uppercase; letter-spacing:.3px; display:block; margin-bottom:4px;">Feedback</label>
                                                     <textarea name="feedback" class="form-control form-control-sm" rows="3"
                                                               placeholder="Leave a comment..."
-                                                              style="border-radius:6px; font-size:12px; border-color:#d0d7de; resize:vertical;"><t t-out="sub.feedback or ''"/></textarea>
+                                                              style="border-radius:6px; font-size:12px; border-color:#d0d7de; resize:vertical; width:50%;"><t t-out="sub.feedback or ''"/></textarea>
                                                 </div>
                                                 <!-- Action buttons -->
                                                 <div class="col-sm-4 d-flex gap-2">
@@ -1905,9 +1902,9 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_course_detail</t>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-            <h5 style="margin:0;font-weight:700;"><i class="fa fa-calendar"/> <t t-esc="course.name"/> — Schedule</h5>
+        <div class="tm-page-header">
             <a t-att-href="back_url" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+            <h5><i class="fa fa-calendar"/> <t t-esc="course.name"/> — Schedule</h5>
         </div>
 
         <div style="margin-bottom:16px;display:flex;gap:8px;flex-wrap:wrap;">
@@ -1969,9 +1966,9 @@
     <t t-call="tuition_management.portal_sidebar_layout">
         <t t-set="page_name">tutor_course_detail</t>
 
-        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
-            <h5 style="margin:0;font-weight:700;"><i class="fa fa-plus-circle"/> New Assignment — <t t-esc="course.name"/></h5>
+        <div class="tm-page-header">
             <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Assignments</a>
+            <h5><i class="fa fa-plus-circle"/> New Assignment — <t t-esc="course.name"/></h5>
         </div>
 
         <div class="tm-card">
@@ -2130,7 +2127,7 @@
         <t t-set="page_name">tutor_assignments</t>
 
         <!-- Header -->
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:16px;">
+        <div class="tm-page-header">
             <a t-attf-href="/my/tutor/assignment/#{assignment.id}" class="tm-btn tm-btn-outline tm-btn-sm">
                 <i class="fa fa-arrow-left"/> Back to Assignment
             </a>

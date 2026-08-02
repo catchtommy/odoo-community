@@ -235,6 +235,23 @@ body.tm-portal-layout footer.o_footer {
     margin: 0 0 24px;
 }
 
+/* Shared top-of-page header: back-link, title, and action button(s) all
+   sit together on the left, in that order, instead of each template
+   hand-rolling its own flex row (some of which pushed buttons to the
+   right via justify-content:space-between). */
+.tm-page-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.tm-page-header h5 {
+    margin: 0;
+    font-weight: 700;
+}
+
 /* ============================================================
    STAT CARDS
    ============================================================ */

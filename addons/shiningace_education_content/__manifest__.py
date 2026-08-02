@@ -33,6 +33,15 @@ Builds on education_curriculum to provide:
     'demo': [
         'demo/education_content_demo.xml',
     ],
+    'assets': {
+        'web.assets_backend': [
+            'shiningace_education_content/static/src/content_preview/content_preview_utils.js',
+            'shiningace_education_content/static/src/content_preview/content_preview_dialog.js',
+            'shiningace_education_content/static/src/content_preview/content_preview_dialog.xml',
+            'shiningace_education_content/static/src/content_preview/content_preview_button.js',
+            'shiningace_education_content/static/src/content_preview/content_preview_button.xml',
+        ],
+    },
     'installable': True,
     'application': False,
 }

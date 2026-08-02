@@ -15,6 +15,35 @@
         </field>
     </record>
 
+    <record id="view_education_learning_objective_form" model="ir.ui.view">
+        <field name="name">education.learning.objective.form</field>
+        <field name="model">education.learning.objective</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" placeholder="e.g. Understand equivalent fractions"/></h1>
+                    </div>
+                    <group>
+                        <group>
+                            <div class="text-muted mb-2" colspan="2">
+                                Link this objective to either a Topic (general, topic-level) or a
+                                Subtopic — not both. Picking one clears the other.
+                            </div>
+                            <field name="topic_id" placeholder="(topic-level objective)"/>
+                            <field name="subtopic_id" placeholder="(subtopic-level objective)"/>
+                        </group>
+                        <group>
+                            <field name="bloom_level"/>
+                            <field name="expected_completion_minutes"/>
+                            <field name="sequence"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
     <record id="view_education_learning_objective_search" model="ir.ui.view">
         <field name="name">education.learning.objective.search</field>
         <field name="model">education.learning.objective</field>

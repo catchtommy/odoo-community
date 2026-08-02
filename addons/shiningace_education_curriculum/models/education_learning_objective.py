@@ -44,6 +44,19 @@ class EducationLearningObjective(models.Model):
         for rec in self:
             rec.curriculum_id = rec.topic_id.curriculum_id or rec.subtopic_id.curriculum_id
 
+    @api.onchange('topic_id')
+    def _onchange_topic_id(self):
+        # A learning objective is either topic-level or subtopic-level, never
+        # both (see _check_exactly_one_parent) — picking one clears the other
+        # instead of making the user discover the conflict at save time.
+        if self.topic_id and self.subtopic_id:
+            self.subtopic_id = False
+
+    @api.onchange('subtopic_id')
+    def _onchange_subtopic_id(self):
+        if self.subtopic_id and self.topic_id:
+            self.topic_id = False
+
     @api.constrains('topic_id', 'subtopic_id')
     def _check_exactly_one_parent(self):
         for rec in self:

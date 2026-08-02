@@ -66,6 +66,32 @@
                     background: white; border: 1px solid #e5e7eb; border-radius: 10px;
                     padding: 18px 20px; margin-bottom: 24px;
                 }
+                .ect-subtopics-block { margin-top: 20px; }
+                .ect-subtopics-block > .ect-section-title { margin-bottom: 10px; }
+                .ect-subtopic-card {
+                    border: 1px solid #e0e0f0;
+                    border-radius: 8px;
+                    margin-bottom: 12px;
+                    background: #fcfcff;
+                    overflow: hidden;
+                }
+                .ect-subtopic-card:last-child { margin-bottom: 0; }
+                .ect-subtopic-header {
+                    cursor: pointer; user-select: none;
+                    padding: 10px 14px;
+                    display: flex; align-items: center; justify-content: space-between;
+                    background: #f4f4fb;
+                }
+                .ect-subtopic-header:hover .ect-delete { visibility: visible; }
+                .ect-subtopic-body { padding: 14px 16px; }
+                .ect-subtopic-section-grid {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 16px;
+                }
+                @media (max-width: 700px) {
+                    .ect-subtopic-section-grid { grid-template-columns: 1fr; }
+                }
             </style>
 
             <t t-if="state.loading">
@@ -154,48 +180,21 @@
 
                                 <t t-if="isTopicOpen(topic.id)">
                                     <div class="ect-card-body">
+                                      <!-- Topic-level content: applies to the whole topic, not any
+                                           particular subtopic. Subtopic-scoped Learning Objectives and
+                                           Lessons live in the "Subtopics" block below, nested under the
+                                           subtopic they actually belong to. -->
                                       <div class="ect-section-grid">
-                                        <!-- Subtopics -->
+                                        <!-- Learning Objectives (topic-level only) -->
                                         <div class="ect-section">
-                                            <div class="ect-section-title"><i class="fa fa-sitemap me-1"/>Subtopics</div>
-                                            <t t-if="!topic.subtopics.length and !isAddOpen('add-subtopic-' + topic.id)">
-                                                <div class="ect-empty-hint">No subtopics.</div>
-                                            </t>
-                                            <t t-foreach="topic.subtopics" t-as="subtopic" t-key="subtopic.id">
-                                                <div class="ect-item-row">
-                                                    <span class="ect-item-label" t-on-click="() => this.openRecord('education.subtopic', subtopic.id)" t-esc="subtopic.name"/>
-                                                    <i class="fa fa-trash ect-delete" title="Delete subtopic"
-                                                       t-on-click="() => this.deleteNode('education.subtopic', subtopic.id, subtopic.name)"/>
-                                                </div>
-                                            </t>
-                                            <t t-if="isAddOpen('add-subtopic-' + topic.id)">
-                                                <div class="ect-add-row">
-                                                    <input type="text" placeholder="New subtopic…"
-                                                           t-att-value="state.addValues['add-subtopic-' + topic.id]"
-                                                           t-on-input="(ev) => this.onAddInput('add-subtopic-' + topic.id, ev)"
-                                                           t-on-keydown="(ev) => this.onAddKeydown('add-subtopic-' + topic.id, () => this.submitAddSubtopic(topic.id), ev)"/>
-                                                    <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddSubtopic(topic.id)">Add</button>
-                                                    <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-subtopic-' + topic.id)">Cancel</button>
-                                                </div>
-                                            </t>
-                                            <t t-else="">
-                                                <span class="ect-add-pill" t-on-click="() => this.openAdd('add-subtopic-' + topic.id)">
-                                                    <i class="fa fa-plus"/> Add Subtopic
-                                                </span>
-                                            </t>
-                                        </div>
-
-                                        <!-- Learning Objectives (topic-level + subtopic-level, merged) -->
-                                        <div class="ect-section">
-                                            <div class="ect-section-title"><i class="fa fa-bullseye me-1"/>Learning Objectives</div>
+                                            <div class="ect-section-title"><i class="fa fa-bullseye me-1"/>Learning Objectives <small class="text-muted ms-1">(topic-level)</small></div>
                                             <t t-if="!topic.objectives.length and !isAddOpen('add-objective-' + topic.id)">
-                                                <div class="ect-empty-hint">No learning objectives.</div>
+                                                <div class="ect-empty-hint">No topic-level learning objectives.</div>
                                             </t>
                                             <t t-foreach="topic.objectives" t-as="objective" t-key="objective.id">
                                                 <div class="ect-item-row">
                                                     <span class="ect-item-label" t-on-click="() => this.openRecord('education.learning.objective', objective.id)">
                                                         <t t-esc="objective.name"/>
-                                                        <span t-if="objective.subtopicName" class="badge text-bg-light ms-1" t-esc="objective.subtopicName"/>
                                                         <span t-if="objective.bloom_level" class="badge text-bg-secondary ms-1" t-esc="bloomLabel(objective.bloom_level)"/>
                                                     </span>
                                                     <i class="fa fa-trash ect-delete" title="Delete objective"
@@ -208,14 +207,6 @@
                                                            t-att-value="state.addValues['add-objective-' + topic.id]"
                                                            t-on-input="(ev) => this.onAddInput('add-objective-' + topic.id, ev)"
                                                            t-on-keydown="(ev) => this.onAddKeydown('add-objective-' + topic.id, () => this.submitAddObjective(topic.id), ev)"/>
-                                                    <t t-if="topic.subtopics.length">
-                                                        <select t-on-change="(ev) => this.onSubtopicChoiceChange(topic.id, ev)">
-                                                            <option value="">(general — topic level)</option>
-                                                            <t t-foreach="topic.subtopics" t-as="subtopic" t-key="subtopic.id">
-                                                                <option t-att-value="subtopic.id" t-esc="subtopic.name"/>
-                                                            </t>
-                                                        </select>
-                                                    </t>
                                                     <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddObjective(topic.id)">Add</button>
                                                     <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-objective-' + topic.id)">Cancel</button>
                                                 </div>
@@ -227,7 +218,7 @@
                                             </t>
                                         </div>
 
-                                        <!-- Skills -->
+                                        <!-- Skills (schema-level: Skills can only ever be topic-level) -->
                                         <div class="ect-section">
                                             <div class="ect-section-title"><i class="fa fa-star me-1"/>Skills</div>
                                             <t t-if="!topic.skills.length and !isAddOpen('add-skill-' + topic.id)">
@@ -260,11 +251,11 @@
                                             </t>
                                         </div>
 
-                                        <!-- Lessons -->
+                                        <!-- Lessons (topic-level only) -->
                                         <div class="ect-section mb-0">
-                                            <div class="ect-section-title"><i class="fa fa-book me-1"/>Lessons</div>
+                                            <div class="ect-section-title"><i class="fa fa-book me-1"/>Lessons <small class="text-muted ms-1">(topic-level)</small></div>
                                             <t t-if="!topic.lessons.length and !isAddOpen('add-lesson-' + topic.id)">
-                                                <div class="ect-empty-hint">No lessons.</div>
+                                                <div class="ect-empty-hint">No topic-level lessons.</div>
                                             </t>
                                             <t t-foreach="topic.lessons" t-as="lesson" t-key="lesson.id">
                                                 <div class="ect-item-row">
@@ -293,6 +284,117 @@
                                                 </span>
                                             </t>
                                         </div>
+                                      </div>
+
+                                      <!-- Subtopics: each one nests ITS OWN Learning Objectives and
+                                           Lessons, so it's always clear which subtopic a given item
+                                           belongs to. -->
+                                      <div class="ect-subtopics-block">
+                                        <div class="ect-section-title"><i class="fa fa-sitemap me-1"/>Subtopics</div>
+                                        <t t-if="!topic.subtopics.length and !isAddOpen('add-subtopic-' + topic.id)">
+                                            <div class="ect-empty-hint">No subtopics.</div>
+                                        </t>
+                                        <t t-foreach="topic.subtopics" t-as="subtopic" t-key="subtopic.id">
+                                            <div class="ect-subtopic-card">
+                                                <div class="ect-subtopic-header" t-on-click="() => this.toggleSubtopic(subtopic.id)">
+                                                    <span>
+                                                        <i t-attf-class="fa {{isSubtopicOpen(subtopic.id) ? 'fa-caret-down' : 'fa-caret-right'}} me-2"/>
+                                                        <span t-on-click.stop="() => this.openRecord('education.subtopic', subtopic.id)" t-esc="subtopic.name"/>
+                                                        <span class="badge text-bg-light ms-2" t-esc="subtopic.objectives.length + ' LO'"/>
+                                                        <span class="badge text-bg-light ms-1" t-esc="subtopic.lessons.length + ' lesson(s)'"/>
+                                                    </span>
+                                                    <i class="fa fa-trash ect-delete" title="Delete subtopic"
+                                                       t-on-click.stop="() => this.deleteNode('education.subtopic', subtopic.id, subtopic.name)"/>
+                                                </div>
+                                                <t t-if="isSubtopicOpen(subtopic.id)">
+                                                    <div class="ect-subtopic-body">
+                                                        <div class="ect-subtopic-section-grid">
+                                                            <!-- Learning Objectives for THIS subtopic -->
+                                                            <div class="ect-section mb-0">
+                                                                <div class="ect-section-title"><i class="fa fa-bullseye me-1"/>Learning Objectives</div>
+                                                                <t t-if="!subtopic.objectives.length and !isAddOpen('add-objective-sub-' + subtopic.id)">
+                                                                    <div class="ect-empty-hint">No learning objectives.</div>
+                                                                </t>
+                                                                <t t-foreach="subtopic.objectives" t-as="objective" t-key="objective.id">
+                                                                    <div class="ect-item-row">
+                                                                        <span class="ect-item-label" t-on-click="() => this.openRecord('education.learning.objective', objective.id)">
+                                                                            <t t-esc="objective.name"/>
+                                                                            <span t-if="objective.bloom_level" class="badge text-bg-secondary ms-1" t-esc="bloomLabel(objective.bloom_level)"/>
+                                                                        </span>
+                                                                        <i class="fa fa-trash ect-delete" title="Delete objective"
+                                                                           t-on-click="() => this.deleteNode('education.learning.objective', objective.id, objective.name)"/>
+                                                                    </div>
+                                                                </t>
+                                                                <t t-if="isAddOpen('add-objective-sub-' + subtopic.id)">
+                                                                    <div class="ect-add-row">
+                                                                        <input type="text" placeholder="New learning objective…"
+                                                                               t-att-value="state.addValues['add-objective-sub-' + subtopic.id]"
+                                                                               t-on-input="(ev) => this.onAddInput('add-objective-sub-' + subtopic.id, ev)"
+                                                                               t-on-keydown="(ev) => this.onAddKeydown('add-objective-sub-' + subtopic.id, () => this.submitAddSubtopicObjective(topic.id, subtopic.id), ev)"/>
+                                                                        <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddSubtopicObjective(topic.id, subtopic.id)">Add</button>
+                                                                        <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-objective-sub-' + subtopic.id)">Cancel</button>
+                                                                    </div>
+                                                                </t>
+                                                                <t t-else="">
+                                                                    <span class="ect-add-pill" t-on-click="() => this.openAdd('add-objective-sub-' + subtopic.id)">
+                                                                        <i class="fa fa-plus"/> Add Learning Objective
+                                                                    </span>
+                                                                </t>
+                                                            </div>
+
+                                                            <!-- Lessons for THIS subtopic -->
+                                                            <div class="ect-section mb-0">
+                                                                <div class="ect-section-title"><i class="fa fa-book me-1"/>Lessons</div>
+                                                                <t t-if="!subtopic.lessons.length and !isAddOpen('add-lesson-sub-' + subtopic.id)">
+                                                                    <div class="ect-empty-hint">No lessons.</div>
+                                                                </t>
+                                                                <t t-foreach="subtopic.lessons" t-as="lesson" t-key="lesson.id">
+                                                                    <div class="ect-item-row">
+                                                                        <span class="ect-item-label" t-on-click="() => this.openRecord('education.lesson', lesson.id)">
+                                                                            <t t-esc="lesson.name"/>
+                                                                            <span class="badge text-bg-light ms-1" t-esc="lesson.duration_minutes + ' min'"/>
+                                                                            <span class="badge text-bg-secondary ms-1" t-esc="lesson.state"/>
+                                                                        </span>
+                                                                        <i class="fa fa-trash ect-delete" title="Delete lesson"
+                                                                           t-on-click="() => this.deleteNode('education.lesson', lesson.id, lesson.name)"/>
+                                                                    </div>
+                                                                </t>
+                                                                <t t-if="isAddOpen('add-lesson-sub-' + subtopic.id)">
+                                                                    <div class="ect-add-row">
+                                                                        <input type="text" placeholder="New lesson…"
+                                                                               t-att-value="state.addValues['add-lesson-sub-' + subtopic.id]"
+                                                                               t-on-input="(ev) => this.onAddInput('add-lesson-sub-' + subtopic.id, ev)"
+                                                                               t-on-keydown="(ev) => this.onAddKeydown('add-lesson-sub-' + subtopic.id, () => this.submitAddSubtopicLesson(topic.id, subtopic.id), ev)"/>
+                                                                        <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddSubtopicLesson(topic.id, subtopic.id)">Add</button>
+                                                                        <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-lesson-sub-' + subtopic.id)">Cancel</button>
+                                                                    </div>
+                                                                </t>
+                                                                <t t-else="">
+                                                                    <span class="ect-add-pill" t-on-click="() => this.openAdd('add-lesson-sub-' + subtopic.id)">
+                                                                        <i class="fa fa-plus"/> Add Lesson
+                                                                    </span>
+                                                                </t>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </t>
+                                            </div>
+                                        </t>
+                                        <t t-if="isAddOpen('add-subtopic-' + topic.id)">
+                                            <div class="ect-add-row">
+                                                <input type="text" placeholder="New subtopic…"
+                                                       t-att-value="state.addValues['add-subtopic-' + topic.id]"
+                                                       t-on-input="(ev) => this.onAddInput('add-subtopic-' + topic.id, ev)"
+                                                       t-on-keydown="(ev) => this.onAddKeydown('add-subtopic-' + topic.id, () => this.submitAddSubtopic(topic.id), ev)"/>
+                                                <button class="btn btn-sm btn-primary" t-on-click="() => this.submitAddSubtopic(topic.id)">Add</button>
+                                                <button class="btn btn-sm btn-link" t-on-click="() => this.cancelAdd('add-subtopic-' + topic.id)">Cancel</button>
+                                            </div>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="ect-add-pill" t-on-click="() => this.openAdd('add-subtopic-' + topic.id)">
+                                                <i class="fa fa-plus"/> Add Subtopic
+                                            </span>
+                                        </t>
                                       </div>
                                     </div>
                                 </t>
