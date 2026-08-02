@@ -17,7 +17,7 @@ Builds on education_curriculum to provide:
     'author': 'ShiningAce',
     'website': 'https://www.shiningace.com',
     'license': 'LGPL-3',
-    'depends': ['education_curriculum'],
+    'depends': ['shiningace_education_curriculum'],
     'data': [
         'security/education_content_security.xml',
         'security/ir.model.access.csv',

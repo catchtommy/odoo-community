@@ -15,7 +15,7 @@ used in tuition_management/controllers/) — no third-party REST framework.
     'author': 'ShiningAce',
     'website': 'https://www.shiningace.com',
     'license': 'LGPL-3',
-    'depends': ['education_ai'],
+    'depends': ['shiningace_education_ai'],
     'data': [],
     'installable': False,
     'application': False,

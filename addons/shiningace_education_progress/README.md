@@ -6,10 +6,10 @@ identification, tutor-comment aggregation, and the surface AI
 recommendations will read from.
 
 Important design note: `education.student.progress` (the base per-student,
-per-lesson completion record) already exists in `education_course` — added
+per-lesson completion record) already exists in `shiningace_education_course` — added
 there in Phase 1 so the "lesson taught → progress recorded" loop closes
-without waiting on this module. `education_progress` should build
+without waiting on this module. `shiningace_education_progress` should build
 rollups/analytics *over* that existing table, not redefine it.
 
-Depends on `education_course` (for the base progress table) and
-`education_assessment` (for assessment scores).
+Depends on `shiningace_education_course` (for the base progress table) and
+`shiningace_education_assessment` (for assessment scores).

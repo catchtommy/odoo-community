@@ -14,7 +14,7 @@ const BLOOM_LABELS = {
 };
 
 class EducationCurriculumTree extends Component {
-    static template = "education_curriculum.CurriculumTree";
+    static template = "shiningace_education_curriculum.CurriculumTree";
     static props = ["*"];
 
     setup() {

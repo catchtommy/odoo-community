@@ -24,7 +24,7 @@ extended via QWeb inheritance — no new routes are introduced.
     'author': 'ShiningAce',
     'website': 'https://www.shiningace.com',
     'license': 'LGPL-3',
-    'depends': ['education_core', 'education_curriculum', 'education_content', 'tuition_management'],
+    'depends': ['shiningace_education_core', 'shiningace_education_curriculum', 'shiningace_education_content', 'tuition_management'],
     'data': [
         'security/education_course_security.xml',
         'security/ir.model.access.csv',

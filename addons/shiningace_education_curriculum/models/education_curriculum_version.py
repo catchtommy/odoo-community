@@ -105,8 +105,8 @@ class EducationCurriculumVersion(models.Model):
             rec._log_review('submitted', 'draft', 'review')
 
     def action_approve(self):
-        if not (self.env.user.has_group('education_core.group_education_reviewer')
-                or self.env.user.has_group('education_core.group_education_curriculum_manager')):
+        if not (self.env.user.has_group('shiningace_education_core.group_education_reviewer')
+                or self.env.user.has_group('shiningace_education_core.group_education_curriculum_manager')):
             raise UserError("You are not allowed to approve curriculum versions.")
         for rec in self:
             if rec.state != 'review':
@@ -122,7 +122,7 @@ class EducationCurriculumVersion(models.Model):
             rec._log_review('rejected', 'review', 'draft', comments=comments)
 
     def action_publish(self):
-        if not self.env.user.has_group('education_core.group_education_curriculum_manager'):
+        if not self.env.user.has_group('shiningace_education_core.group_education_curriculum_manager'):
             raise UserError("Only a Curriculum Manager can publish a curriculum version.")
         for rec in self:
             if rec.state != 'approved':
@@ -131,7 +131,7 @@ class EducationCurriculumVersion(models.Model):
             rec._log_review('published', 'approved', 'published')
 
     def action_archive(self):
-        if not self.env.user.has_group('education_core.group_education_curriculum_manager'):
+        if not self.env.user.has_group('shiningace_education_core.group_education_curriculum_manager'):
             raise UserError("Only a Curriculum Manager can archive a curriculum version.")
         for rec in self:
             if rec.state != 'published':

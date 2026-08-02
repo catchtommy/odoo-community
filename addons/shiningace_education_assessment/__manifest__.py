@@ -16,7 +16,7 @@ See README.md for scope and current status.
     'author': 'ShiningAce',
     'website': 'https://www.shiningace.com',
     'license': 'LGPL-3',
-    'depends': ['education_content'],
+    'depends': ['shiningace_education_content'],
     'data': [],
     'installable': False,
     'application': False,

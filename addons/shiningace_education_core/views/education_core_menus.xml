@@ -7,7 +7,7 @@
     <menuitem id="menu_education_course_root" name="Courses" parent="menu_education_root" sequence="30"/>
 
     <menuitem id="menu_education_configuration_root" name="Configuration" parent="menu_education_root" sequence="90"
-              groups="education_core.group_education_curriculum_manager"/>
+              groups="shiningace_education_core.group_education_curriculum_manager"/>
 
     <menuitem id="menu_education_country" name="Countries" parent="menu_education_configuration_root"
               action="action_education_country" sequence="10"/>

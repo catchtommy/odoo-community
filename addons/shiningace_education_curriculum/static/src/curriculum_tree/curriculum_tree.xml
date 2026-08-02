@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-    <t t-name="education_curriculum.CurriculumTree">
+    <t t-name="shiningace_education_curriculum.CurriculumTree">
         <div class="ect-wrap p-4" style="height: calc(100vh - 50px); overflow-y: auto;">
             <style>
                 .ect-wrap { background: #f7f7fa; }

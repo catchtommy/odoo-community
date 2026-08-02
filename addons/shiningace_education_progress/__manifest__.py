@@ -17,7 +17,7 @@ README.md.
     'author': 'ShiningAce',
     'website': 'https://www.shiningace.com',
     'license': 'LGPL-3',
-    'depends': ['education_course', 'education_assessment'],
+    'depends': ['shiningace_education_course', 'shiningace_education_assessment'],
     'data': [],
     'installable': False,
     'application': False,

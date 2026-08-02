@@ -8,7 +8,7 @@ class TestLessonContent(TransactionCase):
 
     def setUp(self):
         super().setUp()
-        self.env.user.group_ids |= self.env.ref('education_core.group_education_curriculum_manager')
+        self.env.user.group_ids |= self.env.ref('shiningace_education_core.group_education_curriculum_manager')
         subject = self.env['education.subject'].create({'name': 'Test Maths', 'code': 'ZM'})
         curriculum = self.env['education.curriculum'].create({'name': 'GCSE Maths', 'subject_id': subject.id})
         self.version = self.env['education.curriculum.version'].create({

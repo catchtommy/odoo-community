@@ -7,7 +7,7 @@
 
     <record id="demo_course_curriculum_assignment" model="education.course.curriculum">
         <field name="course_id" ref="demo_course_gcse_maths"/>
-        <field name="curriculum_version_id" ref="education_curriculum.demo_curriculum_gcse_maths_v1"/>
+        <field name="curriculum_version_id" ref="shiningace_education_curriculum.demo_curriculum_gcse_maths_v1"/>
         <field name="is_primary" eval="True"/>
     </record>
 </odoo>

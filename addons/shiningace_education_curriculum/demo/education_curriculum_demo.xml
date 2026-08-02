@@ -3,10 +3,10 @@
     <record id="demo_curriculum_gcse_maths" model="education.curriculum">
         <field name="name">GCSE Mathematics (AQA)</field>
         <field name="code">GCSE-MATHS-AQA</field>
-        <field name="subject_id" ref="education_core.demo_subject_maths"/>
-        <field name="education_system_id" ref="education_core.demo_system_uk_national"/>
-        <field name="board_id" ref="education_core.demo_board_aqa"/>
-        <field name="academic_level_id" ref="education_core.demo_level_gcse"/>
+        <field name="subject_id" ref="shiningace_education_core.demo_subject_maths"/>
+        <field name="education_system_id" ref="shiningace_education_core.demo_system_uk_national"/>
+        <field name="board_id" ref="shiningace_education_core.demo_board_aqa"/>
+        <field name="academic_level_id" ref="shiningace_education_core.demo_level_gcse"/>
     </record>
 
     <record id="demo_curriculum_gcse_maths_v1" model="education.curriculum.version">

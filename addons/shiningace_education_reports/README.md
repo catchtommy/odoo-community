@@ -5,4 +5,4 @@ curriculum completeness, published curriculum counts, lessons/topics/
 resources/assessments, tutor usage, student progress, popular lessons,
 unused resources, upcoming curriculum reviews; Excel/PDF export.
 
-Depends on `education_progress` and `education_course`.
+Depends on `shiningace_education_progress` and `shiningace_education_course`.

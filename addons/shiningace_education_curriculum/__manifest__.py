@@ -21,7 +21,7 @@ working unchanged.
     'author': 'ShiningAce',
     'website': 'https://www.shiningace.com',
     'license': 'LGPL-3',
-    'depends': ['education_core'],
+    'depends': ['shiningace_education_core'],
     'data': [
         'security/education_curriculum_security.xml',
         'security/ir.model.access.csv',
@@ -41,9 +41,9 @@ working unchanged.
     ],
     'assets': {
         'web.assets_backend': [
-            'education_curriculum/static/src/curriculum_tree/curriculum_tree.js',
-            'education_curriculum/static/src/curriculum_tree/curriculum_tree.xml',
-            'education_curriculum/static/src/curriculum_list/curriculum_list_controller.js',
+            'shiningace_education_curriculum/static/src/curriculum_tree/curriculum_tree.js',
+            'shiningace_education_curriculum/static/src/curriculum_tree/curriculum_tree.xml',
+            'shiningace_education_curriculum/static/src/curriculum_list/curriculum_list_controller.js',
         ],
     },
     'installable': True,

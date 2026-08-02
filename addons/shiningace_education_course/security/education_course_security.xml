@@ -10,14 +10,14 @@
         <field name="name">Lesson Assignment: tutor sees own</field>
         <field name="model_id" ref="model_education_lesson_assignment"/>
         <field name="domain_force">[('tutor_id.partner_id.user_ids', 'in', user.id)]</field>
-        <field name="groups" eval="[(4, ref('education_core.group_education_tutor'))]"/>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_tutor'))]"/>
     </record>
 
     <record id="rule_education_student_progress_student_own" model="ir.rule">
         <field name="name">Student Progress: student sees own</field>
         <field name="model_id" ref="model_education_student_progress"/>
         <field name="domain_force">[('student_id.partner_id.user_ids', 'in', user.id)]</field>
-        <field name="groups" eval="[(4, ref('education_core.group_education_student'))]"/>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_student'))]"/>
     </record>
 
     <!-- See education_curriculum_security.xml for why this is needed: without
@@ -27,13 +27,13 @@
         <field name="name">Lesson Assignment: full access for Curriculum Manager</field>
         <field name="model_id" ref="model_education_lesson_assignment"/>
         <field name="domain_force">[(1, '=', 1)]</field>
-        <field name="groups" eval="[(4, ref('education_core.group_education_curriculum_manager'))]"/>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_curriculum_manager'))]"/>
     </record>
 
     <record id="rule_education_student_progress_manager_full" model="ir.rule">
         <field name="name">Student Progress: full access for Curriculum Manager</field>
         <field name="model_id" ref="model_education_student_progress"/>
         <field name="domain_force">[(1, '=', 1)]</field>
-        <field name="groups" eval="[(4, ref('education_core.group_education_curriculum_manager'))]"/>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_curriculum_manager'))]"/>
     </record>
 </odoo>

@@ -19,7 +19,7 @@ without affecting the rest of the suite — no other module may depend on it.
     'author': 'ShiningAce',
     'website': 'https://www.shiningace.com',
     'license': 'LGPL-3',
-    'depends': ['education_progress', 'education_course'],
+    'depends': ['shiningace_education_progress', 'shiningace_education_course'],
     'data': [],
     'installable': False,
     'application': False,
