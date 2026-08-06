@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- One place for curriculum managers/reviewers to see everything tutors
+         have proposed, without hunting through the Curriculum/Content menus
+         and manually applying the "Pending Review" filter on each. Reuses
+         the existing list/form views and action_approve_proposal /
+         action_reject_proposal buttons already on each model. -->
+
+    <record id="action_education_topic_pending" model="ir.actions.act_window">
+        <field name="name">Pending Topics</field>
+        <field name="res_model">education.topic</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('approval_state', '=', 'pending')]</field>
+        <field name="context">{'search_default_group_by_curriculum': 1}</field>
+    </record>
+
+    <record id="action_education_subtopic_pending" model="ir.actions.act_window">
+        <field name="name">Pending Subtopics</field>
+        <field name="res_model">education.subtopic</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('approval_state', '=', 'pending')]</field>
+        <field name="context">{'search_default_group_by_curriculum': 1}</field>
+    </record>
+
+    <record id="action_education_lesson_pending" model="ir.actions.act_window">
+        <field name="name">Pending Lessons</field>
+        <field name="res_model">education.lesson</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('approval_state', '=', 'pending')]</field>
+    </record>
+
+    <record id="action_education_lesson_content_pending" model="ir.actions.act_window">
+        <field name="name">Pending Lesson Content</field>
+        <field name="res_model">education.lesson.content</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('approval_state', '=', 'pending')]</field>
+    </record>
+
+    <menuitem id="menu_education_pending_approvals_root" name="Pending Approvals" parent="shiningace_education_core.menu_education_root"
+              groups="shiningace_education_core.group_education_reviewer"
+              sequence="80"/>
+
+    <menuitem id="menu_education_topic_pending" name="Topics" parent="menu_education_pending_approvals_root"
+              action="action_education_topic_pending" sequence="10"/>
+    <menuitem id="menu_education_subtopic_pending" name="Subtopics" parent="menu_education_pending_approvals_root"
+              action="action_education_subtopic_pending" sequence="20"/>
+    <menuitem id="menu_education_lesson_pending" name="Lessons" parent="menu_education_pending_approvals_root"
+              action="action_education_lesson_pending" sequence="30"/>
+    <menuitem id="menu_education_lesson_content_pending" name="Lesson Content" parent="menu_education_pending_approvals_root"
+              action="action_education_lesson_content_pending" sequence="40"/>
+</odoo>

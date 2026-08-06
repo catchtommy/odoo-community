@@ -39,6 +39,7 @@ extended via QWeb inheritance — no new routes are introduced.
         'views/portal_tutor_course_curriculum_ext.xml',
         'views/portal_layout_ext.xml',
         'views/education_course_menus.xml',
+        'views/education_pending_approvals_menus.xml',
     ],
     'demo': [
         'demo/education_course_demo.xml',

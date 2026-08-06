@@ -61,6 +61,20 @@ class TutorPortalCurriculum(TutorPortal):
             lambda r: r.approval_state == 'approved' or r.proposed_by_id.id == user_id
         )
 
+    def _next_or(self, post, default):
+        """Allow delete routes to be posted from more than one page (the
+        curriculum detail page and the "My Proposals" list) and return the
+        tutor to wherever they actually came from. Only accepts our own
+        curriculum URLs as a redirect target — never an open redirect."""
+        next_url = post.get('next')
+        if next_url and next_url.startswith('/my/tutor/curriculum'):
+            return next_url
+        return default
+
+    def _with_error(self, url, error):
+        sep = '&' if '?' in url else '?'
+        return '%s%serror=%s' % (url, sep, error)
+
     def _can_edit_proposal(self, record):
         """A tutor may only edit/delete their OWN proposal, and only while
         it hasn't been approved yet — once approved it's live curriculum
@@ -249,8 +263,23 @@ class TutorPortalCurriculum(TutorPortal):
         ):
             recs = request.env[model].sudo().search([('proposed_by_id', '=', uid)], order='id desc')
             for rec in recs:
+                if model == 'education.lesson.content':
+                    curriculum_id = rec.lesson_id.topic_id.curriculum_id.id
+                    delete_url = '/my/tutor/curriculum/%d/lesson/%d/content/%d/delete' % (
+                        curriculum_id, rec.lesson_id.id, rec.id)
+                elif model == 'education.lesson':
+                    curriculum_id = rec.curriculum_id.id
+                    delete_url = '/my/tutor/curriculum/%d/lesson/%d/delete' % (curriculum_id, rec.id)
+                elif model == 'education.subtopic':
+                    curriculum_id = rec.curriculum_id.id
+                    delete_url = '/my/tutor/curriculum/%d/subtopic/%d/delete' % (curriculum_id, rec.id)
+                else:  # education.topic
+                    curriculum_id = rec.curriculum_id.id
+                    delete_url = '/my/tutor/curriculum/%d/topic/%d/delete' % (curriculum_id, rec.id)
                 proposals.append({
                     'model': model, 'icon': icon, 'record': rec,
+                    'delete_url': delete_url,
+                    'can_delete': self._can_edit_proposal(rec),
                     'label': {
                         'education.topic': 'Topic', 'education.subtopic': 'Subtopic',
                         'education.lesson': 'Lesson', 'education.lesson.content': 'Lesson Content',
@@ -306,14 +335,15 @@ class TutorPortalCurriculum(TutorPortal):
         if not tutor:
             return request.redirect('/my')
         topic = request.env['education.topic'].sudo().browse(topic_id)
+        target = self._next_or(post, '/my/tutor/curriculum/%d' % curriculum_id)
         error = None
         if not self._can_edit_proposal(topic) or topic.curriculum_id.id != curriculum_id:
             error = 'not_allowed'
         else:
             error = self._delete_topic_proposal(topic)
         if error:
-            return request.redirect('/my/tutor/curriculum/%d?error=%s' % (curriculum_id, error))
-        return request.redirect('/my/tutor/curriculum/%d' % curriculum_id)
+            return request.redirect(self._with_error(target, error))
+        return request.redirect(target)
 
     # ── propose: new subtopic ────────────────────────────────────────
 
@@ -356,14 +386,15 @@ class TutorPortalCurriculum(TutorPortal):
         if not tutor:
             return request.redirect('/my')
         subtopic = request.env['education.subtopic'].sudo().browse(subtopic_id)
+        target = self._next_or(post, '/my/tutor/curriculum/%d' % curriculum_id)
         error = None
         if not self._can_edit_proposal(subtopic) or subtopic.curriculum_id.id != curriculum_id:
             error = 'not_allowed'
         else:
             error = self._delete_subtopic_proposal(subtopic)
         if error:
-            return request.redirect('/my/tutor/curriculum/%d?error=%s' % (curriculum_id, error))
-        return request.redirect('/my/tutor/curriculum/%d' % curriculum_id)
+            return request.redirect(self._with_error(target, error))
+        return request.redirect(target)
 
     # ── propose: new lesson (topic-level or subtopic-level) ──────────
 
@@ -400,14 +431,15 @@ class TutorPortalCurriculum(TutorPortal):
         if not tutor:
             return request.redirect('/my')
         lesson = request.env['education.lesson'].sudo().browse(lesson_id)
+        target = self._next_or(post, '/my/tutor/curriculum/%d' % curriculum_id)
         error = None
         if not self._can_edit_proposal(lesson) or lesson.topic_id.curriculum_id.id != curriculum_id:
             error = 'not_allowed'
         else:
             error = self._delete_lesson_proposal(lesson)
         if error:
-            return request.redirect('/my/tutor/curriculum/%d?error=%s' % (curriculum_id, error))
-        return request.redirect('/my/tutor/curriculum/%d' % curriculum_id)
+            return request.redirect(self._with_error(target, error))
+        return request.redirect(target)
 
     # ── propose: new lesson content ──────────────────────────────────
 
@@ -446,3 +478,18 @@ class TutorPortalCurriculum(TutorPortal):
         if name and content_type and (external_url or body or upload):
             request.env['education.lesson.content'].sudo().create(vals)
         return request.redirect('/my/tutor/curriculum/%d/lesson/%d?proposed=content' % (curriculum_id, lesson_id))
+
+    # ── delete: own pending or rejected lesson content proposal ──────
+
+    @http.route(['/my/tutor/curriculum/<int:curriculum_id>/lesson/<int:lesson_id>/content/<int:content_id>/delete'], type='http', auth='user', website=True, methods=['POST'], csrf=True)
+    def portal_tutor_curriculum_content_delete(self, curriculum_id, lesson_id, content_id, **post):
+        tutor = self._get_tutor()
+        if not tutor:
+            return request.redirect('/my')
+        content = request.env['education.lesson.content'].sudo().browse(content_id)
+        target = self._next_or(post, '/my/tutor/curriculum/%d/lesson/%d' % (curriculum_id, lesson_id))
+        if not self._can_edit_proposal(content) or content.lesson_id.id != lesson_id \
+                or content.lesson_id.topic_id.curriculum_id.id != curriculum_id:
+            return request.redirect(self._with_error(target, 'not_allowed'))
+        content.unlink()
+        return request.redirect(target)
