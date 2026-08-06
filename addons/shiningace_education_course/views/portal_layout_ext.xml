@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Adds a "Curriculum" nav link to the tutor portal sidebar (no new
+         base route in tuition_management — extends its existing shell,
+         same convention as portal_tutor_lesson_ext.xml). -->
+    <template id="portal_sidebar_layout_curriculum_nav" inherit_id="tuition_management.portal_sidebar_layout">
+        <xpath expr="//a[@href='/my/tutor/payments']" position="after">
+            <a href="/my/tutor/curriculum"
+               t-attf-class="tm-nav-item #{_page == 'tutor_curriculum' and 'active' or ''}">
+                Curriculum
+            </a>
+        </xpath>
+    </template>
+</odoo>

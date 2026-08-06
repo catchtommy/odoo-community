@@ -82,13 +82,13 @@ class EducationCurriculumTree extends Component {
             this.orm.searchRead(
                 "education.topic",
                 [["curriculum_id", "=", curriculumId]],
-                ["id", "name", "code", "curriculum_version_id"],
+                ["id", "name", "code", "curriculum_version_id", "approval_state"],
                 { order: "sequence asc" }
             ),
             this.orm.searchRead(
                 "education.subtopic",
                 [["curriculum_id", "=", curriculumId]],
-                ["id", "name", "topic_id"],
+                ["id", "name", "topic_id", "approval_state"],
                 { order: "sequence asc" }
             ),
             this.orm.searchRead(
@@ -112,7 +112,7 @@ class EducationCurriculumTree extends Component {
             ? await this.orm.searchRead(
                   "education.lesson",
                   [["curriculum_version_id", "in", versionIds]],
-                  ["id", "name", "topic_id", "subtopic_id", "duration_minutes", "state"],
+                  ["id", "name", "topic_id", "subtopic_id", "duration_minutes", "state", "approval_state"],
                   { order: "sequence asc" }
               )
             : [];

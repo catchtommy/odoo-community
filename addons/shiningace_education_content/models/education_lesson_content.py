@@ -5,7 +5,7 @@ from odoo.exceptions import ValidationError
 
 class EducationLessonContent(models.Model):
     _name = 'education.lesson.content'
-    _inherit = ['education.abstract.mixin', 'education.content.mixin', 'mail.thread']
+    _inherit = ['education.abstract.mixin', 'education.curriculum.approval.mixin', 'education.content.mixin', 'mail.thread']
     _description = 'Lesson Content'
     _order = 'lesson_id, sequence'
 

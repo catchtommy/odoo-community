@@ -10,7 +10,7 @@ class EducationLesson(models.Model):
     ``education.lesson.assignment``.
     """
     _name = 'education.lesson'
-    _inherit = ['education.abstract.mixin', 'mail.thread']
+    _inherit = ['education.abstract.mixin', 'education.curriculum.approval.mixin', 'mail.thread']
     _description = 'Lesson'
     _order = 'topic_id, sequence, name'
 

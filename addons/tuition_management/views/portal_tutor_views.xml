@@ -880,12 +880,6 @@
         </div>
 
         <div class="tm-stat-grid" style="margin-bottom:20px;">
-            <a href="#enrolled-students" class="tm-stat-card">
-                <div class="tm-stat-card-top">
-                    <div><div class="tm-stat-value"><t t-esc="len(enrolled_students)"/></div><div class="tm-stat-label">Students</div></div>
-                    <div class="tm-stat-icon purple"><i class="fa fa-users"/></div>
-                </div>
-            </a>
             <a t-attf-href="/my/tutor/courses/#{course.id}/lessons" class="tm-stat-card">
                 <div class="tm-stat-card-top">
                     <div><div class="tm-stat-value"><t t-esc="len(this_week_lessons)"/></div><div class="tm-stat-label">This Week's Lessons</div></div>
@@ -896,12 +890,6 @@
                 <div class="tm-stat-card-top">
                     <div><div class="tm-stat-value"><t t-esc="len(course_assignments)"/></div><div class="tm-stat-label">Assignments</div></div>
                     <div class="tm-stat-icon orange"><i class="fa fa-tasks"/></div>
-                </div>
-            </a>
-            <a href="#course-progress-reports" class="tm-stat-card">
-                <div class="tm-stat-card-top">
-                    <div><div class="tm-stat-value"><t t-esc="len(course_progress_reports)"/></div><div class="tm-stat-label">Progress Reports</div></div>
-                    <div class="tm-stat-icon green"><i class="fa fa-line-chart"/></div>
                 </div>
             </a>
         </div>

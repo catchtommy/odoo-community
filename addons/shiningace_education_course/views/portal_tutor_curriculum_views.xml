@@ -1,0 +1,450 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: CURRICULUM LIST                          -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_curriculum_list" name="Tutor: Curriculum List">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_curriculum</t>
+
+        <div class="tm-page-header">
+            <h5><i class="fa fa-graduation-cap"/> My Curricula</h5>
+            <a href="/my/tutor/curriculum/proposals" class="tm-btn tm-btn-outline tm-btn-sm">
+                <i class="fa fa-list"/> My Proposals
+            </a>
+        </div>
+
+        <t t-if="not curricula">
+            <div class="tm-empty"><i class="fa fa-graduation-cap"/><p>No curricula available yet — you'll see a curriculum here once it's linked to one of your courses, or once a curriculum manager grants you access.</p></div>
+        </t>
+
+        <div class="tm-grid-2" t-if="curricula">
+            <t t-foreach="curricula" t-as="c" t-key="c.id">
+                <a t-attf-href="/my/tutor/curriculum/#{c.id}" class="tm-course-row" style="display:flex;flex-direction:column;align-items:flex-start;gap:6px;border:1px solid var(--tm-border);border-radius:10px;padding:16px 18px;">
+                    <div style="display:flex;align-items:center;gap:8px;width:100%;justify-content:space-between;">
+                        <strong t-esc="c.name"/>
+                        <span t-if="c.id in contribute_ids" class="tm-badge tm-badge-green">Contributor</span>
+                        <span t-else="" class="tm-badge tm-badge-grey">View Only</span>
+                    </div>
+                    <div style="font-size:12px;color:var(--tm-text-light);">
+                        <t t-if="c.subject_id" t-esc="c.subject_id.name"/>
+                        <t t-if="c.board_id"> · <t t-esc="c.board_id.name"/></t>
+                    </div>
+                </a>
+            </t>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: CURRICULUM DETAIL (read + propose)       -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_curriculum_detail" name="Tutor: Curriculum Detail">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_curriculum</t>
+
+        <div class="tm-page-header">
+            <a href="/my/tutor/curriculum" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Curricula</a>
+            <h5><i class="fa fa-graduation-cap"/> <t t-esc="curriculum.name"/></h5>
+            <span t-if="can_contribute" class="tm-badge tm-badge-green">Contributor</span>
+        </div>
+
+        <t t-if="proposed_flash">
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#16a34a;font-size:13px;">
+                <i class="fa fa-check-circle"/> Your proposal was submitted and is now pending review.
+            </div>
+        </t>
+        <t t-if="request.params.get('error') == 'topic_in_use'">
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#92400e;font-size:13px;">
+                <i class="fa fa-exclamation-triangle"/> That topic has approved content under it that can no longer be removed here — contact a curriculum manager.
+            </div>
+        </t>
+        <t t-if="request.params.get('error') == 'subtopic_in_use'">
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#92400e;font-size:13px;">
+                <i class="fa fa-exclamation-triangle"/> That subtopic has approved content under it that can no longer be removed here — contact a curriculum manager.
+            </div>
+        </t>
+        <t t-if="request.params.get('error') == 'lesson_in_use'">
+            <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#92400e;font-size:13px;">
+                <i class="fa fa-exclamation-triangle"/> That lesson has approved content under it that can no longer be removed here — contact a curriculum manager.
+            </div>
+        </t>
+        <t t-if="request.params.get('error') == 'not_allowed'">
+            <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#991b1b;font-size:13px;">
+                <i class="fa fa-ban"/> You don't have permission to make that change.
+            </div>
+        </t>
+
+        <t t-if="not version">
+            <div class="tm-empty"><i class="fa fa-graduation-cap"/><p>This curriculum has no published version yet.</p></div>
+        </t>
+
+        <t t-if="version">
+            <t t-foreach="topic_rows" t-as="row" t-key="row['topic'].id">
+                <t t-set="topic" t-value="row['topic']"/>
+                <t t-set="topic_can_edit" t-value="topic.proposed_by_id.id == request.env.user.id and topic.approval_state != 'approved'"/>
+                <div class="tm-card" style="margin-bottom:16px;">
+                    <div class="tm-card-header">
+                        <div class="tm-card-title">
+                            <i class="fa fa-sitemap"/> <t t-esc="topic.name"/>
+                            <span t-if="topic.approval_state == 'pending'" class="tm-badge tm-badge-orange" style="margin-left:8px;">Pending</span>
+                            <span t-if="topic.approval_state == 'rejected'" class="tm-badge tm-badge-red" style="margin-left:8px;">Rejected</span>
+                        </div>
+                    </div>
+                    <div class="tm-card-body">
+                        <t t-if="topic_can_edit">
+                            <div style="display:flex;gap:14px;align-items:center;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--tm-border);">
+                                <details>
+                                    <summary style="cursor:pointer;font-size:12px;color:var(--tm-blue);list-style:none;"><i class="fa fa-pencil me-1"/>Edit this topic</summary>
+                                    <form t-attf-action="/my/tutor/curriculum/#{curriculum.id}/topic/#{topic.id}/edit" method="POST" style="margin-top:8px;display:flex;gap:6px;">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <input type="text" name="name" class="form-control form-control-sm" t-att-value="topic.name" required="required"/>
+                                        <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm">Save</button>
+                                    </form>
+                                </details>
+                                <form t-attf-action="/my/tutor/curriculum/#{curriculum.id}/topic/#{topic.id}/delete" method="POST"
+                                      onsubmit="return confirm('Delete this topic proposal? This cannot be undone.')">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <button type="submit" style="border:none;background:none;padding:0;font-size:12px;color:#dc2626;cursor:pointer;"><i class="fa fa-trash me-1"/>Delete this topic</button>
+                                </form>
+                            </div>
+                        </t>
+                        <!-- Topic-level lessons -->
+                        <div t-if="row['lessons']" style="margin-bottom:12px;">
+                            <div class="tm-form-label">Lessons</div>
+                            <t t-foreach="row['lessons']" t-as="lesson" t-key="lesson.id">
+                                <div style="display:flex;align-items:center;gap:8px;">
+                                    <a t-attf-href="/my/tutor/curriculum/#{curriculum.id}/lesson/#{lesson.id}" class="tm-file-link">
+                                        <i class="fa fa-book"/> <t t-esc="lesson.name"/>
+                                        <span t-if="lesson.approval_state == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
+                                    </a>
+                                    <form t-if="lesson.proposed_by_id.id == request.env.user.id and lesson.approval_state != 'approved'"
+                                          t-attf-action="/my/tutor/curriculum/#{curriculum.id}/lesson/#{lesson.id}/delete" method="POST"
+                                          onsubmit="return confirm('Delete this lesson proposal? This cannot be undone.')">
+                                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                        <button type="submit" style="border:none;background:none;padding:0;font-size:12px;color:#dc2626;cursor:pointer;"><i class="fa fa-trash me-1"/>Delete</button>
+                                    </form>
+                                </div>
+                            </t>
+                        </div>
+
+                        <!-- Subtopics, each with their own lessons -->
+                        <t t-foreach="row['subtopics']" t-as="sub_row" t-key="sub_row['subtopic'].id">
+                            <t t-set="sub" t-value="sub_row['subtopic']"/>
+                            <t t-set="sub_can_edit" t-value="sub.proposed_by_id.id == request.env.user.id and sub.approval_state != 'approved'"/>
+                            <div style="border:1px solid var(--tm-border);border-radius:8px;padding:10px 14px;margin-bottom:8px;">
+                                <div style="display:flex;justify-content:space-between;align-items:center;">
+                                    <div style="font-weight:600;font-size:13px;">
+                                        <t t-esc="sub.name"/>
+                                        <span t-if="sub.approval_state == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
+                                        <span t-if="sub.approval_state == 'rejected'" class="tm-badge tm-badge-red">Rejected</span>
+                                    </div>
+                                    <div t-if="sub_can_edit" style="display:flex;gap:12px;align-items:center;">
+                                        <details>
+                                            <summary style="cursor:pointer;font-size:12px;color:var(--tm-blue);list-style:none;"><i class="fa fa-pencil me-1"/>Edit</summary>
+                                            <form t-attf-action="/my/tutor/curriculum/#{curriculum.id}/subtopic/#{sub.id}/edit" method="POST" style="margin-top:8px;display:flex;gap:6px;">
+                                                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                                <input type="text" name="name" class="form-control form-control-sm" t-att-value="sub.name" required="required"/>
+                                                <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm">Save</button>
+                                            </form>
+                                        </details>
+                                        <form t-attf-action="/my/tutor/curriculum/#{curriculum.id}/subtopic/#{sub.id}/delete" method="POST"
+                                              onsubmit="return confirm('Delete this subtopic proposal? This cannot be undone.')">
+                                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                            <button type="submit" style="border:none;background:none;padding:0;font-size:12px;color:#dc2626;cursor:pointer;"><i class="fa fa-trash me-1"/>Delete</button>
+                                        </form>
+                                    </div>
+                                </div>
+                                <t t-foreach="sub_row['lessons']" t-as="lesson" t-key="lesson.id">
+                                    <div style="display:flex;align-items:center;gap:8px;">
+                                        <a t-attf-href="/my/tutor/curriculum/#{curriculum.id}/lesson/#{lesson.id}" class="tm-file-link">
+                                            <i class="fa fa-book"/> <t t-esc="lesson.name"/>
+                                            <span t-if="lesson.approval_state == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
+                                        </a>
+                                        <form t-if="lesson.proposed_by_id.id == request.env.user.id and lesson.approval_state != 'approved'"
+                                              t-attf-action="/my/tutor/curriculum/#{curriculum.id}/lesson/#{lesson.id}/delete" method="POST"
+                                              onsubmit="return confirm('Delete this lesson proposal? This cannot be undone.')">
+                                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                            <button type="submit" style="border:none;background:none;padding:0;font-size:12px;color:#dc2626;cursor:pointer;"><i class="fa fa-trash me-1"/>Delete</button>
+                                        </form>
+                                    </div>
+                                </t>
+                                <t t-if="can_contribute">
+                                    <details style="margin-top:6px;">
+                                        <summary style="cursor:pointer;font-size:12px;color:var(--tm-blue);">+ Propose a lesson here</summary>
+                                        <form t-attf-action="/my/tutor/curriculum/#{curriculum.id}/topic/#{topic.id}/lesson/new" method="POST" style="margin-top:6px;display:flex;gap:6px;">
+                                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                            <input type="hidden" name="subtopic_id" t-att-value="sub.id"/>
+                                            <input type="text" name="name" class="form-control form-control-sm" placeholder="New lesson title…" required="required"/>
+                                            <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm">Propose</button>
+                                        </form>
+                                    </details>
+                                </t>
+                            </div>
+                        </t>
+
+                        <t t-if="can_contribute">
+                            <details style="margin-top:8px;">
+                                <summary style="cursor:pointer;font-size:12px;color:var(--tm-blue);">+ Propose a subtopic</summary>
+                                <form t-attf-action="/my/tutor/curriculum/#{curriculum.id}/topic/#{topic.id}/subtopic/new" method="POST" style="margin-top:6px;display:flex;gap:6px;">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <input type="text" name="name" class="form-control form-control-sm" placeholder="New subtopic title…" required="required"/>
+                                    <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm">Propose</button>
+                                </form>
+                            </details>
+                        </t>
+                    </div>
+                </div>
+            </t>
+
+            <t t-if="can_contribute">
+                <div class="tm-card">
+                    <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-plus"/> Propose a New Topic</div></div>
+                    <div class="tm-card-body">
+                        <form t-attf-action="/my/tutor/curriculum/#{curriculum.id}/topic/new" method="POST" style="display:flex;gap:8px;">
+                            <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                            <input type="text" name="name" class="form-control" placeholder="New topic title…" required="required"/>
+                            <button type="submit" class="tm-btn tm-btn-primary">Propose</button>
+                        </form>
+                    </div>
+                </div>
+            </t>
+        </t>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: LESSON DETAIL (content list + propose)   -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_curriculum_lesson_detail" name="Tutor: Curriculum Lesson Detail">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_curriculum</t>
+
+        <style>
+            .tm-modal-backdrop { display:none; position:fixed; inset:0; background:rgba(20,26,38,0.55); z-index:1050; align-items:center; justify-content:center; padding:20px; }
+            .tm-modal-backdrop.show { display:flex; }
+            .tm-modal-dialog { background:var(--tm-card-bg); border-radius:var(--tm-radius-sm); width:100%; max-width:520px; max-height:90vh; overflow-y:auto; box-shadow:var(--tm-shadow-md); }
+            .tm-modal-header { display:flex; justify-content:space-between; align-items:center; padding:16px 20px; border-bottom:1px solid var(--tm-border); }
+            .tm-modal-body { padding:20px; }
+            .tm-modal-footer { display:flex; justify-content:flex-end; gap:8px; padding:14px 20px; border-top:1px solid var(--tm-border); }
+            .tm-modal-close { background:none; border:none; font-size:20px; line-height:1; cursor:pointer; color:var(--tm-text-light); }
+        </style>
+
+        <div class="tm-page-header">
+            <a t-attf-href="/my/tutor/curriculum/#{curriculum.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Curriculum</a>
+            <h5><i class="fa fa-book"/> <t t-esc="lesson.name"/></h5>
+            <span t-if="lesson.approval_state == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
+            <form t-if="lesson.proposed_by_id.id == request.env.user.id and lesson.approval_state != 'approved'"
+                  t-attf-action="/my/tutor/curriculum/#{curriculum.id}/lesson/#{lesson.id}/delete" method="POST"
+                  onsubmit="return confirm('Delete this lesson proposal? This cannot be undone.')" style="margin-left:auto;">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <button type="submit" style="border:none;background:none;padding:0;font-size:12px;color:#dc2626;cursor:pointer;"><i class="fa fa-trash me-1"/>Delete this lesson</button>
+            </form>
+        </div>
+
+        <t t-if="request.params.get('proposed')">
+            <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:12px 16px;margin-bottom:16px;color:#16a34a;font-size:13px;">
+                <i class="fa fa-check-circle"/> Your proposal was submitted and is now pending review.
+            </div>
+        </t>
+
+        <div class="tm-card" style="margin-bottom:16px;">
+            <div class="tm-card-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <div class="tm-card-title"><i class="fa fa-file-o"/> Content</div>
+                <button t-if="can_contribute" type="button" class="tm-btn tm-btn-primary tm-btn-sm" onclick="document.getElementById('tm-add-content-modal').classList.add('show')">
+                    <i class="fa fa-plus"/> Add Content
+                </button>
+            </div>
+            <t t-if="not content_items">
+                <div class="tm-empty"><i class="fa fa-file-o"/><p>No content yet.</p></div>
+            </t>
+            <t t-foreach="content_items" t-as="item" t-key="item.id">
+                <div class="tm-file-link" style="padding:8px 16px;border-bottom:1px solid #f5f5f5;">
+                    <i class="fa fa-file-o"/> <t t-esc="item.name"/>
+                    <span t-if="item.approval_state == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
+                    <a t-if="item.external_url" t-att-href="item.external_url" target="_blank" style="margin-left:8px;">Open Link</a>
+                </div>
+            </t>
+        </div>
+
+        <div class="tm-card" style="margin-bottom:16px;">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-bullseye"/> Learning Objectives</div></div>
+            <t t-if="not objectives">
+                <div class="tm-empty"><i class="fa fa-bullseye"/><p>No learning objectives linked to this lesson.</p></div>
+            </t>
+            <t t-foreach="objectives" t-as="obj" t-key="obj.id">
+                <div style="padding:8px 16px;border-bottom:1px solid #f5f5f5;font-size:13px;">
+                    <t t-esc="obj.name"/>
+                    <span t-if="obj.bloom_level" class="tm-badge tm-badge-grey" style="margin-left:6px;" t-esc="obj.bloom_level"/>
+                </div>
+            </t>
+        </div>
+
+        <div class="tm-card" style="margin-bottom:16px;">
+            <div class="tm-card-header"><div class="tm-card-title"><i class="fa fa-clipboard"/> Lesson Plans</div></div>
+            <t t-if="not lesson_plans">
+                <div class="tm-empty"><i class="fa fa-clipboard"/><p>No lesson plan yet.</p></div>
+            </t>
+            <t t-foreach="lesson_plans" t-as="plan" t-key="plan.id">
+                <div style="padding:12px 16px;border-bottom:1px solid #f5f5f5;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <strong t-esc="plan.name"/>
+                        <span class="tm-badge tm-badge-grey" t-esc="plan.state"/>
+                        <span t-if="plan.duration_minutes" class="tm-badge tm-badge-light" t-esc="str(plan.duration_minutes) + ' min'"/>
+                    </div>
+                    <p t-if="plan.summary" style="margin:6px 0 0;font-size:13px;color:var(--tm-text-light);" t-esc="plan.summary"/>
+                    <details style="margin-top:8px;">
+                        <summary style="cursor:pointer;font-size:12px;color:var(--tm-blue);">View full plan</summary>
+                        <div style="margin-top:8px;font-size:13px;">
+                            <t t-if="plan.key_concepts">
+                                <div class="tm-form-label">Key Concepts</div>
+                                <div t-out="plan.key_concepts" style="margin-bottom:10px;"/>
+                            </t>
+                            <t t-if="plan.agenda">
+                                <div class="tm-form-label">Agenda</div>
+                                <div t-out="plan.agenda" style="margin-bottom:10px;"/>
+                            </t>
+                            <t t-if="plan.exam_tip">
+                                <div class="tm-form-label">Exam Tip</div>
+                                <p t-esc="plan.exam_tip" style="margin-bottom:10px;"/>
+                            </t>
+                            <t t-if="plan.plan_text">
+                                <div class="tm-form-label">Additional Notes</div>
+                                <div t-out="plan.plan_text"/>
+                            </t>
+                        </div>
+                    </details>
+                </div>
+            </t>
+        </div>
+
+        <t t-if="can_contribute">
+            <div class="tm-modal-backdrop" id="tm-add-content-modal" onclick="if(event.target===this)this.classList.remove('show')">
+                <div class="tm-modal-dialog">
+                    <form t-attf-action="/my/tutor/curriculum/#{curriculum.id}/lesson/#{lesson.id}/content/new" method="POST" enctype="multipart/form-data">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <div class="tm-modal-header">
+                            <h5 style="margin:0;"><i class="fa fa-plus"/> Add Content</h5>
+                            <button type="button" class="tm-modal-close" onclick="document.getElementById('tm-add-content-modal').classList.remove('show')">&#215;</button>
+                        </div>
+                        <div class="tm-modal-body">
+                            <div class="tm-form-group">
+                                <label class="tm-form-label">Title</label>
+                                <input type="text" name="name" class="form-control" required="required"/>
+                            </div>
+                            <div class="tm-form-group">
+                                <label class="tm-form-label">Content Type</label>
+                                <select name="content_type_id" class="form-select">
+                                    <t t-foreach="content_types" t-as="ct" t-key="ct.id">
+                                        <option t-att-value="ct.id" t-esc="ct.name"/>
+                                    </t>
+                                </select>
+                            </div>
+                            <div class="tm-form-group">
+                                <label class="tm-form-label">File</label>
+                                <input type="file" name="content_file" class="form-control"/>
+                            </div>
+                            <div class="tm-form-group">
+                                <label class="tm-form-label">External URL</label>
+                                <input type="text" name="external_url" class="form-control" placeholder="https://…"/>
+                            </div>
+                            <div class="tm-form-group">
+                                <label class="tm-form-label">Or rich text</label>
+                                <textarea name="body" class="form-control" rows="4"/>
+                            </div>
+                        </div>
+                        <div class="tm-modal-footer">
+                            <button type="button" class="tm-btn tm-btn-outline" onclick="document.getElementById('tm-add-content-modal').classList.remove('show')">Cancel</button>
+                            <button type="submit" class="tm-btn tm-btn-primary">Propose</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </t>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: COURSE LESSON ASSIGNMENTS                -->
+<!-- Mirrors the admin course form's "View Lesson    -->
+<!-- Assignments" button, scoped to what a tutor can -->
+<!-- see for this course.                            -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_course_lesson_assignments" name="Tutor: Course Lesson Assignments">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_course_detail</t>
+
+        <div class="tm-page-header">
+            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+            <h5><i class="fa fa-link"/> <t t-esc="course.name"/> — Lesson Assignments</h5>
+        </div>
+
+        <t t-if="not assignments">
+            <div class="tm-empty"><i class="fa fa-link"/><p>No lesson assignments yet.</p></div>
+        </t>
+
+        <div class="tm-card" t-if="assignments">
+            <table class="tm-table">
+                <thead><tr><th>Date &amp; Time</th><th>Lesson</th><th>Tutor</th><th>Status</th><th>Duration</th></tr></thead>
+                <tbody>
+                    <t t-foreach="assignments" t-as="a" t-key="a.id">
+                        <tr>
+                            <td style="white-space:nowrap;"><t t-if="a.start_datetime" t-esc="a.start_datetime" t-options='{"widget": "datetime"}'/><t t-else="">—</t></td>
+                            <td>
+                                <t t-set="_curr_id" t-value="a.lesson_id.topic_id.curriculum_id.id"/>
+                                <a t-if="_curr_id" t-attf-href="/my/tutor/curriculum/#{_curr_id}/lesson/#{a.lesson_id.id}" t-esc="a.lesson_id.name"/>
+                                <t t-else=""><t t-esc="a.lesson_id.name"/></t>
+                            </td>
+                            <td><t t-esc="a.tutor_id.name or '—'"/></td>
+                            <td>
+                                <span t-attf-class="tm-badge #{a.status == 'completed' and 'tm-badge-green' or a.status == 'skipped' and 'tm-badge-red' or a.status == 'in_progress' and 'tm-badge-blue' or 'tm-badge-grey'}" t-esc="a.status"/>
+                            </td>
+                            <td><t t-if="a.actual_duration_minutes" t-esc="str(a.actual_duration_minutes) + ' min'"/><t t-else="">—</t></td>
+                        </tr>
+                    </t>
+                </tbody>
+            </table>
+        </div>
+    </t>
+</template>
+
+<!-- ═══════════════════════════════════════════════ -->
+<!-- TUTOR: MY PROPOSALS                             -->
+<!-- ═══════════════════════════════════════════════ -->
+<template id="portal_tutor_curriculum_proposals" name="Tutor: My Curriculum Proposals">
+    <t t-call="tuition_management.portal_sidebar_layout">
+        <t t-set="page_name">tutor_curriculum</t>
+
+        <div class="tm-page-header">
+            <a href="/my/tutor/curriculum" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Curricula</a>
+            <h5><i class="fa fa-list"/> My Proposals</h5>
+        </div>
+
+        <t t-if="not proposals">
+            <div class="tm-empty"><i class="fa fa-list"/><p>You haven't proposed any curriculum changes yet.</p></div>
+        </t>
+
+        <div class="tm-card" t-if="proposals">
+            <table class="tm-table">
+                <thead><tr><th>Type</th><th>Name</th><th>Status</th><th>Review Notes</th></tr></thead>
+                <tbody>
+                    <t t-foreach="proposals" t-as="p" t-key="p['model'] + str(p['record'].id)">
+                        <tr>
+                            <td><i t-attf-class="fa #{p['icon']} me-1"/><t t-esc="p['label']"/></td>
+                            <td><t t-esc="p['record'].name"/></td>
+                            <td>
+                                <span t-if="p['record'].approval_state == 'pending'" class="tm-badge tm-badge-orange">Pending</span>
+                                <span t-if="p['record'].approval_state == 'approved'" class="tm-badge tm-badge-green">Approved</span>
+                                <span t-if="p['record'].approval_state == 'rejected'" class="tm-badge tm-badge-red">Rejected</span>
+                            </td>
+                            <td><t t-esc="p['record'].review_notes or '—'"/></td>
+                        </tr>
+                    </t>
+                </tbody>
+            </table>
+        </div>
+    </t>
+</template>
+
+</odoo>

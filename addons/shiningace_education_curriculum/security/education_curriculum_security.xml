@@ -35,4 +35,24 @@
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_curriculum_manager'))]"/>
     </record>
+
+    <!-- education.curriculum and education.subtopic had no rules at all
+         until shiningace_education_course added tutor-scoping rules for
+         them (see education_curriculum_access_security.xml). Per the same
+         reasoning as above, a Curriculum Manager (implying Tutor) needs an
+         explicit full-access backstop here too, or they'd incorrectly
+         inherit the tutor-only restriction. -->
+    <record id="rule_education_curriculum_manager_full" model="ir.rule">
+        <field name="name">Curriculum: full access for Curriculum Manager</field>
+        <field name="model_id" ref="model_education_curriculum"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_curriculum_manager'))]"/>
+    </record>
+
+    <record id="rule_education_subtopic_manager_full" model="ir.rule">
+        <field name="name">Subtopic: full access for Curriculum Manager</field>
+        <field name="model_id" ref="model_education_subtopic"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_curriculum_manager'))]"/>
+    </record>
 </odoo>

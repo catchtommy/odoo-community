@@ -12,6 +12,8 @@
                 <field name="visibility"/>
                 <field name="state" widget="badge"/>
                 <field name="version"/>
+                <field name="proposed_by_id" optional="hide"/>
+                <field name="approval_state" widget="badge" decoration-warning="approval_state == 'pending'" decoration-danger="approval_state == 'rejected'" decoration-success="approval_state == 'approved'"/>
                 <field name="content_filename" column_invisible="1"/>
                 <field name="external_url" column_invisible="1"/>
                 <field name="id" widget="content_preview_button" string="Preview"/>
@@ -25,6 +27,8 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <button name="action_approve_proposal" type="object" string="Approve" class="btn-primary" invisible="approval_state != 'pending'"/>
+                    <button name="action_reject_proposal" type="object" string="Reject" invisible="approval_state != 'pending'"/>
                     <button name="action_new_version" type="object" string="New Version" class="btn-secondary"/>
                     <field name="state" widget="statusbar"/>
                 </header>
@@ -32,6 +36,8 @@
                     <div class="oe_title">
                         <h1><field name="name"/></h1>
                     </div>
+                    <widget name="web_ribbon" title="Pending Review" bg_color="text-bg-warning" invisible="approval_state != 'pending'"/>
+                    <widget name="web_ribbon" title="Rejected" bg_color="text-bg-danger" invisible="approval_state != 'rejected'"/>
                     <group>
                         <group>
                             <field name="lesson_id"/>
@@ -48,6 +54,16 @@
                             <field name="is_previewable"/>
                             <field name="version" readonly="1"/>
                             <field name="previous_version_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <group invisible="approval_state == 'approved' and not proposed_by_id" string="Tutor Proposal">
+                        <group>
+                            <field name="proposed_by_id" readonly="1"/>
+                            <field name="reviewed_by_id" readonly="1"/>
+                            <field name="review_date" readonly="1"/>
+                        </group>
+                        <group>
+                            <field name="review_notes" placeholder="Notes for the tutor (shown when rejecting)…"/>
                         </group>
                     </group>
                     <notebook>
@@ -78,9 +94,11 @@
                 <field name="lesson_id"/>
                 <field name="content_type_id"/>
                 <filter name="published" string="Published" domain="[('state', '=', 'published')]"/>
+                <filter name="pending_review" string="Pending Review" domain="[('approval_state', '=', 'pending')]"/>
                 <group>
                     <filter name="group_by_type" string="Content Type" context="{'group_by': 'content_type_id'}"/>
                     <filter name="group_by_lesson" string="Lesson" context="{'group_by': 'lesson_id'}"/>
+                    <filter name="group_by_approval_state" string="Approval Status" context="{'group_by': 'approval_state'}"/>
                 </group>
             </search>
         </field>

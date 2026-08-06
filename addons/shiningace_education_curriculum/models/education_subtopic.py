@@ -4,7 +4,7 @@ from odoo import api, fields, models
 
 class EducationSubtopic(models.Model):
     _name = 'education.subtopic'
-    _inherit = ['education.abstract.mixin']
+    _inherit = ['education.abstract.mixin', 'education.curriculum.approval.mixin']
     _description = 'Curriculum Subtopic'
     _order = 'topic_id, sequence, name'
     _parent_store = True

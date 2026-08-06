@@ -28,11 +28,16 @@ extended via QWeb inheritance — no new routes are introduced.
     'data': [
         'security/education_course_security.xml',
         'security/ir.model.access.csv',
+        'security/education_curriculum_access_security.xml',
         'views/education_course_curriculum_views.xml',
+        'views/education_curriculum_access_views.xml',
         'views/education_lesson_assignment_views.xml',
         'views/education_student_progress_views.xml',
         'views/course_master_views.xml',
         'views/portal_tutor_lesson_ext.xml',
+        'views/portal_tutor_curriculum_views.xml',
+        'views/portal_tutor_course_curriculum_ext.xml',
+        'views/portal_layout_ext.xml',
         'views/education_course_menus.xml',
     ],
     'demo': [

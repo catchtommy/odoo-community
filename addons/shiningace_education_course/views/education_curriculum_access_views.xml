@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_education_curriculum_access_list" model="ir.ui.view">
+        <field name="name">education.curriculum.access.list</field>
+        <field name="model">education.curriculum.access</field>
+        <field name="arch" type="xml">
+            <list editable="bottom">
+                <field name="curriculum_id"/>
+                <field name="tutor_id"/>
+                <field name="granted_by" readonly="1"/>
+                <field name="granted_date" readonly="1"/>
+                <field name="active" widget="boolean_toggle"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_education_curriculum_access_search" model="ir.ui.view">
+        <field name="name">education.curriculum.access.search</field>
+        <field name="model">education.curriculum.access</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="curriculum_id"/>
+                <field name="tutor_id"/>
+                <filter name="active_only" string="Active" domain="[('active', '=', True)]"/>
+                <filter name="inactive_only" string="Revoked" domain="[('active', '=', False)]"/>
+                <group>
+                    <filter name="group_by_curriculum" string="Curriculum" context="{'group_by': 'curriculum_id'}"/>
+                    <filter name="group_by_tutor" string="Tutor" context="{'group_by': 'tutor_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_education_curriculum_access" model="ir.actions.act_window">
+        <field name="name">Curriculum Contributor Access</field>
+        <field name="res_model">education.curriculum.access</field>
+        <field name="view_mode">list</field>
+        <field name="context">{'search_default_active_only': 1}</field>
+    </record>
+</odoo>

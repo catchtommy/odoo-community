@@ -7,7 +7,7 @@ _LOCKED_STATES = ('approved', 'published', 'archived')
 
 class EducationTopic(models.Model):
     _name = 'education.topic'
-    _inherit = ['education.abstract.mixin', 'mail.thread']
+    _inherit = ['education.abstract.mixin', 'education.curriculum.approval.mixin', 'mail.thread']
     _description = 'Curriculum Topic'
     _order = 'subject_id, academic_level_id, sequence, name'
 
@@ -37,6 +37,13 @@ class EducationTopic(models.Model):
     prerequisite_ids = fields.One2many('education.prerequisite', 'topic_id', string='Prerequisites', copy=False)
 
     def write(self, vals):
+        # Deliberate, narrow exception: the tutor-proposal portal flow is
+        # allowed to add pending topics directly onto an already-published
+        # curriculum version (approved proposals go live immediately rather
+        # than waiting for a new version's full review/publish cycle). Only
+        # the tutor-proposal controller sets this context key.
+        if self.env.context.get('education_tutor_proposal'):
+            return super().write(vals)
         for rec in self:
             if rec.curriculum_version_id.state in _LOCKED_STATES and set(vals.keys()) - {'active', 'tag_ids'}:
                 raise UserError(
@@ -49,6 +56,8 @@ class EducationTopic(models.Model):
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
+        if self.env.context.get('education_tutor_proposal'):
+            return records
         for rec in records:
             if rec.curriculum_version_id.state in _LOCKED_STATES:
                 raise UserError(

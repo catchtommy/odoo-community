@@ -173,6 +173,8 @@
                                         <i t-attf-class="fa {{isTopicOpen(topic.id) ? 'fa-caret-down' : 'fa-caret-right'}} me-2"/>
                                         <strong t-esc="topic.name"/>
                                         <small t-if="topic.code" class="text-muted ms-1" t-esc="topic.code"/>
+                                        <span t-if="topic.approval_state === 'pending'" class="badge text-bg-warning ms-2">Pending</span>
+                                        <span t-if="topic.approval_state === 'rejected'" class="badge text-bg-danger ms-2">Rejected</span>
                                     </span>
                                     <i class="fa fa-trash ect-delete" title="Delete topic"
                                        t-on-click.stop="() => this.deleteNode('education.topic', topic.id, topic.name)"/>
@@ -263,6 +265,8 @@
                                                         <t t-esc="lesson.name"/>
                                                         <span class="badge text-bg-light ms-1" t-esc="lesson.duration_minutes + ' min'"/>
                                                         <span class="badge text-bg-secondary ms-1" t-esc="lesson.state"/>
+                                                        <span t-if="lesson.approval_state === 'pending'" class="badge text-bg-warning ms-1">Pending</span>
+                                                        <span t-if="lesson.approval_state === 'rejected'" class="badge text-bg-danger ms-1">Rejected</span>
                                                     </span>
                                                     <i class="fa fa-trash ect-delete" title="Delete lesson"
                                                        t-on-click="() => this.deleteNode('education.lesson', lesson.id, lesson.name)"/>
@@ -302,6 +306,8 @@
                                                         <span t-on-click.stop="() => this.openRecord('education.subtopic', subtopic.id)" t-esc="subtopic.name"/>
                                                         <span class="badge text-bg-light ms-2" t-esc="subtopic.objectives.length + ' LO'"/>
                                                         <span class="badge text-bg-light ms-1" t-esc="subtopic.lessons.length + ' lesson(s)'"/>
+                                                        <span t-if="subtopic.approval_state === 'pending'" class="badge text-bg-warning ms-1">Pending</span>
+                                                        <span t-if="subtopic.approval_state === 'rejected'" class="badge text-bg-danger ms-1">Rejected</span>
                                                     </span>
                                                     <i class="fa fa-trash ect-delete" title="Delete subtopic"
                                                        t-on-click.stop="() => this.deleteNode('education.subtopic', subtopic.id, subtopic.name)"/>
@@ -354,6 +360,8 @@
                                                                             <t t-esc="lesson.name"/>
                                                                             <span class="badge text-bg-light ms-1" t-esc="lesson.duration_minutes + ' min'"/>
                                                                             <span class="badge text-bg-secondary ms-1" t-esc="lesson.state"/>
+                                                                            <span t-if="lesson.approval_state === 'pending'" class="badge text-bg-warning ms-1">Pending</span>
+                                                                            <span t-if="lesson.approval_state === 'rejected'" class="badge text-bg-danger ms-1">Rejected</span>
                                                                         </span>
                                                                         <i class="fa fa-trash ect-delete" title="Delete lesson"
                                                                            t-on-click="() => this.deleteNode('education.lesson', lesson.id, lesson.name)"/>

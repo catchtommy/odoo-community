@@ -49,4 +49,16 @@
         <field name="domain_force">[(1, '=', 1)]</field>
         <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_curriculum_manager'))]"/>
     </record>
+
+    <!-- education.lesson had no rule at all until shiningace_education_course
+         added a tutor-scoping rule for it (see
+         education_curriculum_access_security.xml). Same reasoning as above:
+         a Curriculum Manager (implying Tutor) needs an explicit full-access
+         backstop here too. -->
+    <record id="rule_education_lesson_manager_full" model="ir.rule">
+        <field name="name">Lesson: full access for Curriculum Manager</field>
+        <field name="model_id" ref="model_education_lesson"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_curriculum_manager'))]"/>
+    </record>
 </odoo>

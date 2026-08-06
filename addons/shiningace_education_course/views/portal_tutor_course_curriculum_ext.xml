@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Adds two stat cards to the tutor's course detail page: a link to
+         the curriculum assigned to this course (view-only unless the tutor
+         also holds a contributor grant — enforced by
+         TutorPortalCurriculum._tutor_curriculum_access), and a link to this
+         course's Lesson Assignments (mirrors the admin course form's "View
+         Lesson Assignments" button, which tutors previously had no portal
+         equivalent for). -->
+    <template id="portal_tutor_course_detail_curriculum_cards" inherit_id="tuition_management.portal_tutor_course_detail">
+        <xpath expr="//div[hasclass('tm-stat-grid')]" position="inside">
+            <t t-set="_curriculum" t-value="course.primary_curriculum_version_id.curriculum_id"/>
+            <a t-if="_curriculum" t-attf-href="/my/tutor/curriculum/#{_curriculum.id}" class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value" style="font-size:16px;line-height:1.3;"><t t-esc="_curriculum.name"/></div>
+                        <div class="tm-stat-label">Curriculum</div>
+                    </div>
+                    <div class="tm-stat-icon purple"><i class="fa fa-graduation-cap"/></div>
+                </div>
+            </a>
+            <t t-set="_assignment_count" t-value="request.env['education.lesson.assignment'].sudo().search_count([('course_id', '=', course.id)])"/>
+            <a t-attf-href="/my/tutor/courses/#{course.id}/lesson-assignments" class="tm-stat-card">
+                <div class="tm-stat-card-top">
+                    <div>
+                        <div class="tm-stat-value"><t t-esc="_assignment_count"/></div>
+                        <div class="tm-stat-label">Lesson Assignments</div>
+                    </div>
+                    <div class="tm-stat-icon blue"><i class="fa fa-link"/></div>
+                </div>
+            </a>
+        </xpath>
+    </template>
+</odoo>

@@ -9,4 +9,7 @@
     <menuitem id="menu_education_student_progress" name="Student Progress"
               parent="shiningace_education_core.menu_education_course_root"
               action="action_education_student_progress" sequence="30"/>
+    <menuitem id="menu_education_curriculum_access" name="Curriculum Contributor Access"
+              parent="shiningace_education_core.menu_education_configuration_root"
+              action="action_education_curriculum_access" sequence="90"/>
 </odoo>

@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Per-curriculum scoping for tutors: "SAT Math tutor should not see/
+         update SAT English." A tutor may reach a curriculum's structure
+         either because they hold an explicit contributor grant
+         (education.curriculum.access) or because a course they're assigned
+         to (course.master.tutor_id/tutor_ids) has that curriculum attached
+         (education.course.curriculum). These fields only exist once this
+         module is installed, which is why this scoping lives here rather
+         than in shiningace_education_curriculum/_content (which must stay
+         installable standalone).
+
+         These rules also fold in the tutor-proposal visibility rule: a
+         pending/rejected proposal is only visible to its own proposer
+         (curriculum managers always see everything via the existing
+         *_manager_full backstop rules) — everyone else only sees approved
+         content.
+
+         IMPORTANT: ir.rule domains for the SAME group on the SAME model are
+         OR-combined by Odoo, not AND-combined (see ir_rule.py
+         _compute_domain). So the pre-existing published-only rules for
+         education.curriculum.version / education.topic (defined in
+         shiningace_education_curriculum, originally covering BOTH tutor and
+         student) are narrowed below to student-only, and the full
+         tutor-specific restriction (published-only AND curriculum-scoped
+         AND approval-visible) is defined as a single combined rule per
+         model here instead — never as a second, separate group_education_tutor
+         rule, which would only OR with (and thus weaken) the original. -->
+
+    <record id="shiningace_education_curriculum.rule_education_curriculum_version_published_only" model="ir.rule">
+        <field name="groups" eval="[(6, 0, [ref('shiningace_education_core.group_education_student')])]"/>
+    </record>
+    <record id="shiningace_education_curriculum.rule_education_topic_published_only" model="ir.rule">
+        <field name="groups" eval="[(6, 0, [ref('shiningace_education_core.group_education_student')])]"/>
+    </record>
+
+    <record id="rule_education_curriculum_tutor_scoped" model="ir.rule">
+        <field name="name">Curriculum: tutor sees only granted/course-linked curricula</field>
+        <field name="model_id" ref="shiningace_education_curriculum.model_education_curriculum"/>
+        <field name="domain_force">[
+            '|', ('access_ids.tutor_id.partner_id.user_ids', 'in', user.id),
+                 ('course_curriculum_ids.course_id.tutor_ids.partner_id.user_ids', 'in', user.id),
+        ]</field>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_tutor'))]"/>
+    </record>
+
+    <record id="rule_education_curriculum_version_tutor_scoped" model="ir.rule">
+        <field name="name">Curriculum Version: tutor sees published/archived, curriculum-scoped</field>
+        <field name="model_id" ref="shiningace_education_curriculum.model_education_curriculum_version"/>
+        <field name="domain_force">[
+            ('state', 'in', ('published', 'archived')),
+            '|', ('curriculum_id.access_ids.tutor_id.partner_id.user_ids', 'in', user.id),
+                 ('curriculum_id.course_curriculum_ids.course_id.tutor_ids.partner_id.user_ids', 'in', user.id),
+        ]</field>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_tutor'))]"/>
+    </record>
+
+    <record id="rule_education_topic_tutor_scoped" model="ir.rule">
+        <field name="name">Topic: tutor sees published/archived, curriculum-scoped, approved-or-own proposals</field>
+        <field name="model_id" ref="shiningace_education_curriculum.model_education_topic"/>
+        <field name="domain_force">[
+            ('curriculum_version_id.state', 'in', ('published', 'archived')),
+            '|', ('curriculum_id.access_ids.tutor_id.partner_id.user_ids', 'in', user.id),
+                 ('curriculum_id.course_curriculum_ids.course_id.tutor_ids.partner_id.user_ids', 'in', user.id),
+            '|', ('approval_state', '=', 'approved'),
+                 ('proposed_by_id', '=', user.id),
+        ]</field>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_tutor'))]"/>
+    </record>
+
+    <record id="rule_education_subtopic_tutor_scoped" model="ir.rule">
+        <field name="name">Subtopic: tutor sees published/archived, curriculum-scoped, approved-or-own proposals</field>
+        <field name="model_id" ref="shiningace_education_curriculum.model_education_subtopic"/>
+        <field name="domain_force">[
+            ('curriculum_version_id.state', 'in', ('published', 'archived')),
+            '|', ('curriculum_id.access_ids.tutor_id.partner_id.user_ids', 'in', user.id),
+                 ('curriculum_id.course_curriculum_ids.course_id.tutor_ids.partner_id.user_ids', 'in', user.id),
+            '|', ('approval_state', '=', 'approved'),
+                 ('proposed_by_id', '=', user.id),
+        ]</field>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_tutor'))]"/>
+    </record>
+
+    <record id="rule_education_lesson_tutor_scoped" model="ir.rule">
+        <field name="name">Lesson: tutor curriculum-scoped, approved-or-own proposals</field>
+        <field name="model_id" ref="shiningace_education_content.model_education_lesson"/>
+        <field name="domain_force">[
+            '|', ('curriculum_version_id.curriculum_id.access_ids.tutor_id.partner_id.user_ids', 'in', user.id),
+                 ('curriculum_version_id.curriculum_id.course_curriculum_ids.course_id.tutor_ids.partner_id.user_ids', 'in', user.id),
+            '|', ('approval_state', '=', 'approved'),
+                 ('proposed_by_id', '=', user.id),
+        ]</field>
+        <field name="groups" eval="[(4, ref('shiningace_education_core.group_education_tutor'))]"/>
+    </record>
+
+    <!-- Overrides shiningace_education_content's rule_education_lesson_content_tutor
+         domain_force (that rule is already tutor-only, so this is a safe
+         full replacement, not an OR-weakening second rule) to fold in
+         curriculum-scoping and approval visibility alongside its existing
+         state/visibility conditions. -->
+    <record id="shiningace_education_content.rule_education_lesson_content_tutor" model="ir.rule">
+        <field name="domain_force">[
+            ('state', '=', 'published'),
+            ('visibility', 'in', ('tutor', 'student', 'public')),
+            '|', ('lesson_id.curriculum_version_id.curriculum_id.access_ids.tutor_id.partner_id.user_ids', 'in', user.id),
+                 ('lesson_id.curriculum_version_id.curriculum_id.course_curriculum_ids.course_id.tutor_ids.partner_id.user_ids', 'in', user.id),
+            '|', ('approval_state', '=', 'approved'),
+                 ('proposed_by_id', '=', user.id),
+        ]</field>
+    </record>
+</odoo>
