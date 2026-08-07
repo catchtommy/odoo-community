@@ -130,6 +130,32 @@ class EducationCurriculumVersion(models.Model):
             rec.write({'state': 'published', 'published_date': fields.Datetime.now()})
             rec._log_review('published', 'approved', 'published')
 
+    def action_publish_all_content(self):
+        """Bulk-publish everything under this version in one click, instead
+        of a manager having to open every topic/subtopic/lesson individually:
+        approves any still-pending tutor proposals (topics, subtopics,
+        lessons, lesson content), then flips every lesson and lesson plan
+        from draft to published. Does not change the version's own
+        draft/review/approved/published/archived state — that stays a
+        separate, deliberate step via action_publish.
+        """
+        if not (self.env.user.has_group('shiningace_education_core.group_education_reviewer')
+                or self.env.user.has_group('shiningace_education_core.group_education_curriculum_manager')):
+            raise UserError("You are not allowed to publish curriculum content.")
+        for rec in self:
+            topics = rec.topic_ids
+            subtopics = topics.subtopic_ids
+            lessons = self.env['education.lesson'].search([('curriculum_version_id', '=', rec.id)])
+            content = lessons.content_ids
+
+            for recs in (topics, subtopics, lessons, content):
+                pending = recs.filtered(lambda r: r.approval_state == 'pending')
+                if pending:
+                    pending.action_approve_proposal()
+
+            lessons.filtered(lambda l: l.state == 'draft').write({'state': 'published'})
+            lessons.lesson_plan_ids.filtered(lambda p: p.state == 'draft').write({'state': 'published'})
+
     def action_archive(self):
         if not self.env.user.has_group('shiningace_education_core.group_education_curriculum_manager'):
             raise UserError("Only a Curriculum Manager can archive a curriculum version.")

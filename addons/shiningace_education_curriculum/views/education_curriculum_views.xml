@@ -32,6 +32,9 @@
                     <div class="mb-3">
                         <button name="action_view_structure_tree" type="object" class="btn-secondary" icon="fa-sitemap"
                                 string="View Structure Tree" invisible="version_count == 0"/>
+                        <button name="action_publish_all_content" type="object" class="btn-secondary" icon="fa-check-circle"
+                                string="Publish All Content" invisible="version_count == 0"
+                                confirm="This approves any pending tutor proposals and publishes every lesson and lesson plan in the current version. Continue?"/>
                     </div>
                     <group>
                         <group>

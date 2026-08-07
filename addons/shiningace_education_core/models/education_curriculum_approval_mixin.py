@@ -38,7 +38,13 @@ class EducationCurriculumApprovalMixin(models.AbstractModel):
         for rec in self:
             if rec.approval_state != 'pending':
                 raise UserError("Only pending proposals can be approved.")
-            rec.write({
+            # Reviewing a tutor's proposal is not adding new structural
+            # content — it must be allowed on an already-published/approved
+            # curriculum version the same way the original tutor-proposal
+            # create/write was (see education.topic's write() override).
+            # Without this, a manager could never approve a pending topic
+            # proposed against a published curriculum.
+            rec.with_context(education_tutor_proposal=True).write({
                 'approval_state': 'approved',
                 'reviewed_by_id': self.env.user.id,
                 'review_date': fields.Datetime.now(),
@@ -49,7 +55,7 @@ class EducationCurriculumApprovalMixin(models.AbstractModel):
         for rec in self:
             if rec.approval_state != 'pending':
                 raise UserError("Only pending proposals can be rejected.")
-            rec.write({
+            rec.with_context(education_tutor_proposal=True).write({
                 'approval_state': 'rejected',
                 'reviewed_by_id': self.env.user.id,
                 'review_date': fields.Datetime.now(),

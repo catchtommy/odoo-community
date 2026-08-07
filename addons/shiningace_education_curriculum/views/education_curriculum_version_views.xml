@@ -24,6 +24,8 @@
                     <button name="action_approve" type="object" string="Approve" class="btn-primary" invisible="state != 'review'"/>
                     <button name="action_reject" type="object" string="Reject" invisible="state != 'review'"/>
                     <button name="action_publish" type="object" string="Publish" class="btn-primary" invisible="state != 'approved'"/>
+                    <button name="action_publish_all_content" type="object" string="Publish All Content" icon="fa-check-circle"
+                            confirm="This approves any pending tutor proposals and publishes every lesson and lesson plan in this version. Continue?"/>
                     <button name="action_archive" type="object" string="Archive" invisible="state != 'published'"/>
                     <button name="%(action_education_curriculum_new_version_wizard)d" type="action" string="Create New Version"
                             context="{'default_source_version_id': id}"/>

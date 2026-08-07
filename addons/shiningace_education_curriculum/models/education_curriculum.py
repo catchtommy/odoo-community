@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models
+from odoo.exceptions import UserError
 
 
 class EducationCurriculum(models.Model):
@@ -71,6 +72,27 @@ class EducationCurriculum(models.Model):
             'name': self.name,
             'context': {'active_id': self.id},
         }
+
+    def action_publish_all_content(self):
+        """Convenience wrapper so a manager doesn't have to leave the
+        Curriculum form to bulk-publish content: delegates to the most
+        recent version's education.curriculum.version.action_publish_all_content()
+        (see there). Multiple versions almost always means one draft
+        successor to an already-published version, so "the" version to act
+        on is unambiguous in the common case; if it genuinely isn't (e.g.
+        two versions both mid-review), the manager is pointed at the
+        Versions list instead of having this method silently guess wrong.
+        """
+        self.ensure_one()
+        if len(self.version_ids) > 1 and not self.current_version_id:
+            raise UserError(
+                "This curriculum has multiple versions and none is published yet — "
+                "open the specific version you want and use 'Publish All Content' there."
+            )
+        version = self.current_version_id or self.version_ids[:1]
+        if not version:
+            raise UserError("This curriculum has no version yet — create one first.")
+        version.action_publish_all_content()
 
     def action_create_first_version(self):
         self.ensure_one()
