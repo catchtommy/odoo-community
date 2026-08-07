@@ -425,12 +425,18 @@ class ClassSchedule(models.Model):
         subject = self.course_id.subject_id
         if not category or not subject:
             return
-        has_rate = self.env['tutor.subject.rate'].search_count([
-            ('tutor_id', '=', self.tutor_id.id),
-            ('category_id', '=', category.id),
-            ('subject_id', '=', subject.id),
-            ('active_flag', '=', True),
-        ])
+        if self.tutor_id.employment_type == 'permanent':
+            has_rate = self.env['tutor.fixed.rate'].search_count([
+                ('tutor_id', '=', self.tutor_id.id),
+                ('active_flag', '=', True),
+            ])
+        else:
+            has_rate = self.env['tutor.subject.rate'].search_count([
+                ('tutor_id', '=', self.tutor_id.id),
+                ('category_id', '=', category.id),
+                ('subject_id', '=', subject.id),
+                ('active_flag', '=', True),
+            ])
         if not has_rate:
             return {
                 'warning': {
@@ -695,12 +701,18 @@ class ClassSchedule(models.Model):
         subject = self.course_id.subject_id
         if not category or not subject:
             return
-        has_rate = self.env['tutor.subject.rate'].search_count([
-            ('tutor_id', '=', self.tutor_id.id),
-            ('category_id', '=', category.id),
-            ('subject_id', '=', subject.id),
-            ('active_flag', '=', True),
-        ])
+        if self.tutor_id.employment_type == 'permanent':
+            has_rate = self.env['tutor.fixed.rate'].search_count([
+                ('tutor_id', '=', self.tutor_id.id),
+                ('active_flag', '=', True),
+            ])
+        else:
+            has_rate = self.env['tutor.subject.rate'].search_count([
+                ('tutor_id', '=', self.tutor_id.id),
+                ('category_id', '=', category.id),
+                ('subject_id', '=', subject.id),
+                ('active_flag', '=', True),
+            ])
         if not has_rate:
             self.course_id.message_post(
                 body=(

@@ -70,6 +70,8 @@
               groups="tuition_management.group_tuition_subject_category_edit,base.group_system"/>
     <menuitem id="menu_tuition_tutor_rates" name="Tutor Rates" parent="menu_tuition_settings" action="action_tutor_subject_rates"
               groups="tuition_management.group_tuition_tutor_rates_edit,base.group_system"/>
+    <menuitem id="menu_tuition_tutor_fixed_rates" name="Tutor Fixed Rates" parent="menu_tuition_settings" action="action_tutor_fixed_rates"
+              groups="tuition_management.group_tuition_tutor_rates_edit,base.group_system"/>
     <menuitem id="menu_tuition_grades" name="Grades" parent="menu_tuition_settings" action="action_grade_masters"
               groups="tuition_management.group_tuition_grades_edit,base.group_system"/>
     <menuitem id="menu_tuition_virtual_classroom_meetings" name="Virtual Meetings" parent="menu_tuition_settings" action="action_virtual_classroom_meetings" groups="base.group_user"/>

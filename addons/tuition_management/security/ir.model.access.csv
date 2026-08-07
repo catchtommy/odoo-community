@@ -17,6 +17,7 @@ access_grade_import_wizard,access_grade_import_wizard,model_grade_import_wizard,
 access_grade_import_wizard_line,access_grade_import_wizard_line,model_grade_import_wizard_line,base.group_user,1,1,1,1
 access_tutor_availability_overview,access_tutor_availability_overview,model_tutor_availability_overview,base.group_user,1,1,1,1
 access_tutor_subject_rate,access_tutor_subject_rate,model_tutor_subject_rate,base.group_user,1,1,1,1
+access_tutor_fixed_rate,access_tutor_fixed_rate,model_tutor_fixed_rate,base.group_user,1,1,1,1
 access_tutor_payment_run,access_tutor_payment_run,model_tutor_payment_run,base.group_user,1,1,1,1
 access_tutor_payment_summary,access_tutor_payment_summary,model_tutor_payment_summary,base.group_user,1,1,1,1
 access_tutor_payment_line,access_tutor_payment_line,model_tutor_payment_line,base.group_user,1,1,1,1

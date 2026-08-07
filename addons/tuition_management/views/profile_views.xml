@@ -98,6 +98,7 @@
                 <field name="category_ids" widget="many2many_tags"/>
                 <field name="subject_ids" widget="many2many_tags"/>
                 <field name="grade_ids" widget="many2many_tags"/>
+                <field name="employment_type" widget="badge"/>
                 <field name="status" widget="badge"/>
             </list>
         </field>
@@ -141,6 +142,7 @@
                             </div>
                             <field name="timezone"/>
                             <field name="status"/>
+                            <field name="employment_type" widget="radio" options="{'horizontal': true}"/>
                             <field name="partner_id"/>
                         </group>
                         <group string="Teaching Information">
@@ -163,7 +165,8 @@
                             </div>
                             <field name="availability_matrix_html" widget="html" readonly="1" nolabel="1"/>
                         </page>
-                        <page string="Pricing Matrix" groups="tuition_management.group_tuition_tutor_pricing_view,base.group_system">
+                        <page string="Pricing Matrix" invisible="employment_type != 'contract'"
+                              groups="tuition_management.group_tuition_tutor_pricing_view,base.group_system">
                             <field name="tutor_subject_rate_ids">
                                 <list editable="bottom">
                                     <field name="active_flag" widget="boolean_toggle"/>
@@ -173,6 +176,18 @@
                                     <field name="demo_rate_type"/>
                                     <field name="demo_percentage" invisible="demo_rate_type != 'percentage'"/>
                                     <field name="demo_hourly_rate" invisible="demo_rate_type != 'custom'"/>
+                                    <field name="effective_from"/>
+                                    <field name="effective_to"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="Fixed Pricing Matrix" invisible="employment_type != 'permanent'"
+                              groups="tuition_management.group_tuition_tutor_pricing_view,base.group_system">
+                            <field name="tutor_fixed_rate_ids">
+                                <list editable="bottom">
+                                    <field name="active_flag" widget="boolean_toggle"/>
+                                    <field name="fixed_amount"/>
+                                    <field name="pay_frequency"/>
                                     <field name="effective_from"/>
                                     <field name="effective_to"/>
                                 </list>

@@ -43,6 +43,11 @@ class TutorSubjectRate(models.Model):
     )
     def _check_rate_rules(self):
         for rec in self:
+            if rec.tutor_id and rec.tutor_id.employment_type == 'permanent':
+                raise ValidationError(
+                    f'Tutor "{rec.tutor_id.name}" is on Permanent (Fixed Payroll) employment. '
+                    f'Use the Fixed Pricing Matrix instead of an hourly Subject Rate.'
+                )
             if rec.standard_hourly_rate < 0:
                 raise ValidationError("Standard hourly rate must be 0 or greater than zero.")
             if rec.subject_id and rec.category_id and rec.subject_id.category_id != rec.category_id:
@@ -89,6 +94,53 @@ class TutorSubjectRate(models.Model):
                 if self.search_count(overlap_domain):
                     raise ValidationError(
                         "An active tutor/category/subject rate already exists for an overlapping date range."
+                    )
+
+
+class TutorFixedRate(models.Model):
+    _name = 'tutor.fixed.rate'
+    _description = 'Tutor Fixed Pricing Matrix'
+    _order = 'tutor_id, effective_from desc'
+
+    tutor_id = fields.Many2one('tutor.profile', string='Tutor', required=True, ondelete='cascade')
+    fixed_amount = fields.Float(string='Fixed Amount', required=True)
+    pay_frequency = fields.Selection([
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        ('term', 'Term'),
+    ], string='Pay Frequency', required=True, default='monthly')
+    effective_from = fields.Date(string='Effective From', required=True, default=fields.Date.context_today)
+    effective_to = fields.Date(string='Effective To')
+    active_flag = fields.Boolean(string='Active', default=True)
+    currency_id = fields.Many2one('res.currency', default=lambda self: self.env.company.currency_id)
+
+    @api.constrains(
+        'tutor_id', 'fixed_amount', 'effective_from', 'effective_to', 'active_flag',
+    )
+    def _check_fixed_rate_rules(self):
+        for rec in self:
+            if rec.tutor_id and rec.tutor_id.employment_type != 'permanent':
+                raise ValidationError(
+                    f'Tutor "{rec.tutor_id.name}" is not on Permanent (Fixed Payroll) employment. '
+                    f'Use the hourly Tutor Pricing Matrix instead of a Fixed Rate.'
+                )
+            if rec.fixed_amount < 0:
+                raise ValidationError("Fixed amount must be 0 or greater than zero.")
+            if rec.effective_to and rec.effective_to < rec.effective_from:
+                raise ValidationError("Effective To must be on or after Effective From.")
+            if rec.active_flag:
+                overlap_domain = [
+                    ('id', '!=', rec.id),
+                    ('tutor_id', '=', rec.tutor_id.id),
+                    ('active_flag', '=', True),
+                    ('effective_from', '<=', rec.effective_to or fields.Date.to_date('9999-12-31')),
+                    '|',
+                    ('effective_to', '=', False),
+                    ('effective_to', '>=', rec.effective_from),
+                ]
+                if self.search_count(overlap_domain):
+                    raise ValidationError(
+                        "An active fixed rate already exists for this tutor for an overlapping date range."
                     )
 
 
@@ -211,6 +263,21 @@ class TutorPaymentEngine(models.AbstractModel):
     @api.model
     def resolveTutorRate(self, tutor, category, subject, isDemo=False, lessonDate=None):
         return self.resolve_tutor_rate(tutor, category, subject, isDemo, lessonDate)
+
+    @api.model
+    def resolve_tutor_fixed_rate(self, tutor, on_date=None):
+        on_date = fields.Date.to_date(on_date) if on_date else fields.Date.today()
+        rate = self.env['tutor.fixed.rate'].search([
+            ('tutor_id', '=', tutor.id),
+            ('active_flag', '=', True),
+            ('effective_from', '<=', on_date),
+            '|', ('effective_to', '=', False), ('effective_to', '>=', on_date),
+        ], order='effective_from desc, id desc', limit=1)
+        if not rate:
+            raise UserError(
+                "No fixed pay rate is configured for %s on %s." % (tutor.display_name, on_date)
+            )
+        return rate, rate.fixed_amount
 
     @api.model
     def get_lesson_hours(self, lesson):
@@ -341,26 +408,54 @@ class TutorPaymentRun(models.Model):
             summaries_by_tutor = {}
             engine = self.env['tutor.payment.engine']
             for lesson in lessons:
-                calc = engine.calculate_lesson_payment(lesson)
-                summary = summaries_by_tutor.get(lesson.tutor_id.id)
+                tutor = lesson.tutor_id
+                summary = summaries_by_tutor.get(tutor.id)
                 if not summary:
                     summary = self.env['tutor.payment.summary'].create({
                         'payment_run_id': run.id,
-                        'tutor_id': lesson.tutor_id.id,
+                        'tutor_id': tutor.id,
                     })
-                    summaries_by_tutor[lesson.tutor_id.id] = summary
-                self.env['tutor.payment.line'].create({
-                    'payment_run_id': run.id,
-                    'tutor_payment_summary_id': summary.id,
-                    'lesson_id': lesson.id,
-                    'category_id': calc['category'].id,
-                    'subject_id': calc['subject'].id,
-                    'hours_worked': calc['hours'],
-                    'rate_used': calc['rate_used'],
-                    'amount': calc['amount'],
-                    'demo_flag': lesson.is_demo,
-                    'tutor_rate_id': calc['rate_record'].id,
-                })
+                    summaries_by_tutor[tutor.id] = summary
+                if tutor.employment_type == 'permanent':
+                    course = lesson.course_id
+                    category = course.category_id or course.subject_id.category_id
+                    hours = engine.get_lesson_hours(lesson)
+                    if hours <= 0:
+                        raise UserError("Lesson %s has no payable duration." % lesson.display_name)
+                    self.env['tutor.payment.line'].create({
+                        'payment_run_id': run.id,
+                        'tutor_payment_summary_id': summary.id,
+                        'lesson_id': lesson.id,
+                        'category_id': category.id,
+                        'subject_id': course.subject_id.id,
+                        'hours_worked': hours,
+                        'rate_used': 0.0,
+                        'amount': 0.0,
+                        'demo_flag': lesson.is_demo,
+                        'is_fixed_payroll': True,
+                    })
+                else:
+                    calc = engine.calculate_lesson_payment(lesson)
+                    self.env['tutor.payment.line'].create({
+                        'payment_run_id': run.id,
+                        'tutor_payment_summary_id': summary.id,
+                        'lesson_id': lesson.id,
+                        'category_id': calc['category'].id,
+                        'subject_id': calc['subject'].id,
+                        'hours_worked': calc['hours'],
+                        'rate_used': calc['rate_used'],
+                        'amount': calc['amount'],
+                        'demo_flag': lesson.is_demo,
+                        'tutor_rate_id': calc['rate_record'].id,
+                    })
+            for tutor_id, summary in summaries_by_tutor.items():
+                tutor = self.env['tutor.profile'].browse(tutor_id)
+                if tutor.employment_type == 'permanent':
+                    fixed_rate, amount = engine.resolve_tutor_fixed_rate(tutor, run.payment_period_to)
+                    summary.write({
+                        'fixed_pay_amount': amount,
+                        'tutor_fixed_rate_id': fixed_rate.id,
+                    })
             run.write({'run_status': 'preview'})
         return True
 
@@ -463,6 +558,8 @@ class TutorPaymentSummary(models.Model):
     demo_hours = fields.Float(string='Demo Hours', compute='_compute_amounts', store=True)
     regular_pay = fields.Float(string='Regular Pay', compute='_compute_amounts', store=True)
     demo_pay = fields.Float(string='Demo Pay', compute='_compute_amounts', store=True)
+    fixed_pay_amount = fields.Float(string='Fixed Pay Amount')
+    tutor_fixed_rate_id = fields.Many2one('tutor.fixed.rate', string='Fixed Rate Used')
     gross_pay = fields.Float(string='Gross Pay', compute='_compute_amounts', store=True)
     payment_status = fields.Selection([
         ('draft', 'Draft'),
@@ -472,17 +569,21 @@ class TutorPaymentSummary(models.Model):
     ], default='draft', string='Payment Status')
     currency_id = fields.Many2one(related='payment_run_id.currency_id', store=True)
 
-    @api.depends('line_ids.hours_worked', 'line_ids.amount', 'line_ids.demo_flag', 'line_ids.payment_status')
+    @api.depends(
+        'line_ids.hours_worked', 'line_ids.amount', 'line_ids.demo_flag',
+        'line_ids.payment_status', 'fixed_pay_amount',
+    )
     def _compute_amounts(self):
         for rec in self:
             active_lines = rec.line_ids.filtered(lambda line: line.payment_status != 'rejected')
-            regular_lines = active_lines.filtered(lambda line: not line.demo_flag)
+            regular_lines = active_lines.filtered(lambda line: not line.demo_flag and not line.is_fixed_payroll)
             demo_lines = active_lines.filtered('demo_flag')
-            rec.regular_hours = sum(regular_lines.mapped('hours_worked'))
+            rec.regular_hours = sum(regular_lines.mapped('hours_worked')) + sum(
+                active_lines.filtered('is_fixed_payroll').mapped('hours_worked'))
             rec.demo_hours = sum(demo_lines.mapped('hours_worked'))
             rec.regular_pay = sum(regular_lines.mapped('amount'))
             rec.demo_pay = sum(demo_lines.mapped('amount'))
-            rec.gross_pay = rec.regular_pay + rec.demo_pay
+            rec.gross_pay = rec.regular_pay + rec.demo_pay + rec.fixed_pay_amount
 
 
 class TutorPaymentLine(models.Model):
@@ -506,6 +607,12 @@ class TutorPaymentLine(models.Model):
     rate_used = fields.Float(string='Rate Used', required=True)
     amount = fields.Float(string='Amount', required=True)
     demo_flag = fields.Boolean(string='Demo')
+    is_fixed_payroll = fields.Boolean(
+        string='Fixed Payroll',
+        default=False,
+        help='Line belongs to a permanent tutor paid a fixed amount; hours are tracked for '
+             'reporting only and do not drive this line\'s amount.',
+    )
     tutor_rate_id = fields.Many2one('tutor.subject.rate', string='Rate Rule')
     payment_status = fields.Selection([
         ('draft', 'Draft'),
@@ -531,9 +638,10 @@ class TutorPaymentLine(models.Model):
             if line.payment_status != 'rejected':
                 if line.hours_worked <= 0:
                     raise ValidationError("Payment line hours must be greater than zero.")
-                # Demo lessons may have a zero rate (free / non-chargeable demo).
-                # Regular lessons must always have a positive rate.
-                if not line.demo_flag and line.rate_used <= 0:
+                # Demo lessons may have a zero rate (free / non-chargeable demo), and
+                # fixed-payroll lines are always zero-rated since pay comes from the
+                # tutor summary's flat fixed_pay_amount, not the per-lesson line.
+                if not line.demo_flag and not line.is_fixed_payroll and line.rate_used <= 0:
                     raise ValidationError(
                         "Payment line rate must be greater than zero for non-demo lessons.")
                 if line.rate_used < 0:
@@ -563,6 +671,7 @@ class TutorPaymentLine(models.Model):
         protected_fields = {
             'lesson_id', 'category_id', 'subject_id', 'hours_worked',
             'rate_used', 'amount', 'demo_flag', 'tutor_rate_id', 'payment_status',
+            'is_fixed_payroll',
         }
         if protected_fields & set(vals) and not self.env.context.get('payroll_finalize_write'):
             locked = self.filtered(lambda line: line.payment_run_id.run_status in ('approved', 'paid'))

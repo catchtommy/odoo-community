@@ -289,7 +289,12 @@ class TutorProfile(models.Model):
     )
     subject_ids = fields.Many2many('subject.master', string='Subjects')
     category_ids = fields.Many2many('subject.category', string='Categories')
+    employment_type = fields.Selection([
+        ('contract', 'Contract (Hourly)'),
+        ('permanent', 'Permanent (Fixed Payroll)'),
+    ], string='Employment Type', default='contract', required=True)
     tutor_subject_rate_ids = fields.One2many('tutor.subject.rate', 'tutor_id', string='Tutor Pricing Matrix')
+    tutor_fixed_rate_ids = fields.One2many('tutor.fixed.rate', 'tutor_id', string='Fixed Pricing Matrix')
     grade_ids = fields.Many2many('grade.master', string='Grades')
     availability_ids = fields.One2many('tutor.availability', 'tutor_id', string='Availability')
     availability_matrix_html = fields.Html(
@@ -395,7 +400,18 @@ class TutorProfile(models.Model):
             ('effective_from', '<=', target_date),
             '|', ('effective_to', '=', False), ('effective_to', '>=', target_date),
         ]
-        return self.search([('tutor_subject_rate_ids', 'in', self.env['tutor.subject.rate'].search(rate_domain).ids)])
+        hourly_eligible = self.search([('tutor_subject_rate_ids', 'in', self.env['tutor.subject.rate'].search(rate_domain).ids)])
+
+        fixed_rate_domain = [
+            ('active_flag', '=', True),
+            ('effective_from', '<=', target_date),
+            '|', ('effective_to', '=', False), ('effective_to', '>=', target_date),
+        ]
+        tutors_with_fixed_rate = self.env['tutor.fixed.rate'].search(fixed_rate_domain).mapped('tutor_id')
+        fixed_eligible = tutors_with_fixed_rate.filtered(
+            lambda t: t.employment_type == 'permanent' and subject_id in t.subject_ids.ids
+        )
+        return hourly_eligible | fixed_eligible
 
     @api.model
     def getEligibleTutors(self, category, subject):
