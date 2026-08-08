@@ -19,6 +19,21 @@ class EnquiryStage(models.Model):
     is_enrolled_stage = fields.Boolean(string='Is Enrolled Stage', default=False)
 
 
+class EnquiryBatch(models.Model):
+    """Groups sibling `enquiry` records created together from a single
+    multi-student submission (website or backend), so staff can navigate
+    between a family's enquiries. Only created for submissions with 2+
+    students — single-student submissions never get a batch."""
+    _name = 'enquiry.batch'
+    _description = 'Enquiry Submission Batch'
+
+    source = fields.Selection([
+        ('website', 'Website'),
+        ('backend', 'Backend'),
+    ], string='Source', required=True)
+    enquiry_ids = fields.One2many('enquiry', 'enquiry_batch_id', string='Enquiries')
+
+
 class Enquiry(models.Model):
     _name = 'enquiry'
     _description = 'Enquiry'
@@ -108,6 +123,31 @@ class Enquiry(models.Model):
 
     can_convert_course = fields.Boolean(compute='_compute_can_convert_course')
     can_edit_enquiry = fields.Boolean(string='Can Edit Enquiry', compute='_compute_can_edit_enquiry')
+
+    enquiry_batch_id = fields.Many2one(
+        'enquiry.batch', string='Submission Batch', copy=False, index=True, readonly=True,
+        help='Set when this enquiry was created together with sibling enquiries for other '
+             'students of the same parent in one multi-student submission.',
+    )
+    sibling_enquiry_ids = fields.Many2many('enquiry', compute='_compute_sibling_enquiry_ids', string='Related Enquiries')
+    sibling_enquiry_count = fields.Integer(compute='_compute_sibling_enquiry_ids', string='Related Enquiry Count')
+
+    @api.depends('enquiry_batch_id', 'enquiry_batch_id.enquiry_ids')
+    def _compute_sibling_enquiry_ids(self):
+        for rec in self:
+            siblings = (rec.enquiry_batch_id.enquiry_ids - rec) if rec.enquiry_batch_id else self.env['enquiry']
+            rec.sibling_enquiry_ids = siblings
+            rec.sibling_enquiry_count = len(siblings)
+
+    def action_view_sibling_enquiries(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Related Enquiries',
+            'res_model': 'enquiry',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', self.sibling_enquiry_ids.ids)],
+        }
 
     @api.depends_context('uid')
     def _compute_can_edit_enquiry(self):
@@ -666,7 +706,136 @@ class EnquiryAttachParentWizard(models.TransientModel):
     def action_confirm(self):
         self.ensure_one()
         self.enquiry_id._do_attach_existing_parent()
+        # If this enquiry was part of a multi-student batch submission, resolve
+        # any sibling enquiries flagged with the same duplicate parent too, so
+        # staff don't have to repeat this confirmation once per sibling.
+        if self.enquiry_id.enquiry_batch_id:
+            siblings = self.enquiry_id.sibling_enquiry_ids.filtered(
+                lambda e: e.possible_duplicate_parent_id == self.parent_id)
+            for sib in siblings:
+                sib.parent_profile_id = self.parent_id.id
+                sib.possible_duplicate_parent_id = False
+                if not sib.student_profile_id and sib.student_name:
+                    sib.student_profile_id = sib._find_or_create_student(self.parent_id).id
         return {'type': 'ir.actions.act_window_close'}
+
+
+class EnquiryBatchWizard(models.TransientModel):
+    """Lets staff enter multiple students for one parent in a single go from
+    the backend, mirroring the public website's multi-student enquiry form.
+    Creates one `enquiry` record per student line, all sharing the same
+    parent, and (when there's more than one student) grouped under a new
+    `enquiry.batch` so the resulting enquiries show up as "Related Enquiries"
+    on each other's form.
+    """
+    _name = 'enquiry.batch.wizard'
+    _description = 'New Enquiry (Multiple Students)'
+
+    name = fields.Char(string='Parent / Guardian Name', required=True)
+    email = fields.Char(string='Email')
+    country_code = fields.Char(string='Country Code', default='+1')
+    phone = fields.Char(string='Phone')
+    parent_profile_id = fields.Many2one('parent.profile', string='Existing Parent')
+    enquiry_source = fields.Selection([
+        ('website', 'Website'),
+        ('referral', 'Referral'),
+        ('phone', 'Phone'),
+        ('email', 'Email'),
+        ('social_media', 'Social Media'),
+        ('walk_in', 'Walk-in'),
+        ('other', 'Other'),
+    ], string='Source')
+    notes = fields.Text(string='Notes')
+    student_line_ids = fields.One2many('enquiry.batch.wizard.line', 'wizard_id', string='Students')
+
+    @api.onchange('parent_profile_id')
+    def _onchange_parent_profile_id(self):
+        if self.parent_profile_id:
+            self.name = self.parent_profile_id.name
+            self.email = self.parent_profile_id.email
+            self.phone = self.parent_profile_id.phone
+            self.country_code = self.parent_profile_id.country_code
+
+    def action_create_enquiries(self):
+        self.ensure_one()
+        if not self.student_line_ids:
+            raise UserError('Add at least one student.')
+
+        common = {
+            'name': self.name,
+            'email': self.email,
+            'phone': self.phone,
+            'country_code': self.country_code,
+            'parent_profile_id': self.parent_profile_id.id,
+            'enquiry_source': self.enquiry_source,
+            'notes': self.notes,
+        }
+
+        batch = False
+        if len(self.student_line_ids) > 1:
+            batch = self.env['enquiry.batch'].create({'source': 'backend'})
+
+        first_line = self.student_line_ids[0]
+        first = self.env['enquiry'].create(dict(
+            common,
+            enquiry_batch_id=batch.id if batch else False,
+            student_name=first_line.student_name,
+            student_age=first_line.student_age,
+            category_id=first_line.category_id.id,
+            subject_id=first_line.subject_id.id,
+            grade_id=first_line.grade_id.id,
+        ))
+
+        # Forward the resolved parent to the remaining students so they attach
+        # to the same parent instead of each running their own duplicate search.
+        rest_common = dict(common, enquiry_batch_id=batch.id if batch else False)
+        if first.parent_profile_id:
+            rest_common['parent_profile_id'] = first.parent_profile_id.id
+
+        rest_vals = [
+            dict(
+                rest_common,
+                student_name=line.student_name,
+                student_age=line.student_age,
+                category_id=line.category_id.id,
+                subject_id=line.subject_id.id,
+                grade_id=line.grade_id.id,
+            )
+            for line in self.student_line_ids[1:]
+        ]
+        rest = self.env['enquiry'].create(rest_vals) if rest_vals else self.env['enquiry']
+
+        enquiries = first + rest
+        return {
+            'type': 'ir.actions.act_window',
+            'name': 'Created Enquiries',
+            'res_model': 'enquiry',
+            'view_mode': 'list,form',
+            'domain': [('id', 'in', enquiries.ids)],
+        }
+
+
+class EnquiryBatchWizardLine(models.TransientModel):
+    _name = 'enquiry.batch.wizard.line'
+    _description = 'Enquiry Batch Wizard Student Line'
+
+    wizard_id = fields.Many2one('enquiry.batch.wizard', required=True, ondelete='cascade')
+    student_name = fields.Char(string='Student Name', required=True)
+    student_age = fields.Integer(string='Student Age')
+    category_id = fields.Many2one('subject.category', string='Category')
+    subject_id = fields.Many2one('subject.master', string='Subject', required=True)
+    grade_id = fields.Many2one('grade.master', string='Grade', required=True)
+
+    @api.onchange('category_id')
+    def _onchange_category_id(self):
+        if self.category_id:
+            if self.subject_id and self.subject_id.category_id != self.category_id:
+                self.subject_id = False
+            if self.grade_id and self.category_id not in self.grade_id.category_ids:
+                self.grade_id = False
+        else:
+            self.subject_id = False
+            self.grade_id = False
 
 
 class DemoSession(models.Model):

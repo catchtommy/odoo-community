@@ -165,117 +165,195 @@
 
                             <hr style="margin:24px 0;border-color:#eee;"/>
 
-                            <!-- Student Information -->
+                            <!-- Student Information (repeatable, one block per student) -->
                             <h6 style="font-weight:700;color:#333;margin-bottom:14px;font-size:13px;text-transform:uppercase;letter-spacing:0.5px;">
                                 <i class="fa fa-child me-1" style="color:#764ba2;"/> Student Information
                             </h6>
 
-                            <div class="mb-3">
-                                <label class="form-label fw-bold" style="font-size:12px;">Student Name <span class="text-danger">*</span></label>
-                                <input type="text" name="student_name" class="form-control" required="required"
-                                       style="border-radius:8px;font-size:13px;" placeholder="Student full name"
-                                       t-att-value="form_data.get('student_name', '') if form_data else ''"/>
+                            <div id="students_container">
+                                <t t-foreach="form_data.get('students', [{}]) if form_data else [{}]" t-as="student_row">
+                                    <div class="student-block card mb-3 p-3" t-attf-data-idx="#{student_row_index}" style="border:1px solid #eee;border-radius:10px;">
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <strong style="font-size:12px;color:#764ba2;">Student <t t-esc="student_row_index + 1"/></strong>
+                                            <button type="button" class="btn btn-sm btn-link text-danger remove-student-btn" style="display:none;font-size:12px;">
+                                                <i class="fa fa-times me-1"/>Remove
+                                            </button>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold" style="font-size:12px;">Student Name <span class="text-danger">*</span></label>
+                                            <input type="text" t-attf-name="student_name[#{student_row_index}]" class="form-control" required="required"
+                                                   style="border-radius:8px;font-size:13px;" placeholder="Student full name"
+                                                   t-att-value="student_row.get('student_name', '')"/>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-bold" style="font-size:12px;">Student Age</label>
+                                            <input type="number" t-attf-name="student_age[#{student_row_index}]" class="form-control" min="1" max="99"
+                                                   style="border-radius:8px;font-size:13px;" placeholder="e.g. 12"
+                                                   t-att-value="student_row.get('student_age', '')"/>
+                                        </div>
+                                        <div class="row mb-3">
+                                            <div class="col-6">
+                                                <label class="form-label fw-bold" style="font-size:12px;">Category <span class="text-danger">*</span></label>
+                                                <select t-attf-name="category_id[#{student_row_index}]" t-attf-id="field_category_#{student_row_index}"
+                                                        class="form-select student-category-select" required="required" style="border-radius:8px;font-size:13px;">
+                                                    <option value="">Select category...</option>
+                                                    <t t-foreach="categories" t-as="cat">
+                                                        <option t-att-value="cat.id" t-att-selected="'selected' if str(cat.id) == str(student_row.get('category_id', '')) else None">
+                                                            <t t-esc="cat.name"/>
+                                                        </option>
+                                                    </t>
+                                                </select>
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label fw-bold" style="font-size:12px;">Subject <span class="text-danger">*</span></label>
+                                                <select t-attf-name="subject_id[#{student_row_index}]" t-attf-id="field_subject_#{student_row_index}"
+                                                        class="form-select student-subject-select" required="required" style="border-radius:8px;font-size:13px;">
+                                                    <option value="">Select subject...</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div class="mb-1">
+                                            <label class="form-label fw-bold" style="font-size:12px;">Grade <span class="text-danger">*</span></label>
+                                            <select t-attf-name="grade_id[#{student_row_index}]" t-attf-id="field_grade_#{student_row_index}"
+                                                    class="form-select student-grade-select" required="required" style="border-radius:8px;font-size:13px;">
+                                                <option value="">Select grade...</option>
+                                            </select>
+                                        </div>
+                                        <input type="hidden" class="student-selected-subject" t-att-value="student_row.get('subject_id', '')"/>
+                                        <input type="hidden" class="student-selected-grade" t-att-value="student_row.get('grade_id', '')"/>
+                                    </div>
+                                </t>
                             </div>
 
-                            <div class="mb-3">
-                                <label class="form-label fw-bold" style="font-size:12px;">Student Age</label>
-                                <input type="number" name="student_age" class="form-control" min="1" max="99"
-                                       style="border-radius:8px;font-size:13px;" placeholder="e.g. 12"
-                                       t-att-value="form_data.get('student_age', '') if form_data else ''"/>
-                            </div>
-
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <label class="form-label fw-bold" style="font-size:12px;">Category <span class="text-danger">*</span></label>
-                                    <select name="category_id" id="field_category" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
-                                        <option value="">Select category...</option>
-                                        <t t-foreach="categories" t-as="cat">
-                                            <option t-att-value="cat.id" t-att-selected="'selected' if form_data and str(cat.id) == str(form_data.get('category_id', '')) else None">
-                                                <t t-esc="cat.name"/>
-                                            </option>
-                                        </t>
-                                    </select>
-                                </div>
-                                <div class="col-6">
-                                    <label class="form-label fw-bold" style="font-size:12px;">Subject <span class="text-danger">*</span></label>
-                                    <select name="subject_id" id="field_subject" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
-                                        <option value="">Select subject...</option>
-                                    </select>
-                                </div>
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label fw-bold" style="font-size:12px;">Grade <span class="text-danger">*</span></label>
-                                <select name="grade_id" id="field_grade" class="form-select" required="required" style="border-radius:8px;font-size:13px;">
-                                    <option value="">Select grade...</option>
-                                </select>
-                            </div>
+                            <button type="button" id="add_student_btn" class="btn btn-outline-primary btn-sm mb-3" style="border-radius:8px;font-size:12px;">
+                                <i class="fa fa-plus me-1"/> Add Another Student
+                            </button>
 
                             <!-- subjects-by-category and grades-by-category maps for JS filtering -->
-                            <t t-set="selected_subject_id" t-value="form_data.get('subject_id', '') if form_data else ''"/>
-                            <t t-set="selected_grade_id" t-value="form_data.get('grade_id', '') if form_data else ''"/>
                             <div id="enquiry_subject_data"
                                  style="display:none"
                                  t-att-data-subjects="subjects_by_category_json"
-                                 t-att-data-grades="grades_by_category_json"
-                                 t-att-data-selected="selected_subject_id"
-                                 t-att-data-selected-grade="selected_grade_id"/>
+                                 t-att-data-grades="grades_by_category_json"/>
                             <script>
                                 (function() {
                                     var el = document.getElementById('enquiry_subject_data');
                                     var subjectsByCategory = JSON.parse(el.getAttribute('data-subjects') || '{}');
                                     var gradesByCategory = JSON.parse(el.getAttribute('data-grades') || '{}');
-                                    var selectedSubject = el.getAttribute('data-selected') || '';
-                                    var selectedGrade = el.getAttribute('data-selected-grade') || '';
-                                    var catSel = document.getElementById('field_category');
-                                    var subSel = document.getElementById('field_subject');
-                                    var gradeSel = document.getElementById('field_grade');
+                                    var container = document.getElementById('students_container');
+                                    var addBtn = document.getElementById('add_student_btn');
+                                    var nextIdx = 0;
 
-                                    function filterGrades(resetValue) {
-                                        var catId = catSel.value;
-                                        var keepVal = resetValue ? '' : selectedGrade;
-                                        while (gradeSel.options.length > 1) { gradeSel.remove(1); }
-                                        var list = catId
-                                            ? (gradesByCategory[catId] || [])
-                                            : Object.values(gradesByCategory).reduce(function(a, b) {
-                                                var seen = {};
-                                                return a.concat(b.filter(function(g) {
-                                                    return seen[g.id] ? false : (seen[g.id] = true);
-                                                }));
-                                              }, []);
-                                        list.forEach(function(g) {
-                                            var opt = document.createElement('option');
-                                            opt.value = g.id;
-                                            opt.textContent = g.name;
-                                            if (String(g.id) === String(keepVal)) { opt.selected = true; }
-                                            gradeSel.appendChild(opt);
+                                    // Looked up lazily (not at script-parse time): the
+                                    // #student_block_template element is deliberately placed
+                                    // after the closing form tag in the markup (see the comment
+                                    // there), which is also after this script block, so it
+                                    // doesn't exist yet when this IIFE runs. By the time a user
+                                    // can click "Add Another Student" the whole page has parsed,
+                                    // so this resolves correctly on first use.
+                                    function getTemplateBlock() {
+                                        return document.querySelector('#student_block_template .student-block');
+                                    }
+
+                                    function allBlocks() {
+                                        return Array.prototype.slice.call(container.querySelectorAll('.student-block'));
+                                    }
+
+                                    function updateRemoveButtons() {
+                                        var blocks = allBlocks();
+                                        blocks.forEach(function(block) {
+                                            var btn = block.querySelector('.remove-student-btn');
+                                            btn.style.display = blocks.length > 1 ? 'inline-block' : 'none';
                                         });
                                     }
 
-                                    function filterSubjects(resetValue) {
-                                        var catId = catSel.value;
-                                        var keepVal = resetValue ? '' : (subSel.value || selectedSubject);
-                                        while (subSel.options.length > 1) { subSel.remove(1); }
-                                        var list = catId
-                                            ? (subjectsByCategory[catId] || [])
-                                            : Object.values(subjectsByCategory).reduce(function(a, b) { return a.concat(b); }, []);
-                                        list.forEach(function(s) {
-                                            var opt = document.createElement('option');
-                                            opt.value = s.id;
-                                            opt.textContent = s.name;
-                                            if (String(s.id) === String(keepVal)) { opt.selected = true; }
-                                            subSel.appendChild(opt);
+                                    function initStudentBlock(idx) {
+                                        var catSel = document.getElementById('field_category_' + idx);
+                                        var subSel = document.getElementById('field_subject_' + idx);
+                                        var gradeSel = document.getElementById('field_grade_' + idx);
+                                        var block = catSel.closest('.student-block');
+                                        var subHidden = block.querySelector('.student-selected-subject');
+                                        var gradeHidden = block.querySelector('.student-selected-grade');
+                                        var selectedSubject = subHidden ? subHidden.value : '';
+                                        var selectedGrade = gradeHidden ? gradeHidden.value : '';
+
+                                        function filterGrades(resetValue) {
+                                            var catId = catSel.value;
+                                            var keepVal = resetValue ? '' : selectedGrade;
+                                            while (gradeSel.options.length > 1) { gradeSel.remove(1); }
+                                            var list = catId
+                                                ? (gradesByCategory[catId] || [])
+                                                : Object.values(gradesByCategory).reduce(function(a, b) {
+                                                    var seen = {};
+                                                    return a.concat(b.filter(function(g) {
+                                                        return seen[g.id] ? false : (seen[g.id] = true);
+                                                    }));
+                                                  }, []);
+                                            list.forEach(function(g) {
+                                                var opt = document.createElement('option');
+                                                opt.value = g.id;
+                                                opt.textContent = g.name;
+                                                if (String(g.id) === String(keepVal)) { opt.selected = true; }
+                                                gradeSel.appendChild(opt);
+                                            });
+                                        }
+
+                                        function filterSubjects(resetValue) {
+                                            var catId = catSel.value;
+                                            var keepVal = resetValue ? '' : (subSel.value || selectedSubject);
+                                            while (subSel.options.length > 1) { subSel.remove(1); }
+                                            var list = catId
+                                                ? (subjectsByCategory[catId] || [])
+                                                : Object.values(subjectsByCategory).reduce(function(a, b) { return a.concat(b); }, []);
+                                            list.forEach(function(s) {
+                                                var opt = document.createElement('option');
+                                                opt.value = s.id;
+                                                opt.textContent = s.name;
+                                                if (String(s.id) === String(keepVal)) { opt.selected = true; }
+                                                subSel.appendChild(opt);
+                                            });
+                                        }
+
+                                        catSel.addEventListener('change', function() {
+                                            filterGrades(true);
+                                            filterSubjects(true);
                                         });
+
+                                        filterGrades(false);
+                                        filterSubjects(false);
                                     }
 
-                                    catSel.addEventListener('change', function() {
-                                        filterGrades(true);
-                                        filterSubjects(true);
+                                    function addStudentBlock() {
+                                        var idx = nextIdx++;
+                                        var html = getTemplateBlock().outerHTML.split('__IDX__').join(idx);
+                                        var wrapper = document.createElement('div');
+                                        wrapper.innerHTML = html;
+                                        var block = wrapper.firstElementChild;
+                                        block.querySelector('strong').textContent = 'Student ' + (allBlocks().length + 1);
+                                        container.appendChild(block);
+                                        initStudentBlock(idx);
+                                        updateRemoveButtons();
+                                    }
+
+                                    container.addEventListener('click', function(ev) {
+                                        var btn = ev.target.closest('.remove-student-btn');
+                                        if (!btn) { return; }
+                                        var block = btn.closest('.student-block');
+                                        if (allBlocks().length > 1) {
+                                            block.remove();
+                                            updateRemoveButtons();
+                                        }
                                     });
 
-                                    // Initial render
-                                    filterGrades(false);
-                                    filterSubjects(false);
+                                    addBtn.addEventListener('click', addStudentBlock);
+
+                                    // Initialize already-rendered blocks (server-side, from form_data on error re-render)
+                                    var initialBlocks = allBlocks();
+                                    initialBlocks.forEach(function(block) {
+                                        var idx = parseInt(block.getAttribute('data-idx'), 10);
+                                        initStudentBlock(idx);
+                                        if (idx >= nextIdx) { nextIdx = idx + 1; }
+                                    });
+                                    updateRemoveButtons();
                                 })();
                             </script>
 
@@ -292,6 +370,59 @@
                                 <i class="fa fa-paper-plane me-1"/> Submit Enquiry
                             </button>
                         </form>
+
+                        <!-- Hidden template used by JS to append new student blocks.
+                             Deliberately kept OUTSIDE the <form> above: inputs here carry
+                             required="required" placeholder attributes with an inert __IDX__
+                             placeholder name, and browsers refuse to submit/validate a form
+                             containing a required field that is display:none — "An invalid
+                             form control ... is not focusable". Living outside the form means
+                             these inputs are never part of it (no implicit form association),
+                             so they're inert until JS clones a copy, rewrites __IDX__, and
+                             appends the copy inside #students_container (which IS inside the form). -->
+                        <div id="student_block_template" style="display:none">
+                            <div class="student-block card mb-3 p-3" data-idx="__IDX__" style="border:1px solid #eee;border-radius:10px;">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <strong style="font-size:12px;color:#764ba2;">Student</strong>
+                                    <button type="button" class="btn btn-sm btn-link text-danger remove-student-btn" style="font-size:12px;">
+                                        <i class="fa fa-times me-1"/>Remove
+                                    </button>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Student Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="student_name[__IDX__]" class="form-control" required="required"
+                                           style="border-radius:8px;font-size:13px;" placeholder="Student full name"/>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Student Age</label>
+                                    <input type="number" name="student_age[__IDX__]" class="form-control" min="1" max="99"
+                                           style="border-radius:8px;font-size:13px;" placeholder="e.g. 12"/>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold" style="font-size:12px;">Category <span class="text-danger">*</span></label>
+                                        <select name="category_id[__IDX__]" id="field_category___IDX__" class="form-select student-category-select" required="required" style="border-radius:8px;font-size:13px;">
+                                            <option value="">Select category...</option>
+                                            <t t-foreach="categories" t-as="cat">
+                                                <option t-att-value="cat.id"><t t-esc="cat.name"/></option>
+                                            </t>
+                                        </select>
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label fw-bold" style="font-size:12px;">Subject <span class="text-danger">*</span></label>
+                                        <select name="subject_id[__IDX__]" id="field_subject___IDX__" class="form-select student-subject-select" required="required" style="border-radius:8px;font-size:13px;">
+                                            <option value="">Select subject...</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-1">
+                                    <label class="form-label fw-bold" style="font-size:12px;">Grade <span class="text-danger">*</span></label>
+                                    <select name="grade_id[__IDX__]" id="field_grade___IDX__" class="form-select student-grade-select" required="required" style="border-radius:8px;font-size:13px;">
+                                        <option value="">Select grade...</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 

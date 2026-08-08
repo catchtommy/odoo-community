@@ -1,11 +1,14 @@
 # -*- coding: utf-8 -*-
 import json
 import logging
+import re
 
 from odoo import http
 from odoo.http import request
 
 _logger = logging.getLogger(__name__)
+
+STUDENT_INDEX_RE = re.compile(r'^student_name\[(\d+)\]$')
 
 
 class PublicEnquiryController(http.Controller):
@@ -49,41 +52,53 @@ class PublicEnquiryController(http.Controller):
     def enquiry_submit(self, **post):
         base_values = self._get_enquiry_render_values()
 
+        student_indices = sorted({int(m.group(1)) for k in post if (m := STUDENT_INDEX_RE.match(k))})
+        students = [{
+            'student_name': post.get(f'student_name[{idx}]', '').strip(),
+            'student_age': post.get(f'student_age[{idx}]', '').strip(),
+            'category_id': post.get(f'category_id[{idx}]', ''),
+            'subject_id': post.get(f'subject_id[{idx}]', ''),
+            'grade_id': post.get(f'grade_id[{idx}]', ''),
+        } for idx in student_indices]
+
         form_data = {
             'parent_name': post.get('parent_name', '').strip(),
             'email': post.get('email', '').strip(),
             'country_code': post.get('country_code', '').strip(),
             'phone': post.get('phone', '').strip(),
-            'student_name': post.get('student_name', '').strip(),
-            'student_age': post.get('student_age', '').strip(),
-            'grade_id': post.get('grade_id', ''),
-            'category_id': post.get('category_id', ''),
-            'subject_id': post.get('subject_id', ''),
             'notes': post.get('notes', '').strip(),
+            'students': students,
         }
 
         error = None
 
-        # Validate required fields
+        # Validate parent-level required fields
         if not form_data['parent_name']:
             error = 'Parent / Guardian name is required.'
-        elif not form_data['student_name']:
-            error = 'Student name is required.'
-        elif not form_data['grade_id']:
-            error = 'Please select a grade.'
-        elif not form_data['subject_id']:
-            error = 'Please select a subject.'
         elif not form_data['email'] and not form_data['phone']:
             error = 'Please provide either an email address or a phone number.'
+        elif not students:
+            error = 'Please add at least one student.'
+        else:
+            for i, student in enumerate(students, start=1):
+                if not student['student_name']:
+                    error = f'Student {i}: name is required.'
+                elif not student['grade_id']:
+                    error = f'Student {i}: please select a grade.'
+                elif not student['subject_id']:
+                    error = f'Student {i}: please select a subject.'
+                if error:
+                    break
 
         if error:
             return request.render('tuition_management.public_enquiry_form', dict(base_values, error=error, form_data=form_data))
 
         try:
-            student_age = int(form_data['student_age']) if form_data.get('student_age') else 0
-            grade_id = int(form_data['grade_id'])
-            subject_id = int(form_data['subject_id'])
-            category_id = int(form_data['category_id']) if form_data['category_id'] else False
+            for student in students:
+                student['student_age'] = int(student['student_age']) if student['student_age'] else 0
+                student['grade_id'] = int(student['grade_id'])
+                student['subject_id'] = int(student['subject_id'])
+                student['category_id'] = int(student['category_id']) if student['category_id'] else False
         except ValueError:
             return request.render('tuition_management.public_enquiry_form',
                 dict(base_values, error='Please check the Student Age, Grade and Subject fields.', form_data=form_data))
@@ -91,21 +106,11 @@ class PublicEnquiryController(http.Controller):
         # Find the first stage (New)
         first_stage = request.env['enquiry.stage'].sudo().search([], order='sequence asc', limit=1)
 
-        # Create the enquiry. If the email/phone matches an existing parent,
-        # enquiry.create() -> _auto_create_parent_and_student() will leave
-        # parent_profile_id/student_profile_id unset and flag
-        # possible_duplicate_parent_id instead of creating a duplicate parent
-        # or student — staff resolve that from the Enquiry form in the backend,
-        # never on this public-facing page.
-        vals = {
+        common_vals = {
             'name': form_data['parent_name'],
             'email': form_data['email'] or False,
             'country_code': form_data['country_code'] or False,
             'phone': form_data['phone'] or False,
-            'student_name': form_data['student_name'],
-            'student_age': student_age,
-            'grade_id': grade_id,
-            'subject_id': subject_id,
             'notes': form_data['notes'] or False,
             # Website submissions come from an anonymous visitor — the field's
             # default (self.env.user) would otherwise assign this to Odoo's
@@ -113,15 +118,40 @@ class PublicEnquiryController(http.Controller):
             # assignment. Leave it unset so it's assigned manually.
             'assigned_user_id': False,
         }
-        if category_id:
-            vals['category_id'] = category_id
         if first_stage:
-            vals['stage_id'] = first_stage.id
+            common_vals['stage_id'] = first_stage.id
+
+        def student_vals(student, extra=None):
+            vals = dict(common_vals, student_name=student['student_name'], student_age=student['student_age'],
+                        grade_id=student['grade_id'], subject_id=student['subject_id'])
+            if student['category_id']:
+                vals['category_id'] = student['category_id']
+            if extra:
+                vals.update(extra)
+            return vals
 
         try:
-            request.env['enquiry'].sudo().create(vals)
+            # Create the first student's enquiry exactly as the single-student
+            # flow always has. If the email/phone matches an existing parent,
+            # enquiry.create() -> _auto_create_parent_and_student() will leave
+            # parent_profile_id unset and flag possible_duplicate_parent_id
+            # instead of creating a duplicate parent — staff resolve that from
+            # the Enquiry form in the backend, never on this public page.
+            first = request.env['enquiry'].sudo().create(student_vals(students[0]))
+
+            if len(students) > 1:
+                batch = request.env['enquiry.batch'].sudo().create({'source': 'website'})
+                first.sudo().write({'enquiry_batch_id': batch.id})
+                # Forward the resolved parent (if any) to the remaining
+                # siblings so they attach to the same parent instead of each
+                # independently re-running duplicate-parent detection.
+                extra = {'enquiry_batch_id': batch.id}
+                if first.parent_profile_id:
+                    extra['parent_profile_id'] = first.parent_profile_id.id
+                rest_vals = [student_vals(student, extra) for student in students[1:]]
+                request.env['enquiry'].sudo().create(rest_vals)
         except Exception:
-            _logger.exception("Public enquiry submission failed. form_data=%s vals=%s", form_data, vals)
+            _logger.exception("Public enquiry submission failed. form_data=%s", form_data)
             return request.render('tuition_management.public_enquiry_form',
                 dict(base_values, error='Something went wrong. Please try again later.', form_data=form_data))
 

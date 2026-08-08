@@ -37,6 +37,10 @@
                 </div>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
+                        <field name="sibling_enquiry_count" invisible="1"/>
+                        <button name="action_view_sibling_enquiries" type="object" class="oe_stat_button" icon="fa-users" invisible="not sibling_enquiry_count">
+                            <field name="sibling_enquiry_count" widget="statinfo" string="Related Enquiries"/>
+                        </button>
                         <button name="action_delete_enquiry" type="object" class="oe_stat_button" icon="fa-trash" invisible="not id or is_enrolled" confirm="Are you sure you want to permanently delete this enquiry?">
                             <span>Discard</span>
                         </button>
@@ -209,6 +213,51 @@
         <field name="name">Enquiries</field>
         <field name="res_model">enquiry</field>
         <field name="view_mode">kanban,list,form</field>
+    </record>
+
+    <!-- Enquiry Batch Wizard (multi-student entry) -->
+    <record id="view_enquiry_batch_wizard_form" model="ir.ui.view">
+        <field name="name">enquiry.batch.wizard.form</field>
+        <field name="model">enquiry.batch.wizard</field>
+        <field name="arch" type="xml">
+            <form string="New Enquiry (Multiple Students)">
+                <group string="Parent / Guardian">
+                    <field name="parent_profile_id"/>
+                    <field name="name" string="Parent Name"/>
+                    <field name="email"/>
+                    <label for="phone" string="Phone Number"/>
+                    <div style="display: grid; grid-template-columns:25% 75%; gap: 2px;">
+                        <field name="country_code" placeholder="Country Code"/>
+                        <field name="phone" class="o_field_char" placeholder="Phone Number"/>
+                    </div>
+                    <field name="enquiry_source"/>
+                </group>
+                <group string="Students">
+                    <field name="student_line_ids" nolabel="1">
+                        <list editable="bottom">
+                            <field name="student_name"/>
+                            <field name="student_age"/>
+                            <field name="category_id" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="subject_id" domain="[('category_id', '=', category_id)]" options="{'no_create': True, 'no_open': True}"/>
+                            <field name="grade_id" domain="[('category_ids', 'in', [category_id])]" options="{'no_create': True, 'no_open': True}"/>
+                        </list>
+                    </field>
+                </group>
+                <group string="Notes">
+                    <field name="notes" nolabel="1"/>
+                </group>
+                <footer>
+                    <button name="action_create_enquiries" type="object" string="Create Enquiries" class="btn-primary"/>
+                    <button string="Cancel" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+    <record id="action_enquiry_batch_wizard" model="ir.actions.act_window">
+        <field name="name">New Enquiry (Multiple Students)</field>
+        <field name="res_model">enquiry.batch.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
     </record>
 
     <!-- Demo Session Views -->

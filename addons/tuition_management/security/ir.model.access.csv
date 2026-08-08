@@ -36,6 +36,9 @@ access_assignment_submission,access_assignment_submission,model_assignment_submi
 access_portal_access_wizard,access_portal_access_wizard,model_portal_access_wizard,base.group_user,1,1,1,1
 access_enquiry_stage,access_enquiry_stage,model_enquiry_stage,base.group_user,1,1,1,1
 access_enquiry,access_enquiry,model_enquiry,base.group_user,1,1,1,1
+access_enquiry_batch,access_enquiry_batch,model_enquiry_batch,base.group_user,1,1,1,1
+access_enquiry_batch_wizard,access_enquiry_batch_wizard,model_enquiry_batch_wizard,base.group_user,1,1,1,1
+access_enquiry_batch_wizard_line,access_enquiry_batch_wizard_line,model_enquiry_batch_wizard_line,base.group_user,1,1,1,1
 access_demo_session,access_demo_session,model_demo_session,base.group_user,1,1,1,1
 access_tuition_subscription,access_tuition_subscription,model_tuition_subscription,base.group_user,1,1,1,1
 access_tuition_plan_line,access_tuition_plan_line,model_tuition_plan_line,base.group_user,1,1,1,1
