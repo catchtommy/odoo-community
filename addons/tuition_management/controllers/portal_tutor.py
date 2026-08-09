@@ -333,6 +333,11 @@ class TutorPortal(http.Controller, PortalMixin):
             return request.redirect('/my/tutor/courses')
         if occurrence.lesson_status == 'cancelled':
             return request.redirect(f'/my/tutor/courses/{occurrence.course_id.id}')
+        if occurrence.start_datetime and occurrence.start_datetime > fields.Datetime.now():
+            return request.redirect(
+                f'/my/tutor/courses/{occurrence.course_id.id}'
+                '?vc_error=Attendance+cannot+be+marked+for+a+future+class.+Please+wait+until+the+class+has+started.'
+            )
 
         enrolled = occurrence.course_id.enrollment_ids.filtered(lambda e: e.status == 'active')
         active_student_ids = set(enrolled.mapped('student_id').ids)
@@ -384,6 +389,11 @@ class TutorPortal(http.Controller, PortalMixin):
             return request.redirect('/my/tutor/courses')
         if occurrence.tutor_id and occurrence.tutor_id != tutor:
             return request.redirect('/my/tutor/courses')
+        if occurrence.start_datetime and occurrence.start_datetime > fields.Datetime.now():
+            return request.redirect(
+                f'/my/tutor/courses/{occurrence.course_id.id}'
+                '?vc_error=Attendance+cannot+be+marked+for+a+future+class.+Please+wait+until+the+class+has+started.'
+            )
 
         lesson_status = kw.get('lesson_status', 'completed')
         if lesson_status not in ('completed', 'scheduled'):

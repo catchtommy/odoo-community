@@ -149,6 +149,32 @@
                             }
                         });
                     });
+                    // Block navigating to "Mark/Edit Attendance" for a lesson that hasn't
+                    // started yet — checked client-side against the link's own
+                    // data-attendance-start (UTC) so the user stays on the current page
+                    // instead of round-tripping through the server just to be redirected
+                    // back with an error.
+                    document.addEventListener('click', function(e) {
+                        var link = e.target.closest('a[data-attendance-start]');
+                        if (!link) { return; }
+                        var startStr = link.getAttribute('data-attendance-start');
+                        if (startStr &amp;&amp; new Date(startStr) > new Date()) {
+                            e.preventDefault();
+                            alert('Attendance cannot be marked for a future class. Please wait until the class has started.');
+                        }
+                    });
+                    // "Back" links: prefer returning to wherever the user actually came
+                    // from (browser history) over a fixed destination — the href is kept
+                    // as a fallback for when there's no history to go back to (e.g. the
+                    // page was opened directly / in a new tab).
+                    document.addEventListener('click', function(e) {
+                        var backLink = e.target.closest('.tm-back-link');
+                        if (!backLink) { return; }
+                        if (window.history.length > 1) {
+                            e.preventDefault();
+                            window.history.back();
+                        }
+                    });
                 });
             </script>
         </body>

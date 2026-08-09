@@ -169,6 +169,10 @@
     <record id="view_cancellation_details_form" model="ir.ui.view">
         <field name="name">class.schedule.occurrence.cancellation.details.form</field>
         <field name="model">class.schedule.occurrence</field>
+        <!-- Always explicitly pinned via action_view_cancellation_details() below — never meant to
+             be resolved as the model's generic default form (see the matching comment on
+             view_attendance_report_form in report_attendance_views.xml for why this matters). -->
+        <field name="priority">20</field>
         <field name="arch" type="xml">
             <form string="Cancellation Details" create="false" edit="false" delete="false">
                 <sheet>
@@ -229,11 +233,14 @@
                     <button name="action_open_virtual_classroom_wizard" type="object"
                             string="Start Virtual Class" class="btn-success" icon="fa-video-camera"
                             invisible="not id or lesson_status in ('cancelled', 'completed')"/>
+                    <button name="action_mark_attendance" type="object"
+                            string="Mark / Edit Attendance" class="btn-primary" icon="fa-check-square-o"
+                            invisible="not id or lesson_status == 'cancelled'"/>
                     <button name="action_cancel_lesson" type="object"
                             string="Cancel Lesson" class="btn-danger" icon="fa-ban"
                             invisible="not id or lesson_status == 'cancelled'"
                             groups="tuition_management.group_tuition_lesson_cancel,base.group_system"/>
-                    <field name="lesson_status" widget="statusbar"
+                    <field name="lesson_status" widget="statusbar" readonly="1"
                            statusbar_visible="scheduled,completed,cancelled,under_review"
                            invisible="not id"/>
                 </header>

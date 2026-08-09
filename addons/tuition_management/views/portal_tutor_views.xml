@@ -107,7 +107,7 @@
                                         <td class="fw-bold"><t t-esc="c.name"/></td>
                                         <td><t t-esc="c.subject_id.name or '—'"/></td>
                                         <td><span class="tm-badge tm-badge-purple"><t t-esc="c.student_count or 0"/> students</span></td>
-                                        <td><a t-attf-href="/my/tutor/courses/#{c.id}" class="tm-btn tm-btn-outline tm-btn-sm">Manage</a></td>
+                                        <td><a t-attf-href="/my/tutor/courses/#{c.id}" class="tm-btn tm-btn-outline tm-btn-sm">View</a></td>
                                     </tr>
                                 </t>
                             </tbody>
@@ -150,9 +150,10 @@
                                                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                                 <button type="submit" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-play"/> Start</button>
                                             </form>
-                                            <a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm">
+                                            <a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"
+                                               t-attf-data-attendance-start="#{lesson.start_datetime.strftime('%Y-%m-%dT%H:%M:%SZ') if lesson.start_datetime else ''}">
                                                 <i class="fa fa-check-square-o"/>
-                                                <t t-if="lesson.attendance_marked">Edit</t>
+                                                <t t-if="lesson.attendance_marked">Attendance</t>
                                                 <t t-else="">Mark</t>
                                             </a>
                                         </td>
@@ -266,7 +267,8 @@
                                 </td>
                                 <td><span t-attf-class="tm-badge #{od['occ'].lesson_status == 'completed' and 'tm-badge-green' or od['occ'].lesson_status == 'cancelled' and 'tm-badge-red' or od['occ'].lesson_status == 'under_review' and 'tm-badge-orange' or 'tm-badge-blue'}"><t t-esc="od['occ'].lesson_status.capitalize()"/></span></td>
                                 <td><span t-attf-class="tm-badge #{od['occ'].attendance_marked and 'tm-badge-green' or 'tm-badge-grey'}"><t t-if="od['occ'].attendance_marked">Marked</t><t t-else="">Pending</t></span></td>
-                                <td><a t-attf-href="/my/tutor/lesson/#{od['occ'].id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-check-square-o"/> <t t-if="od['occ'].attendance_marked">Edit</t><t t-else="">Mark</t></a></td>
+                                <td><a t-attf-href="/my/tutor/lesson/#{od['occ'].id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"
+                                       t-attf-data-attendance-start="#{od['occ'].start_datetime.strftime('%Y-%m-%dT%H:%M:%SZ') if od['occ'].start_datetime else ''}"><i class="fa fa-check-square-o"/> <t t-if="od['occ'].attendance_marked">Attendance</t><t t-else="">Mark</t></a></td>
                             </tr>
                         </t>
                     </tbody>
@@ -466,7 +468,7 @@
         <t t-set="page_name">tutor_progress</t>
 
         <div class="tm-page-header">
-            <a href="/my/tutor/progress" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Progress Reports</a>
+            <a href="/my/tutor/progress" class="tm-btn tm-btn-outline tm-btn-sm tm-back-link"><i class="fa fa-arrow-left"/> Back</a>
             <h5><i class="fa fa-pencil"/> Edit Progress Report — <t t-esc="course.name"/></h5>
         </div>
 
@@ -578,7 +580,7 @@
         <t t-set="page_name">tutor_course_detail</t>
 
         <div class="tm-page-header">
-            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm tm-back-link"><i class="fa fa-arrow-left"/> Back</a>
             <h5><i class="fa fa-plus"/> New Progress Report — <t t-esc="course.name"/></h5>
         </div>
 
@@ -856,7 +858,7 @@
         <t t-set="page_name">tutor_course_detail</t>
 
         <div class="tm-page-header">
-            <a href="/my/tutor/courses" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Courses</a>
+            <a href="/my/tutor/courses" class="tm-btn tm-btn-outline tm-btn-sm tm-back-link"><i class="fa fa-arrow-left"/> Back</a>
         </div>
 
         <div class="tm-card" style="margin-bottom:20px;">
@@ -897,6 +899,12 @@
         <!-- VC: Feedback messages -->
         <t t-if="vc_error">
             <div class="alert alert-warning" style="margin-bottom:16px;"><i class="fa fa-exclamation-triangle" title="Warning"/> <t t-esc="vc_error"/></div>
+            <script>
+                (function() {
+                    var banner = document.currentScript.previousElementSibling;
+                    if (banner) { alert(banner.textContent.trim()); }
+                })();
+            </script>
         </t>
         <t t-if="vc_success">
             <div class="alert alert-success" style="margin-bottom:16px;"><i class="fa fa-check-circle"/> <t t-esc="vc_success"/></div>
@@ -1015,7 +1023,8 @@
                                     <td><span t-attf-class="tm-badge #{lesson.lesson_status == 'completed' and 'tm-badge-green' or lesson.lesson_status == 'cancelled' and 'tm-badge-red' or lesson.lesson_status == 'under_review' and 'tm-badge-orange' or 'tm-badge-blue'}"><t t-esc="lesson.lesson_status.capitalize()"/></span></td>
                                     <td><span t-attf-class="tm-badge #{lesson.attendance_marked and 'tm-badge-green' or 'tm-badge-grey'}"><t t-if="lesson.attendance_marked">Marked</t><t t-else="">Pending</t></span></td>
                                     <td style="white-space:nowrap;">
-                                        <a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-check-square-o"/> <t t-if="lesson.attendance_marked">Edit</t><t t-else="">Mark</t></a>
+                                        <a t-attf-href="/my/tutor/lesson/#{lesson.id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"
+                                           t-attf-data-attendance-start="#{lesson.start_datetime.strftime('%Y-%m-%dT%H:%M:%SZ') if lesson.start_datetime else ''}"><i class="fa fa-check-square-o"/> <t t-if="lesson.attendance_marked">Attendance</t><t t-else="">Mark</t></a>
                                     </td>
                                 </tr>
                             </t>
@@ -1070,7 +1079,7 @@
                 </div>
                 <t t-if="course_progress_reports">
                     <table class="tm-table">
-                        <thead><tr><th>Date</th><th>Student</th><th>Rating</th><th>Score</th></tr></thead>
+                        <thead><tr><th>Date</th><th>Student</th><th>Rating</th><th>Score</th><th></th></tr></thead>
                         <tbody>
                             <t t-foreach="course_progress_reports[:5]" t-as="rpt">
                                 <tr>
@@ -1085,6 +1094,7 @@
                                         <t t-else="">—</t>
                                     </td>
                                     <td><t t-esc="rpt.score and ('%.0f / %.0f' % (rpt.score, rpt.max_score)) or '—'"/></td>
+                                    <td><a t-attf-href="/my/tutor/progress/#{rpt.id}/edit" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-pencil"/> Edit</a></td>
                                 </tr>
                             </t>
                         </tbody>
@@ -1164,7 +1174,7 @@
         </script>
 
         <div class="tm-page-header">
-            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+            <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm tm-back-link"><i class="fa fa-arrow-left"/> Back</a>
             <div>
                 <h5 style="margin:0 0 4px;"><i class="fa fa-check-square-o"/> Mark Attendance</h5>
                 <p style="margin:0;font-size:12px;color:var(--tm-text-light);"><t t-esc="occurrence.name"/> · <t t-esc="occurrence_dt_str"/></p>
@@ -1278,7 +1288,7 @@
 
         <div class="tm-page-header" style="flex-direction:column;align-items:flex-start;">
             <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+                <a t-attf-href="/my/tutor/courses/#{course.id}" class="tm-btn tm-btn-outline tm-btn-sm tm-back-link"><i class="fa fa-arrow-left"/> Back</a>
                 <a t-attf-href="/my/tutor/courses/#{course.id}/assignments/new" class="tm-btn tm-btn-primary tm-btn-sm"><i class="fa fa-plus"/> New Assignment</a>
             </div>
             <h5><i class="fa fa-tasks"/> <t t-esc="course.name"/> — Assignments</h5>
@@ -1411,8 +1421,8 @@
                     <span t-if="assignment.status == 'cancelled'"    class="tm-badge tm-badge-red"    style="font-size:12px; padding:6px 12px;">Cancelled</span>
                 </div>
                 <div class="d-flex gap-2 align-items-center flex-wrap">
-                    <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm">
-                        <i class="fa fa-arrow-left"/> Back to Assignments
+                    <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm tm-back-link">
+                        <i class="fa fa-arrow-left"/> Back
                     </a>
                     <!-- Publish/Submit button (draft -> assigned) -->
                     <form t-if="assignment.status == 'draft'" t-attf-action="/my/tutor/assignment/#{assignment.id}/assign" method="POST" style="display:inline;"
@@ -1891,7 +1901,7 @@
         <t t-set="page_name">tutor_course_detail</t>
 
         <div class="tm-page-header">
-            <a t-att-href="back_url" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Course</a>
+            <a t-att-href="back_url" class="tm-btn tm-btn-outline tm-btn-sm tm-back-link"><i class="fa fa-arrow-left"/> Back</a>
             <h5><i class="fa fa-calendar"/> <t t-esc="course.name"/> — Schedule</h5>
         </div>
 
@@ -1936,7 +1946,8 @@
                                 </td>
                                 <td><span t-attf-class="tm-badge #{od['occ'].lesson_status == 'completed' and 'tm-badge-green' or od['occ'].lesson_status == 'cancelled' and 'tm-badge-red' or od['occ'].lesson_status == 'under_review' and 'tm-badge-orange' or 'tm-badge-blue'}"><t t-esc="od['occ'].lesson_status.capitalize()"/></span></td>
                                 <td><span t-attf-class="tm-badge #{od['occ'].attendance_marked and 'tm-badge-green' or 'tm-badge-grey'}"><t t-if="od['occ'].attendance_marked">Marked</t><t t-else="">Pending</t></span></td>
-                                <td><a t-attf-href="/my/tutor/lesson/#{od['occ'].id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-check-square-o"/> <t t-if="od['occ'].attendance_marked">Edit</t><t t-else="">Mark</t></a></td>
+                                <td><a t-attf-href="/my/tutor/lesson/#{od['occ'].id}/attendance" class="tm-btn tm-btn-outline tm-btn-sm"
+                                       t-attf-data-attendance-start="#{od['occ'].start_datetime.strftime('%Y-%m-%dT%H:%M:%SZ') if od['occ'].start_datetime else ''}"><i class="fa fa-check-square-o"/> <t t-if="od['occ'].attendance_marked">Edit</t><t t-else="">Mark</t></a></td>
                             </tr>
                         </t>
                     </tbody>
@@ -1955,7 +1966,7 @@
         <t t-set="page_name">tutor_course_detail</t>
 
         <div class="tm-page-header">
-            <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm"><i class="fa fa-arrow-left"/> Back to Assignments</a>
+            <a t-attf-href="/my/tutor/courses/#{course.id}/assignments" class="tm-btn tm-btn-outline tm-btn-sm tm-back-link"><i class="fa fa-arrow-left"/> Back</a>
             <h5><i class="fa fa-plus-circle"/> New Assignment — <t t-esc="course.name"/></h5>
         </div>
 
@@ -2116,8 +2127,8 @@
 
         <!-- Header -->
         <div class="tm-page-header">
-            <a t-attf-href="/my/tutor/assignment/#{assignment.id}" class="tm-btn tm-btn-outline tm-btn-sm">
-                <i class="fa fa-arrow-left"/> Back to Assignment
+            <a t-attf-href="/my/tutor/assignment/#{assignment.id}" class="tm-btn tm-btn-outline tm-btn-sm tm-back-link">
+                <i class="fa fa-arrow-left"/> Back
             </a>
             <span style="font-size:13px;font-weight:600;color:var(--tm-text);">
                 <i class="fa fa-eye" style="color:var(--tm-blue);"/> <t t-esc="attachment.name"/>

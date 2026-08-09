@@ -64,7 +64,7 @@
                                 <field name="is_demo" string="Demo" widget="boolean_toggle"/>
                                 <field name="start_datetime" string="Lesson Time" readonly="1"/>
                                 <field name="tutor_id" string="Teacher"/>
-                                <field name="lesson_status" string="Status" />
+                                <field name="lesson_status" string="Status" readonly="1"/>
                                 <field name="payable_hours" readonly="1" optional="hide"/>
                                 <field name="tutor_rate_used" readonly="1" optional="hide"/>
                                 <field name="tutor_calculated_amount" readonly="1" optional="hide"/>

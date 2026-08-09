@@ -42,8 +42,7 @@
                 <field name="line_ids">
                     <list string="Students" editable="bottom" delete="true" create="false"
                           decoration-success="status == 'present'"
-                          decoration-danger="status == 'absent'"
-                          decoration-muted="status == 'cancelled'">
+                          decoration-danger="status == 'absent'">
                         <field name="student_id" readonly="1"/>
                         <field name="status"/>
                         <field name="remarks"/>

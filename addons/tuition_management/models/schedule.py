@@ -1031,6 +1031,12 @@ class ClassScheduleOccurrence(models.Model):
             # base.group_system through automatically.
             if not user_has_permission(self.env.user, 'lesson_cancel'):
                 raise UserError("Only administrators or managers with the 'Cancel Lesson' permission can cancel a lesson.")
+            # Cancellation must always go through the "Cancel Lesson" wizard (or the
+            # course-cancellation cascade) so a reason is captured — this flag is only
+            # ever set by those two call sites, closing off inline field edits, the
+            # statusbar, or any other direct write as a way to cancel a lesson.
+            if not self.env.context.get('allow_lesson_cancel'):
+                raise UserError('Lessons can only be cancelled through the "Cancel Lesson" action, so the reason is captured.')
         reschedule_fields = {'tutor_id'}
         if reschedule_fields & set(vals.keys()) and 'lesson_status' not in vals:
             for rec in self:
@@ -1085,6 +1091,8 @@ class ClassScheduleOccurrence(models.Model):
         self.ensure_one()
         if self.start_datetime and self.start_datetime > fields.Datetime.now():
             raise UserError("Attendance cannot be marked for a future class. Please wait until the class has started.")
+        if self.lesson_status == 'cancelled':
+            raise UserError("Attendance cannot be marked for a cancelled lesson.")
         # Active enrollments always shown
         active_enrollments = self.env['course.enrollment'].search([
             ('course_id', '=', self.course_id.id), ('status', '=', 'active')
@@ -1098,7 +1106,7 @@ class ClassScheduleOccurrence(models.Model):
         all_student_ids = list(active_student_ids | cancelled_student_ids)
 
         wizard = self.env['mark.attendance.wizard'].create({'occurrence_id': self.id})
-        valid_statuses = {'present', 'absent', 'cancelled'}
+        valid_statuses = {'present', 'absent'}
         lines = [(0, 0, {'wizard_id': wizard.id, 'student_id': sid,
                          'status': (existing_attendance[sid].status if sid in existing_attendance and existing_attendance[sid].status in valid_statuses else False),
                          'remarks': existing_attendance[sid].remarks if sid in existing_attendance else ''})
@@ -1261,7 +1269,7 @@ class CancelLessonWizard(models.TransientModel):
         occ = self.occurrence_id
 
         # Cancel the current lesson
-        occ.sudo().write({
+        occ.sudo().with_context(allow_lesson_cancel=True).write({
             'lesson_status': 'cancelled',
             'cancellation_reason': self.reason,
             'cancellation_note': self.note,
