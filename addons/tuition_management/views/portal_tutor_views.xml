@@ -1715,7 +1715,10 @@
                             }
 
                             // ── Edit submit ──────────────────────────────────
+                            var _asgnEditSubmitting = false;
                             function asgnEditSubmit() {
+                                if (_asgnEditSubmitting) return;
+
                                 var editor = document.getElementById('asgn_edit_editor');
                                 var hidden = document.getElementById('asgn_edit_hidden');
                                 var nameVal = document.querySelector('#asgn-edit-form [name="name"]').value.trim();
@@ -1729,6 +1732,10 @@
                                     alert('Assignment Type is required.');
                                     return;
                                 }
+
+                                _asgnEditSubmitting = true;
+                                document.querySelectorAll('#asgn-edit-form button').forEach(function(b) { b.disabled = true; });
+
                                 if (editor) hidden.value = editor.innerHTML;
 
                                 // Sync accumulated files (click + drag-and-drop) into the file input
@@ -2089,7 +2096,10 @@
                         asgnHandleFiles(e.dataTransfer.files);
                     }
 
+                    var _asgnSubmitting = false;
                     function asgnPrepareSubmit(isDraft) {
+                        if (_asgnSubmitting) return;
+
                         var editor = document.getElementById('asgn_description_editor');
                         var nameVal = document.querySelector('[name="name"]').value.trim();
                         var typeVal = document.querySelector('[name="assignment_type"]').value;
@@ -2098,6 +2108,9 @@
                         if (!nameVal) { alert('Assignment Title is required.'); return; }
                         if (!typeVal) { alert('Assignment Type is required.'); return; }
                         if (!descVal) { alert('Description / Instructions is required.'); editor && editor.focus(); return; }
+
+                        _asgnSubmitting = true;
+                        document.querySelectorAll('#asgn-create-form button').forEach(function(b) { b.disabled = true; });
 
                         document.getElementById('asgn_draft_flag').value = isDraft ? '1' : '0';
                         if (editor) document.getElementById('asgn_description_hidden').value = editor.innerHTML;
