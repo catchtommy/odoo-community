@@ -384,7 +384,7 @@ class ParentBillingRun(models.Model):
 
             for sub in subs:
                 try:
-                    preview_vals = sub._build_preview_vals()
+                    preview_vals = sub._build_preview_vals(reference_date=period_end)
                     total += preview_vals.get('total_amount', 0.0)
                     for line in preview_vals.get('lines', []):
                         detail_vals.append((0, 0, {
@@ -518,9 +518,13 @@ class ParentBillingRunLine(models.Model):
         all_unapplied_adjustments = self.env['tuition.adjustment']
         skip_reasons = []
 
+        year, month_int = self.run_id.year, int(self.run_id.month)
+        last_day = calendar.monthrange(year, month_int)[1]
+        period_end = fields.Date.to_date(f'{year}-{month_int:02d}-{last_day}')
+
         for sub in self.subscription_ids:
             try:
-                preview_vals = sub._build_preview_vals()
+                preview_vals = sub._build_preview_vals(reference_date=period_end)
                 all_lines.extend(preview_vals.get('lines', []))
                 if preview_vals.get('unapplied_adj_ids'):
                     all_unapplied_adjustments |= self.env['tuition.adjustment'].browse(

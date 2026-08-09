@@ -85,23 +85,44 @@ class TuitionSubscription(models.Model):
             self.currency_id = False
         return {'domain': {'currency_id': [('id', 'in', allowed.ids)]}}
 
-    @api.depends('plan_line_ids', 'plan_line_ids.state')
+    def _plan_for_date(self, reference_date):
+        """The plan line that was/is active for this subscription on ``reference_date``
+        — judged directly against dates rather than trusting plan_line_ids.state, since
+        state is a *stored* compute that only re-evaluates on a write to one of its
+        dependencies and can go stale (see TuitionPlanLine._compute_state). Shared by
+        _compute_current_plan (today) and _build_preview_vals (the billing period's
+        end date), so a late-run invoice for an earlier period picks the plan that
+        actually covered that period, not whatever plan is active when the button
+        happens to be clicked."""
+        self.ensure_one()
+        if self.state == 'cancelled':
+            return self.env['tuition.plan.line']
+        plans = self.plan_line_ids.filtered(
+            lambda p: p.approval_state == 'approved'
+                      and (not p.start_date or p.start_date <= reference_date)
+                      and (not p.end_date or p.end_date >= reference_date)
+        )
+        return plans[0] if plans else self.env['tuition.plan.line']
+
+    @api.depends('plan_line_ids', 'plan_line_ids.state', 'plan_line_ids.approval_state',
+                 'plan_line_ids.start_date', 'plan_line_ids.end_date')
     def _compute_current_plan(self):
         for rec in self:
-            # state == 'active' already implies approved + date check (see TuitionPlanLine._compute_state)
-            plans = rec.plan_line_ids.filtered(lambda p: p.state == 'active')
-            plan = plans[0] if plans else False
+            plan = rec._plan_for_date(fields.Date.context_today(rec))
             rec.current_plan_id = plan.id if plan else False
             rec.current_plan_product = plan.product_id.name if plan else ''
             rec.current_plan_price = plan.price if plan else 0.0
 
     @api.depends('invoice_ids', 'invoice_ids.state', 'invoice_ids.invoice_date',
-                 'plan_line_ids', 'plan_line_ids.state', 'plan_line_ids.start_date')
+                 'plan_line_ids', 'plan_line_ids.approval_state', 'plan_line_ids.start_date')
     def _compute_next_billing_date(self):
         """
         Derive next billing date without any manual input:
           • Last posted invoice → next = 1st of the month after that invoice date
-          • No invoices yet     → current plan's start_date (always the 1st by constraint)
+          • No invoices yet     → earliest approved plan's start_date (always the 1st by
+            constraint) — deliberately NOT current_plan_id, which only recognizes a plan
+            once it's active *today*; a plan scheduled to start next month must still be
+            picked up when running that future month's billing run ahead of time.
           • No approved plan    → False (cron skips this subscription)
         """
         for rec in self:
@@ -111,10 +132,11 @@ class TuitionSubscription(models.Model):
             if posted:
                 last_date = posted[0].invoice_date
                 rec.next_billing_date = last_date.replace(day=1) + relativedelta(months=1)
-            elif rec.current_plan_id and rec.current_plan_id.start_date:
-                rec.next_billing_date = rec.current_plan_id.start_date
             else:
-                rec.next_billing_date = False
+                approved_plans = rec.plan_line_ids.filtered(
+                    lambda p: p.approval_state == 'approved'
+                ).sorted('start_date')
+                rec.next_billing_date = approved_plans[0].start_date if approved_plans else False
 
     @api.depends_context('uid')
     def _compute_can_edit_billing_date(self):
@@ -210,23 +232,37 @@ class TuitionSubscription(models.Model):
             'domain': [('id', 'in', self.sudo().invoice_ids.ids), ('state', '!=', 'cancel')],
         }
 
-    def _build_preview_vals(self):
+    def _build_preview_vals(self, reference_date=None):
+        """Build the invoice preview for this subscription.
+
+        ``reference_date`` is the date the discount/plan validity should be judged
+        against — normally the last day of the billing period being invoiced (passed
+        in by parent.billing.run), not the day the button happens to be clicked. It
+        also avoids relying on tuition.discount.state, which is a stored compute
+        that only re-evaluates on a write to one of its dependencies and can go
+        stale once real-world time crosses date_end without the record being touched.
+        """
         self.ensure_one()
         if self.state != 'active':
             raise UserError("Cannot generate invoice for a %s subscription." % self.state)
-        plan = self.current_plan_id
+        today = reference_date or fields.Date.context_today(self)
+        plan = self._plan_for_date(today)
         if not plan:
-            raise UserError("No active plan for subscription %s." % self.name)
+            raise UserError("No active plan for subscription %s for %s." % (self.name, today.strftime('%B %Y')))
         billing_partner = self._get_billing_partner()
         if not billing_partner:
             raise UserError("Student %s has no linked contact." % self.student_id.name)
-        month_label = fields.Date.today().strftime('%B %Y')
+        month_label = today.strftime('%B %Y')
         base_price = plan.price
         lines = [{'description': '%s - %s' % (plan.product_id.name, month_label), 'product_id': plan.product_id.id,
                   'quantity': 1, 'unit_price': base_price, 'subtotal': base_price, 'line_type': 'plan'}]
         total_discounts = 0.0
-        today = fields.Date.today()
-        for disc in self.discount_ids.filtered(lambda d: d.state == 'active'):
+        active_discounts = self.discount_ids.filtered(
+            lambda d: d.active and d.approval_state == 'approved'
+                      and (not d.date_start or d.date_start <= today)
+                      and (not d.date_end or d.date_end >= today)
+        )
+        for disc in active_discounts:
             disc_amount = disc._compute_discount_amount(base_price)
             if disc_amount:
                 label = '[Discount] %s' % disc.name
@@ -244,6 +280,19 @@ class TuitionSubscription(models.Model):
                 'total_discounts': total_discounts, 'total_adjustments': total_adjustments,
                 'total_amount': base_price - total_discounts + total_adjustments,
                 'lines': lines, 'plan_id': plan.id, 'unapplied_adj_ids': unapplied.ids}
+
+    def init(self):
+        # One-time backfill: next_billing_date used to derive from current_plan_id,
+        # which only recognizes a plan once it's active *today* — so a subscription
+        # whose only plan is scheduled to start in a future month was left with
+        # next_billing_date = False and silently never appeared in any billing run.
+        # _compute_next_billing_date() now anchors on the earliest approved plan's
+        # start_date instead; force a recompute here to fix any subscription still
+        # sitting on that stale False value.
+        stale = self.search([('next_billing_date', '=', False)])
+        if stale:
+            self.env.add_to_compute(stale._fields['next_billing_date'], stale)
+            stale.mapped('next_billing_date')
 
     def action_pause(self): self.write({'state': 'paused'})
     def action_activate(self): self.write({'state': 'active'})
@@ -296,7 +345,7 @@ class TuitionDiscount(models.Model):
 
     @api.depends('approval_state', 'active', 'date_end')
     def _compute_state(self):
-        today = fields.Date.today()
+        today = fields.Date.context_today(self)
         for rec in self:
             if rec.approval_state == 'draft':
                 rec.state = 'pending_approval'
@@ -309,6 +358,26 @@ class TuitionDiscount(models.Model):
         self.env.cr.execute(
             "UPDATE tuition_discount SET approval_state = 'approved' WHERE approval_state IS NULL"
         )
+        # One-time backfill: state is a stored compute that only re-evaluates on a
+        # write to one of its dependencies, so discounts whose date_end has already
+        # passed can be sitting on a stale 'active' value from whenever they were
+        # last saved. _cron_refresh_state() keeps this correct going forward.
+        self.env.cr.execute("""
+            UPDATE tuition_discount
+            SET state = 'inactive'
+            WHERE state = 'active' AND date_end IS NOT NULL AND date_end < CURRENT_DATE
+        """)
+
+    @api.model
+    def _cron_refresh_state(self):
+        """state is a stored compute keyed on date_end/active/approval_state — it never
+        re-evaluates just because real-world time passes date_end, so a discount can
+        keep reading 'active' in the UI long after it should show 'inactive'. Force a
+        recompute daily so the displayed status stays accurate."""
+        stale = self.search([('state', '=', 'active'), ('date_end', '!=', False)])
+        if stale:
+            self.env.add_to_compute(stale._fields['state'], stale)
+            stale.mapped('state')
 
     def action_approve(self):
         require_permission(self.env.user, 'subscription_approve')
@@ -370,11 +439,31 @@ class TuitionPlanLine(models.Model):
             FROM tuition_subscription s
             WHERE pl.subscription_id = s.id AND s.state = 'cancelled' AND pl.state != 'cancelled'
         """)
+        # One-time backfill: same staleness issue — a plan line whose end_date has
+        # already passed can be sitting on a stale 'active'/'scheduled' value from
+        # whenever it was last saved. _cron_refresh_state() keeps this correct going
+        # forward; this just corrects existing data immediately on upgrade.
+        self.env.cr.execute("""
+            UPDATE tuition_plan_line
+            SET state = 'expired'
+            WHERE state IN ('active', 'scheduled') AND end_date IS NOT NULL AND end_date < CURRENT_DATE
+        """)
 
     @api.model_create_multi
     def create(self, vals_list):
         require_permission(self.env.user, 'subscription_add_plan')
         return super().create(vals_list)
+
+    @api.model
+    def _cron_refresh_state(self):
+        """Same staleness issue as TuitionDiscount._cron_refresh_state: state only
+        re-evaluates on a write to one of its dependencies, not when end_date is simply
+        passed by the calendar. Force a recompute daily so 'Active'/'Scheduled' plan
+        lines whose end_date has passed correctly flip to 'Expired' in the UI."""
+        stale = self.search([('state', 'in', ('active', 'scheduled'))])
+        if stale:
+            self.env.add_to_compute(stale._fields['state'], stale)
+            stale.mapped('state')
 
     def action_approve(self):
         require_permission(self.env.user, 'subscription_approve')
@@ -446,7 +535,7 @@ class TuitionPlanLine(models.Model):
 
     @api.depends('start_date', 'end_date', 'approval_state', 'subscription_id.state')
     def _compute_state(self):
-        today = fields.Date.today()
+        today = fields.Date.context_today(self)
         for rec in self:
             if rec.subscription_id.state == 'cancelled':
                 # A cancelled subscription (e.g. from cancelling its course) must never
