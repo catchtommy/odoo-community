@@ -33,6 +33,8 @@
                     <!-- One Time: single date picker -->
                     <group invisible="schedule_type != 'one_time'">
                         <field name="schedule_date" required="schedule_type == 'one_time'"/>
+                        <field name="one_time_reason" required="schedule_type == 'one_time'"
+                               placeholder="Why is this a one-time session? (e.g. makeup class, special request)"/>
                     </group>
                     <!-- One Time: reschedule linkage -->
                     <group string="Reschedule" invisible="schedule_type != 'one_time'">

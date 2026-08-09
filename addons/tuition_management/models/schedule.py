@@ -47,6 +47,7 @@ class ClassSchedule(models.Model):
     start_date = fields.Date(string='Start Date', default=fields.Date.today)
     end_date = fields.Date(string='End Date')
     schedule_date = fields.Date(string='Date')  # used for one_time schedules only
+    one_time_reason = fields.Text(string='Reason for One-Time Session')  # used for one_time schedules only
     is_reschedule = fields.Boolean(string='Is a Reschedule?', default=False)
     rescheduled_from_id = fields.Many2one(
         'class.schedule.occurrence', string='Replaces Cancelled Class',
@@ -620,15 +621,20 @@ class ClassSchedule(models.Model):
                     date_range += ' to %s' % self.end_date.strftime('%d %b %Y')
             schedule_str = '%s at %s (%s)%s' % (days_str, time_str, tz_str, date_range)
 
+        reason_line = Markup('')
+        if self.schedule_type == 'one_time' and self.one_time_reason:
+            reason_line = Markup('<br/>Reason: <b>%s</b>') % self.one_time_reason
+
         body = Markup(
             '<b>Schedule Created</b><br/>'
             'Created by: <b>%s</b><br/>'
             'Tutor: <b>%s</b><br/>'
-            'Time: <b>%s</b>'
+            'Time: <b>%s</b>%s'
         ) % (
             self.env.user.name,
             self.tutor_id.name if self.tutor_id else '—',
             schedule_str,
+            reason_line,
         )
 
         self.course_id.message_post(
@@ -781,11 +787,13 @@ class ClassSchedule(models.Model):
             schedule_str,
         )
 
-    @api.constrains('schedule_type', 'start_date', 'end_date', 'schedule_date')
+    @api.constrains('schedule_type', 'start_date', 'end_date', 'schedule_date', 'one_time_reason')
     def _check_required_dates(self):
         for rec in self:
             if rec.schedule_type == 'one_time' and not rec.schedule_date:
                 raise UserError('Please set a Date for a one-time schedule.')
+            if rec.schedule_type == 'one_time' and not (rec.one_time_reason or '').strip():
+                raise UserError('Please provide a reason for the one-time session.')
             if rec.schedule_type == 'recurring' and (not rec.start_date or not rec.end_date):
                 raise UserError('Please set Start Date and End Date for a recurring schedule.')
 
