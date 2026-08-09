@@ -489,22 +489,27 @@ class StudentPortal(http.Controller, PortalMixin):
             })
             attachment_ids.append(attachment.id)
         annotated_image = kw.get('annotated_image', '')
-        if annotated_image and annotated_image.startswith('data:image/'):
+        if annotated_image and annotated_image.startswith('data:'):
             header, b64data = annotated_image.split(',', 1)
-            m = re.search(r'data:image/(\w+)', header)
-            ext = m.group(1) if m else 'png'
-            if resource:
-                base_name = resource.name.rsplit('.', 1)[0] if resource.name else resource.name
-                ann_name = '%s.%s' % (base_name, ext)
-            else:
-                ann_name = '%s.%s' % (assignment.name, ext)
-            ann_att = request.env['ir.attachment'].sudo().create({
-                'name': ann_name,
-                'datas': b64data.encode('ascii'),
-                'res_model': 'assignment.submission',
-                'type': 'binary',
-            })
-            attachment_ids.append(ann_att.id)
+            m = re.match(r'data:(application/pdf|image/(\w+))', header)
+            if m:
+                is_pdf = m.group(1) == 'application/pdf'
+                ext = 'pdf' if is_pdf else m.group(2)
+                if resource:
+                    base_name = resource.name.rsplit('.', 1)[0] if resource.name else resource.name
+                    ann_name = '%s.%s' % (base_name, ext)
+                else:
+                    ann_name = '%s.%s' % (assignment.name, ext)
+                ann_vals = {
+                    'name': ann_name,
+                    'datas': b64data.encode('ascii'),
+                    'res_model': 'assignment.submission',
+                    'type': 'binary',
+                }
+                if is_pdf:
+                    ann_vals['mimetype'] = 'application/pdf'
+                ann_att = request.env['ir.attachment'].sudo().create(ann_vals)
+                attachment_ids.append(ann_att.id)
 
         if submission:
             submission.sudo().write(vals)

@@ -4,6 +4,7 @@
 
     var PDFJS_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
     var PDFJS_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    var JSPDF_CDN = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
 
     function loadScript(src) {
         return new Promise(function (resolve, reject) {
@@ -26,6 +27,7 @@
         this.currentPdf   = null;
         this.currentPage  = 1;
         this.totalPages   = 1;
+        this.pageAnnotations = {};   // pageNum -> annotation-layer dataURL, for PDFs
 
         this.tool      = 'draw';
         this.color     = '#e74c3c';
@@ -65,14 +67,15 @@
         var cl = document.getElementById('tm-clear-ann');
         if (cl) cl.addEventListener('click', function () {
             self.annCtx.clearRect(0, 0, self.annCanvas.width, self.annCanvas.height);
+            if (self.currentPdf) delete self.pageAnnotations[self.currentPage];
         });
         var pp = document.getElementById('tm-prev-page');
         if (pp) pp.addEventListener('click', function () {
-            if (self.currentPage > 1) { self.currentPage--; self._renderPdfPage(); }
+            if (self.currentPage > 1) { self._captureCurrentAnnotation(); self.currentPage--; self._renderPdfPage(); }
         });
         var np = document.getElementById('tm-next-page');
         if (np) np.addEventListener('click', function () {
-            if (self.currentPage < self.totalPages) { self.currentPage++; self._renderPdfPage(); }
+            if (self.currentPage < self.totalPages) { self._captureCurrentAnnotation(); self.currentPage++; self._renderPdfPage(); }
         });
     };
 
@@ -346,11 +349,34 @@
     AnnotationViewer.prototype._bindForms = function () {
         var self = this;
         document.querySelectorAll('form[data-annotation-form]').forEach(function (form) {
-            form.addEventListener('submit', function () {
+            form.addEventListener('submit', function (e) {
+                if (form.dataset.tmExportDone === '1') return; // already exported, let it go through
+                e.preventDefault();
+                var submitBtn = form.querySelector('button[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
                 var hidden = form.querySelector('.tm-annotated-image-data');
-                if (hidden) hidden.value = self._exportMerged();
+                self._exportForSubmit().then(function (dataUrl) {
+                    if (hidden) hidden.value = dataUrl;
+                    form.dataset.tmExportDone = '1';
+                    form.submit();
+                }).catch(function (err) {
+                    console.error('[Annotator] export failed, falling back to flat PNG:', err);
+                    if (hidden) hidden.value = self._exportMerged();
+                    form.dataset.tmExportDone = '1';
+                    form.submit();
+                });
             });
         });
+    };
+
+    // Chooses the right export: a real multi-page PDF when the source was a PDF
+    // (so a submitted PDF stays a PDF, with every page's annotations intact),
+    // otherwise a flat PNG for image sources.
+    AnnotationViewer.prototype._exportForSubmit = function () {
+        if (this.currentPdf) {
+            return this._exportAsPdf();
+        }
+        return Promise.resolve(this._exportMerged());
     };
 
     /* ─── Attachment loading ──────────────────────────────────── */
@@ -369,6 +395,7 @@
         this.annCtx.clearRect(0, 0, this.annCanvas.width, this.annCanvas.height);
         this.currentPdf  = null;
         this.currentPage = 1;
+        this.pageAnnotations = {};
 
         var url = '/web/content/' + att.id + '?access_token=' + att.access_token;
 
@@ -415,7 +442,21 @@
                 self._updatePageIndicator();
             });
             self.annCtx.clearRect(0, 0, vp.width, vp.height);
+            var saved = self.pageAnnotations[self.currentPage];
+            if (saved) {
+                var img = new Image();
+                img.onload = function () { self.annCtx.drawImage(img, 0, 0, vp.width, vp.height); };
+                img.src = saved;
+            }
         });
+    };
+
+    // Snapshots the annotation layer of the page currently on screen so it
+    // survives navigating to another page (canvases are resized/reused per page).
+    AnnotationViewer.prototype._captureCurrentAnnotation = function () {
+        if (this.currentPdf && this.annCanvas.width > 0 && this.annCanvas.height > 0) {
+            this.pageAnnotations[this.currentPage] = this.annCanvas.toDataURL('image/png');
+        }
     };
 
     AnnotationViewer.prototype._loadImage = function (url) {
@@ -455,6 +496,65 @@
         ctx.drawImage(this.baseCanvas, 0, 0);
         ctx.drawImage(this.annCanvas,  0, 0);
         return merged.toDataURL('image/png');
+    };
+
+    // Renders every page of the source PDF (with each page's saved annotation
+    // overlay, plus whatever is currently drawn on the page on screen) into a
+    // single multi-page PDF and returns it as a data URI.
+    AnnotationViewer.prototype._exportAsPdf = function () {
+        var self = this;
+        self._captureCurrentAnnotation();
+
+        return loadScript(JSPDF_CDN).then(function () {
+            var jsPDFCtor = window.jspdf && window.jspdf.jsPDF;
+            if (!jsPDFCtor) throw new Error('jsPDF failed to load');
+
+            var pageNums = [];
+            for (var p = 1; p <= self.totalPages; p++) pageNums.push(p);
+            var doc = null;
+
+            return pageNums.reduce(function (chain, pageNum) {
+                return chain.then(function () {
+                    return self.currentPdf.getPage(pageNum).then(function (page) {
+                        var containerW = self.baseCanvas.parentElement.parentElement.clientWidth || 760;
+                        var vp1   = page.getViewport({ scale: 1 });
+                        var scale = Math.min(containerW / vp1.width, 2.5);
+                        var vp    = page.getViewport({ scale: scale });
+
+                        var pageCanvas = document.createElement('canvas');
+                        pageCanvas.width  = vp.width;
+                        pageCanvas.height = vp.height;
+                        var pageCtx = pageCanvas.getContext('2d');
+
+                        return page.render({ canvasContext: pageCtx, viewport: vp }).promise.then(function () {
+                            var annDataUrl = self.pageAnnotations[pageNum];
+                            var addToDoc = function () {
+                                var imgData = pageCanvas.toDataURL('image/png');
+                                var orientation = vp.width > vp.height ? 'l' : 'p';
+                                if (!doc) {
+                                    doc = new jsPDFCtor({ orientation: orientation, unit: 'px', format: [vp.width, vp.height] });
+                                } else {
+                                    doc.addPage([vp.width, vp.height], orientation);
+                                }
+                                doc.addImage(imgData, 'PNG', 0, 0, vp.width, vp.height);
+                            };
+                            if (!annDataUrl) { addToDoc(); return; }
+                            return new Promise(function (resolve) {
+                                var annImg = new Image();
+                                annImg.onload = function () {
+                                    pageCtx.drawImage(annImg, 0, 0, vp.width, vp.height);
+                                    addToDoc();
+                                    resolve();
+                                };
+                                annImg.src = annDataUrl;
+                            });
+                        });
+                    });
+                });
+            }, Promise.resolve()).then(function () {
+                return doc.output('datauristring');
+            });
+        });
     };
 
     /* ─── Boot ────────────────────────────────────────────────── */

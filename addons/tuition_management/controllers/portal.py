@@ -104,6 +104,14 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 ('start_datetime', '>=', week_start_utc),
                 ('start_datetime', '<=', week_end_utc),
             ])
+            upcoming_sessions = request.env['class.schedule.occurrence'].sudo().search([
+                ('course_id', 'in', course_ids),
+                ('lesson_status', '=', 'scheduled'),
+                ('start_datetime', '>=', fields.Datetime.now()),
+            ], order='start_datetime asc', limit=5)
+            session_times = {}
+            for session in upcoming_sessions:
+                session_times[session.id] = self._fmt_dt(session.start_datetime, '%a %d %b, %H:%M %Z')
             values.update({
                 'student': student,
                 'course_count': len(enrollments),
@@ -118,6 +126,8 @@ class TuitionPortal(CustomerPortal, PortalMixin):
                 'next_session_live': next_session_live,
                 'next_session_dt_str': next_session_dt_str,
                 'week_lesson_count': week_lesson_count,
+                'upcoming_sessions': upcoming_sessions,
+                'session_times': session_times,
             })
             return request.render('tuition_management.portal_student_dashboard', values)
 

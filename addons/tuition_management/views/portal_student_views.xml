@@ -105,6 +105,33 @@
             </a>
         </div>
 
+        <!-- Upcoming Sessions -->
+        <div class="tm-card" style="margin-bottom:20px;">
+            <div class="tm-card-header">
+                <div class="tm-card-title"><i class="fa fa-calendar"/> Upcoming Sessions</div>
+                <div style="display:flex;gap:8px;">
+                    <a href="/my/student/schedule?view_mode=week" class="tm-btn tm-btn-outline tm-btn-sm">Weekly</a>
+                    <a href="/my/student/schedule?view_mode=month" class="tm-btn tm-btn-outline tm-btn-sm">Monthly</a>
+                </div>
+            </div>
+            <t t-if="upcoming_sessions">
+                <table class="tm-table">
+                    <thead><tr><th>Date &amp; Time</th><th>Course</th><th>Tutor</th><th></th></tr></thead>
+                    <tbody>
+                        <t t-foreach="upcoming_sessions" t-as="s">
+                            <tr>
+                                <td class="fw-bold"><t t-esc="session_times.get(s.id, '—')"/></td>
+                                <td><t t-esc="s.course_id.name or '—'"/></td>
+                                <td><t t-esc="s.tutor_id.name or '—'"/></td>
+                                <td><a href="/my/student/schedule" class="tm-btn tm-btn-outline tm-btn-sm">View</a></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </t>
+            <t t-else=""><div class="tm-empty"><i class="fa fa-calendar"/><p>No upcoming sessions.</p></div></t>
+        </div>
+
         <div class="tm-grid-2">
             <div>
                 <div class="tm-card">
@@ -138,7 +165,7 @@
                     </div>
                     <t t-if="upcoming_assignments">
                         <table class="tm-table">
-                            <thead><tr><th>Assignment</th><th>Course</th><th>Due</th><th>Status</th></tr></thead>
+                            <thead><tr><th>Assignment</th><th>Course</th><th>Due</th><th>Status</th><th></th></tr></thead>
                             <tbody>
                                 <t t-foreach="upcoming_assignments" t-as="a">
                                     <tr>
@@ -150,6 +177,7 @@
                                             </span>
                                         </td>
                                         <td><span class="tm-badge tm-badge-orange">Pending</span></td>
+                                        <td><a t-attf-href="/my/assignments/#{a.id}" class="tm-btn tm-btn-outline tm-btn-sm">View</a></td>
                                     </tr>
                                 </t>
                             </tbody>
@@ -409,11 +437,7 @@
                                     </t>
                                 </td>
                                 <td>
-                                    <a t-attf-href="/my/assignments/#{a.id}" class="tm-btn tm-btn-outline tm-btn-sm">
-                                        <t t-if="submission_map.get(a.id) and submission_map.get(a.id).status == 'rework'">Resubmit</t>
-                                        <t t-elif="submission_map.get(a.id)">View</t>
-                                        <t t-else="">Submit</t>
-                                    </a>
+                                    <a t-attf-href="/my/assignments/#{a.id}" class="tm-btn tm-btn-outline tm-btn-sm">View</a>
                                 </td>
                             </tr>
                         </t>

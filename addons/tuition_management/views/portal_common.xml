@@ -126,7 +126,11 @@
                             <t t-foreach="occurrences" t-as="occ">
                                 <tr>
                                     <td style="white-space:nowrap;"><t t-esc="occ.start_datetime and occ.start_datetime.strftime('%a %d %b, %H:%M') or '—'"/></td>
-                                    <td><span t-attf-class="tm-badge #{occ.lesson_status == 'completed' and 'tm-badge-green' or occ.lesson_status == 'cancelled' and 'tm-badge-red' or 'tm-badge-blue'}"><t t-esc="occ.lesson_status.capitalize()"/></span></td>
+                                    <td>
+                                        <t t-if="not (is_student and occ.lesson_status == 'under_review')">
+                                            <span t-attf-class="tm-badge #{occ.lesson_status == 'completed' and 'tm-badge-green' or occ.lesson_status == 'cancelled' and 'tm-badge-red' or 'tm-badge-blue'}"><t t-esc="occ.lesson_status.capitalize()"/></span>
+                                        </t>
+                                    </td>
                                     <td>
                                         <t t-set="att" t-value="attendance_map.get(occ.id)"/>
                                         <span t-attf-class="tm-badge #{att == 'present' and 'tm-badge-green' or att == 'absent' and 'tm-badge-red' or att == 'late' and 'tm-badge-orange' or 'tm-badge-grey'}">
