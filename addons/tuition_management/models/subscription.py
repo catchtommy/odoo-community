@@ -347,6 +347,7 @@ class TuitionPlanLine(models.Model):
     state = fields.Selection([
         ('pending_approval', 'Pending Approval'),
         ('active', 'Active'), ('scheduled', 'Scheduled'), ('expired', 'Expired'),
+        ('cancelled', 'Cancelled'),
     ], string='Status', compute='_compute_state', store=True)
     approval_state = fields.Selection(
         [('draft', 'Draft'), ('approved', 'Approved')],
@@ -358,6 +359,17 @@ class TuitionPlanLine(models.Model):
         self.env.cr.execute(
             "UPDATE tuition_plan_line SET approval_state = 'approved' WHERE approval_state IS NULL"
         )
+        # One-time (idempotent) fix-up for plan lines whose stored `state` predates the
+        # 'cancelled' branch in _compute_state(): a plan line under an already-cancelled
+        # subscription would otherwise keep reading as active/scheduled/expired forever,
+        # since a stored compute only recomputes on a write to a dependency, not
+        # retroactively when a new dependency/branch is added.
+        self.env.cr.execute("""
+            UPDATE tuition_plan_line pl
+            SET state = 'cancelled'
+            FROM tuition_subscription s
+            WHERE pl.subscription_id = s.id AND s.state = 'cancelled' AND pl.state != 'cancelled'
+        """)
 
     @api.model_create_multi
     def create(self, vals_list):
@@ -432,11 +444,16 @@ class TuitionPlanLine(models.Model):
         else:
             self.price = 0.0
 
-    @api.depends('start_date', 'end_date', 'approval_state')
+    @api.depends('start_date', 'end_date', 'approval_state', 'subscription_id.state')
     def _compute_state(self):
         today = fields.Date.today()
         for rec in self:
-            if rec.approval_state == 'draft':
+            if rec.subscription_id.state == 'cancelled':
+                # A cancelled subscription (e.g. from cancelling its course) must never
+                # leave a plan line reading as active/scheduled — this overrides the
+                # date/approval-based state below regardless of the line's own dates.
+                rec.state = 'cancelled'
+            elif rec.approval_state == 'draft':
                 rec.state = 'pending_approval'
             elif rec.start_date and rec.start_date > today:
                 rec.state = 'scheduled'

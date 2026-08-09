@@ -54,7 +54,7 @@
                             <list editable="bottom" delete="0"
                                   decoration-success="state == 'active'"
                                   decoration-info="state == 'scheduled'"
-                                  decoration-muted="state == 'expired'"
+                                  decoration-muted="state in ('expired', 'cancelled')"
                                   decoration-warning="state == 'pending_approval'">
                                 <field name="product_id"       readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"
                                        domain="[('company_id', 'in', [parent.company_id, False])]"/>
@@ -74,7 +74,7 @@
                                        decoration-warning="state == 'pending_approval'"
                                        decoration-success="state == 'active'"
                                        decoration-info="state == 'scheduled'"
-                                       decoration-muted="state == 'expired'"/>
+                                       decoration-muted="state in ('expired', 'cancelled')"/>
                                 <field name="notes"            readonly="(not id and not parent.can_add_plan) or (id and (not parent.can_edit_plan or state != 'pending_approval'))"/>
                                 <button name="action_approve" type="object"
                                         string="Approve" class="btn-primary btn-sm"
@@ -82,7 +82,7 @@
                                         groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
                                 <button name="action_set_draft" type="object"
                                         icon="fa-undo" title="Reset to Pending Approval"
-                                        invisible="state == 'pending_approval' or state == 'expired'"
+                                        invisible="state in ('pending_approval', 'expired', 'cancelled')"
                                         groups="tuition_management.group_tuition_subscription_approve,base.group_system"/>
                                 <button name="unlink" type="object"
                                         icon="fa-trash" title="Delete plan line"

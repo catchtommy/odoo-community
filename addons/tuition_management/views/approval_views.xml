@@ -84,7 +84,7 @@
                    decoration-warning="state == 'pending_approval'"
                    decoration-success="state == 'active'"
                    decoration-info="state == 'scheduled'"
-                   decoration-muted="state == 'expired'"/>
+                   decoration-muted="state in ('expired', 'cancelled')"/>
             <button name="action_approve" type="object"
                     string="Approve" class="btn-primary btn-sm"
                     invisible="state != 'pending_approval'"

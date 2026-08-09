@@ -460,8 +460,15 @@ class CourseMaster(models.Model):
         ])
         if subscriptions:
             subscriptions.write({'state': 'cancelled'})
+            # Record when the plan actually ended. sudo(): writing end_date normally
+            # requires the separate 'subscription_edit_plan' permission, which a user
+            # cancelling a course (gated on 'course_cancel') may not hold — this is a
+            # system cascade of the course cancellation, not a manual plan edit. Only
+            # open-ended plans (no end_date yet) are touched; a plan that already had a
+            # planned end date keeps it.
+            subscriptions.plan_line_ids.filtered(lambda p: not p.end_date).sudo().write({'end_date': fields.Date.today()})
 
-        self.write({'status': 'cancelled'})
+        self.write({'status': 'cancelled', 'end_date': fields.Date.today()})
 
     def unlink(self):
         require_permission(self.env.user, 'course_delete')
