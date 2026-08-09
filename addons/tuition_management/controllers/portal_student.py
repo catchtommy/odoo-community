@@ -428,6 +428,10 @@ class StudentPortal(http.Controller, PortalMixin):
             'mimetype': mt,
             'access_token': att.access_token or '',
         }])
+        submission = request.env['assignment.submission'].sudo().search([
+            ('assignment_id', '=', assignment.id), ('student_id', '=', student.id),
+        ], limit=1)
+        already_submitted = bool(submission and att in submission.submitted_resource_ids)
         return request.render('tuition_management.portal_student_annotate', {
             'user': request.env.user,
             'is_student': True, 'is_tutor': False, 'is_parent': False,
@@ -437,6 +441,7 @@ class StudentPortal(http.Controller, PortalMixin):
             'student': student,
             'page_name': 'assignment_detail',
             'csrf_token': request.csrf_token(),
+            'already_submitted': already_submitted,
         })
 
     @http.route(['/my/assignments/<int:assignment_id>/submit'], type='http', auth='user',
@@ -465,6 +470,14 @@ class StudentPortal(http.Controller, PortalMixin):
             'submission_date': fields.Datetime.now(),
             'notes': kw.get('student_note', ''),
         }
+        source_attachment_id = kw.get('source_attachment_id')
+        resource = request.env['ir.attachment']
+        if source_attachment_id and source_attachment_id.isdigit():
+            candidate = request.env['ir.attachment'].sudo().browse(int(source_attachment_id))
+            if candidate.exists() and candidate in assignment.attachment_ids:
+                resource = candidate
+                vals['submitted_resource_ids'] = [(4, resource.id)]
+
         uploaded_file = kw.get('submission_file')
         attachment_ids = []
         if uploaded_file and uploaded_file.filename:
@@ -480,13 +493,19 @@ class StudentPortal(http.Controller, PortalMixin):
             header, b64data = annotated_image.split(',', 1)
             m = re.search(r'data:image/(\w+)', header)
             ext = m.group(1) if m else 'png'
+            if resource:
+                base_name = resource.name.rsplit('.', 1)[0] if resource.name else resource.name
+                ann_name = '%s.%s' % (base_name, ext)
+            else:
+                ann_name = '%s.%s' % (assignment.name, ext)
             ann_att = request.env['ir.attachment'].sudo().create({
-                'name': 'annotation_%s.%s' % (assignment.name, ext),
+                'name': ann_name,
                 'datas': b64data.encode('ascii'),
                 'res_model': 'assignment.submission',
                 'type': 'binary',
             })
             attachment_ids.append(ann_att.id)
+
         if submission:
             submission.sudo().write(vals)
             if attachment_ids:

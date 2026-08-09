@@ -524,6 +524,7 @@
                     <div style="margin-top:12px;">
                         <div style="font-size:11px;font-weight:600;color:var(--tm-text-light);margin-bottom:6px;">Resources</div>
                         <t t-foreach="assignment.attachment_ids" t-as="att">
+                            <t t-set="res_submitted" t-value="bool(submission and att in submission.submitted_resource_ids)"/>
                             <div style="display:flex;align-items:center;gap:16px;padding:7px 10px;border-radius:6px;margin-bottom:4px;"
                                  t-attf-style="background:#{att_index % 2 == 0 and '#f8f9fb' or '#ffffff'};border:1px solid #eaecf0;">
                                 <span style="font-size:13px;color:var(--tm-text);min-width:20px;line-height:1.5;"><t t-esc="att_index + 1"/>.</span>
@@ -531,10 +532,13 @@
                                    style="font-size:13px;color:var(--tm-blue);text-decoration:none;display:inline-flex;align-items:center;gap:5px;flex:1;line-height:1.5;">
                                     <i class="fa fa-paperclip" style="font-size:12px;"/><t t-esc="att.name"/>
                                 </a>
+                                <t t-if="res_submitted">
+                                    <span class="tm-badge tm-badge-blue" style="white-space:nowrap;">Submitted</span>
+                                </t>
                                 <t t-if="att in annotatable_atts">
                                     <a t-attf-href="/my/assignments/#{assignment.id}/annotate/#{att.id}"
                                        class="tm-btn tm-btn-sm tm-btn-outline" style="white-space:nowrap;">
-                                        <i class="fa fa-eye"/> Preview
+                                        <i class="fa fa-eye"/> <t t-if="res_submitted">View and Resubmit</t><t t-else="">View and Submit</t>
                                     </a>
                                 </t>
                                 <a t-attf-href="/web/content/#{att.id}?access_token=#{att.access_token}&amp;download=true"
@@ -762,13 +766,14 @@
                   enctype="multipart/form-data" data-annotation-form="1">
                 <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                 <input type="hidden" name="annotated_image" class="tm-annotated-image-data"/>
+                <input type="hidden" name="source_attachment_id" t-att-value="attachment.id"/>
                 <div style="margin-bottom:10px;">
                     <label style="font-size:11px;font-weight:600;display:block;margin-bottom:4px;">Add a Note (optional)</label>
                     <textarea name="student_note" class="form-control" rows="3" style="width:100%;"
                               placeholder="Any comments for your tutor..."/>
                 </div>
                 <button type="submit" class="tm-btn tm-btn-green">
-                    <i class="fa fa-upload"/> Submit Assignment
+                    <i class="fa fa-upload"/> <t t-if="already_submitted">Resubmit</t><t t-else="">Submit Assignment</t>
                 </button>
                 <div style="margin-top:8px;font-size:11px;color:var(--tm-text-light);">
                     <i class="fa fa-info-circle"/> Your annotations will be saved and submitted to the tutor.

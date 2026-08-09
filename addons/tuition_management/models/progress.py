@@ -139,6 +139,10 @@ class AssignmentSubmission(models.Model):
     notes = fields.Text(string='Student Note')
     attachment_ids = fields.Many2many('ir.attachment', 'assignment_submission_attachment_rel',
                                       'submission_id', 'attachment_id', string='Student Attachments')
+    submitted_resource_ids = fields.Many2many('ir.attachment', 'assignment_submission_resource_rel',
+                                      'submission_id', 'resource_attachment_id',
+                                      string='Submitted Resources',
+                                      help='Assignment resource files the student has submitted work against.')
     reviewed_by = fields.Many2one('tutor.profile', string='Reviewed By', readonly=True)
     review_date = fields.Datetime(string='Review Date', readonly=True)
 

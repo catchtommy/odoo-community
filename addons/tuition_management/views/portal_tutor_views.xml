@@ -1699,16 +1699,29 @@
                                 document.getElementById('asgn_edit_drop_zone').style.borderColor = '#d0d7de';
                                 asgnEditHandleFiles(e.dataTransfer.files);
                             }
+                            function asgnEditRemoveFile(idx) {
+                                _editFiles.splice(idx, 1);
+                                asgnEditRenderFileList();
+                            }
                             function asgnEditRenderFileList() {
                                 var list = document.getElementById('asgn_edit_file_list');
                                 list.innerHTML = '';
                                 if (_editFiles.length === 0) return;
                                 var grid = document.createElement('div');
                                 grid.style.cssText = 'display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:8px;';
-                                _editFiles.forEach(function(f) {
+                                _editFiles.forEach(function(f, idx) {
                                     var item = document.createElement('div');
-                                    item.style.cssText = 'background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:6px 10px;font-size:12px;color:#555;';
-                                    item.innerHTML = '<i class="fa fa-paperclip" style="color:#4a6cf7;margin-right:6px;"/>' + f.name;
+                                    item.style.cssText = 'background:#f8f9fa;border:1px solid #e8eaed;border-radius:8px;padding:6px 10px;font-size:12px;color:#555;display:flex;align-items:center;justify-content:space-between;gap:8px;';
+                                    var label = document.createElement('span');
+                                    label.innerHTML = '<i class="fa fa-paperclip" style="color:#4a6cf7;margin-right:6px;"/>' + f.name;
+                                    item.appendChild(label);
+                                    var removeBtn = document.createElement('button');
+                                    removeBtn.type = 'button';
+                                    removeBtn.title = 'Remove';
+                                    removeBtn.style.cssText = 'border:none;background:none;padding:0 2px;cursor:pointer;color:#dc2626;font-size:12px;line-height:1;';
+                                    removeBtn.innerHTML = '&#x2715;';
+                                    removeBtn.onclick = function() { asgnEditRemoveFile(idx); };
+                                    item.appendChild(removeBtn);
                                     grid.appendChild(item);
                                 });
                                 list.appendChild(grid);
@@ -2081,12 +2094,28 @@
                     var _asgnFiles = [];
                     function asgnHandleFiles(fileList) {
                         Array.from(fileList).forEach(function(f) { _asgnFiles.push(f); });
+                        asgnRenderFileList();
+                    }
+                    function asgnRemoveFile(idx) {
+                        _asgnFiles.splice(idx, 1);
+                        asgnRenderFileList();
+                    }
+                    function asgnRenderFileList() {
                         var list = document.getElementById('asgn_file_list');
                         list.innerHTML = '';
-                        _asgnFiles.forEach(function(f) {
+                        _asgnFiles.forEach(function(f, idx) {
                             var item = document.createElement('div');
                             item.style.cssText = 'display:inline-flex;align-items:center;gap:6px;background:#f8f9fa;border:1px solid #e8eaed;border-radius:6px;padding:4px 10px;font-size:12px;color:#555;margin-right:6px;margin-bottom:4px;';
-                            item.innerHTML = '<i class="fa fa-paperclip" style="color:#4a6cf7;"/>' + f.name;
+                            var label = document.createElement('span');
+                            label.innerHTML = '<i class="fa fa-paperclip" style="color:#4a6cf7;"/>' + f.name;
+                            item.appendChild(label);
+                            var removeBtn = document.createElement('button');
+                            removeBtn.type = 'button';
+                            removeBtn.title = 'Remove';
+                            removeBtn.style.cssText = 'border:none;background:none;padding:0 2px;cursor:pointer;color:#dc2626;font-size:12px;line-height:1;';
+                            removeBtn.innerHTML = '&#x2715;';
+                            removeBtn.onclick = function() { asgnRemoveFile(idx); };
+                            item.appendChild(removeBtn);
                             list.appendChild(item);
                         });
                     }
