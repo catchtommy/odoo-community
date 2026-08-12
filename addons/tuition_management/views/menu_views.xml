@@ -23,7 +23,6 @@
 
     <!-- Enquiries -->
     <menuitem id="menu_tuition_enquiries" name="Enquiries" parent="menu_tuition_root" sequence="20" action="action_enquiry"/>
-    <menuitem id="menu_tuition_enquiry_batch" name="New Enquiry (Multi-Student)" parent="menu_tuition_root" sequence="21" action="action_enquiry_batch_wizard"/>
 
     <!-- Approvals -->
     <menuitem id="menu_tuition_approvals" name="Approvals" parent="menu_tuition_root" sequence="22"

@@ -303,7 +303,7 @@ class Enquiry(models.Model):
         res = super().write(vals)
         # Sync parent fields if changed
         parent_fields = {'name', 'email', 'phone', 'country_code'}
-        student_fields = {'student_name', 'grade_id'}
+        student_fields = {'student_name', 'student_age', 'grade_id'}
         if parent_fields & set(vals.keys()):
             for rec in self:
                 if rec.parent_profile_id:
@@ -324,6 +324,8 @@ class Enquiry(models.Model):
                     student_vals = {}
                     if 'student_name' in vals:
                         student_vals['name'] = rec.student_name
+                    if 'student_age' in vals:
+                        student_vals['age'] = rec.student_age
                     if 'grade_id' in vals:
                         student_vals['grade_id'] = rec.grade_id.id if rec.grade_id else False
                     if student_vals:
@@ -542,6 +544,7 @@ class Enquiry(models.Model):
 
         student_vals = {
             'name': self.student_name,
+            'age': self.student_age,
             'grade_id': self.grade_id.id if self.grade_id else False,
             'partner_id': student_partner.id,
             'parent_id': parent.id if parent else False,
@@ -747,6 +750,13 @@ class EnquiryBatchWizard(models.TransientModel):
     ], string='Source')
     notes = fields.Text(string='Notes')
     student_line_ids = fields.One2many('enquiry.batch.wizard.line', 'wizard_id', string='Students')
+    created_enquiry_ids = fields.Many2many('enquiry', string='Created Enquiries', readonly=True)
+    created_enquiry_count = fields.Integer(compute='_compute_created_enquiry_count')
+
+    @api.depends('created_enquiry_ids')
+    def _compute_created_enquiry_count(self):
+        for rec in self:
+            rec.created_enquiry_count = len(rec.created_enquiry_ids)
 
     @api.onchange('parent_profile_id')
     def _onchange_parent_profile_id(self):
@@ -756,7 +766,17 @@ class EnquiryBatchWizard(models.TransientModel):
             self.phone = self.parent_profile_id.phone
             self.country_code = self.parent_profile_id.country_code
 
-    def action_create_enquiries(self):
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        # Creating enquiries here (rather than via a separate button) means the
+        # standard Save button is the only action on this form — saving the
+        # wizard for the first time is what submits it.
+        for rec in records:
+            rec._create_enquiries()
+        return records
+
+    def _create_enquiries(self):
         self.ensure_one()
         if not self.student_line_ids:
             raise UserError('Add at least one student.')
@@ -805,13 +825,16 @@ class EnquiryBatchWizard(models.TransientModel):
         ]
         rest = self.env['enquiry'].create(rest_vals) if rest_vals else self.env['enquiry']
 
-        enquiries = first + rest
+        self.created_enquiry_ids = first + rest
+
+    def action_view_created_enquiries(self):
+        self.ensure_one()
         return {
             'type': 'ir.actions.act_window',
             'name': 'Created Enquiries',
             'res_model': 'enquiry',
             'view_mode': 'list,form',
-            'domain': [('id', 'in', enquiries.ids)],
+            'domain': [('id', 'in', self.created_enquiry_ids.ids)],
         }
 
 

@@ -5,7 +5,7 @@
         <field name="name">enquiry.form</field>
         <field name="model">enquiry</field>
         <field name="arch" type="xml">
-            <form string="Enquiry">
+            <form string="Enquiry" create="0">
                 <header>
                     <field name="is_enrolled_stage" invisible="1"/>
                     <field name="is_enrolled" invisible="1"/>
@@ -90,7 +90,11 @@
         <field name="name">enquiry.list</field>
         <field name="model">enquiry</field>
         <field name="arch" type="xml">
-            <list string="Enquiries" decoration-warning="possible_duplicate_parent_id">
+            <list string="Enquiries" create="0" decoration-warning="possible_duplicate_parent_id">
+                <header>
+                    <button name="%(action_enquiry_batch_wizard)d" type="action" string="New Enquiry"
+                            class="btn-primary" display="always"/>
+                </header>
                 <field name="enquiry_name"/><field name="name" string="Parent Name"/>
                 <field name="student_name"/><field name="student_age"/><field name="email"/><field name="phone"/>
                 <field name="subject_id"/><field name="grade_id"/><field name="stage_id"/>
@@ -122,7 +126,11 @@
         <field name="name">enquiry.kanban</field>
         <field name="model">enquiry</field>
         <field name="arch" type="xml">
-            <kanban default_group_by="stage_id" class="o_kanban_small_column" quick_create="false">
+            <kanban default_group_by="stage_id" class="o_kanban_small_column" create="0" quick_create="false">
+                <header>
+                    <button name="%(action_enquiry_batch_wizard)d" type="action" string="New Enquiry"
+                            class="btn-primary" display="always"/>
+                </header>
                 <field name="enquiry_name"/>
                 <field name="name"/>
                 <field name="student_name"/>
@@ -193,22 +201,6 @@
             </form>
         </field>
     </record>
-    <record id="view_enquiry_form_quick_create" model="ir.ui.view">
-        <field name="name">enquiry.form.quick_create</field>
-        <field name="model">enquiry</field>
-        <field name="arch" type="xml">
-            <form>
-                <group>
-                    <field name="enquiry_name" placeholder="e.g., SAT Enquiry for John"/>
-                    <field name="name" string="Parent Name" placeholder="Parent Full Name"/>
-                    <field name="student_name" placeholder="Student Full Name"/>
-                    <field name="partner_id"/><field name="email" placeholder="Email"/>
-                    <field name="phone" placeholder="Phone"/>
-                    <field name="subject_id" options="{'no_create': True, 'no_open': True}"/><field name="grade_id" options="{'no_create': True, 'no_open': True}"/>
-                </group>
-            </form>
-        </field>
-    </record>
     <record id="action_enquiry" model="ir.actions.act_window">
         <field name="name">Enquiries</field>
         <field name="res_model">enquiry</field>
@@ -220,44 +212,52 @@
         <field name="name">enquiry.batch.wizard.form</field>
         <field name="model">enquiry.batch.wizard</field>
         <field name="arch" type="xml">
-            <form string="New Enquiry (Multiple Students)">
-                <group string="Parent / Guardian">
-                    <field name="parent_profile_id"/>
-                    <field name="name" string="Parent Name"/>
-                    <field name="email"/>
-                    <label for="phone" string="Phone Number"/>
-                    <div style="display: grid; grid-template-columns:25% 75%; gap: 2px;">
-                        <field name="country_code" placeholder="Country Code"/>
-                        <field name="phone" class="o_field_char" placeholder="Phone Number"/>
+            <form string="New Enquiry" create="0">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <field name="created_enquiry_count" invisible="1"/>
+                        <button name="action_view_created_enquiries" type="object" class="oe_stat_button" icon="fa-users" invisible="not created_enquiry_count">
+                            <field name="created_enquiry_count" widget="statinfo" string="Created"/>
+                        </button>
                     </div>
-                    <field name="enquiry_source"/>
-                </group>
-                <group string="Students">
-                    <field name="student_line_ids" nolabel="1">
+                    <div class="alert alert-success" role="status" invisible="not created_enquiry_count">
+                        <strong><i class="fa fa-check-circle"/> Saved.</strong> The enquiries below have been created.
+                    </div>
+                    <group string="Parent / Guardian" readonly="created_enquiry_count">
+                        <field name="parent_profile_id"/>
+                        <field name="name" string="Parent Name"/>
+                        <field name="email"/>
+                        <label for="phone" string="Phone Number"/>
+                        <div style="display: grid; grid-template-columns:25% 75%; gap: 2px;">
+                            <field name="country_code" placeholder="Country Code"/>
+                            <field name="phone" class="o_field_char" placeholder="Phone Number"/>
+                        </div>
+                        <field name="enquiry_source"/>
+                    </group>
+                    <separator string="Students"/>
+                    <div style="overflow-x:auto;">
+                    <field name="student_line_ids" nolabel="1" readonly="created_enquiry_count">
                         <list editable="bottom">
-                            <field name="student_name"/>
-                            <field name="student_age"/>
+                            <field name="student_name" placeholder="Student Full Name"/>
+                            <field name="student_age" string="Age" placeholder="Age"/>
                             <field name="category_id" options="{'no_create': True, 'no_open': True}"/>
                             <field name="subject_id" domain="[('category_id', '=', category_id)]" options="{'no_create': True, 'no_open': True}"/>
                             <field name="grade_id" domain="[('category_ids', 'in', [category_id])]" options="{'no_create': True, 'no_open': True}"/>
                         </list>
                     </field>
-                </group>
-                <group string="Notes">
-                    <field name="notes" nolabel="1"/>
-                </group>
-                <footer>
-                    <button name="action_create_enquiries" type="object" string="Create Enquiries" class="btn-primary"/>
-                    <button string="Cancel" class="btn-secondary" special="cancel"/>
-                </footer>
+                    </div>
+                    <group string="Notes" readonly="created_enquiry_count">
+                        <field name="notes" nolabel="1"/>
+                    </group>
+                </sheet>
             </form>
         </field>
     </record>
     <record id="action_enquiry_batch_wizard" model="ir.actions.act_window">
-        <field name="name">New Enquiry (Multiple Students)</field>
+        <field name="name">New Enquiry</field>
         <field name="res_model">enquiry.batch.wizard</field>
         <field name="view_mode">form</field>
-        <field name="target">new</field>
+        <field name="target">current</field>
     </record>
 
     <!-- Demo Session Views -->
