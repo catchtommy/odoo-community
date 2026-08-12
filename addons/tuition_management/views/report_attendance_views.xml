@@ -103,7 +103,6 @@
                                    decoration-success="status == 'present'"
                                    decoration-danger="status == 'absent'"
                                    decoration-muted="status == 'cancelled'"/>
-                            <field name="billable"/>
                             <field name="remarks"/>
                         </list>
                     </field>

@@ -1301,7 +1301,6 @@ class CancelLessonWizard(models.TransientModel):
                     'student_id': student.id,
                     'attendance_date': occ.start_datetime.date() if occ.start_datetime else fields.Date.today(),
                     'status': 'cancelled',
-                    'billable': False,
                 })
 
         # Reschedule if requested

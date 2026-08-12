@@ -13,7 +13,6 @@ class AttendanceRecord(models.Model):
     status = fields.Selection([
         ('present', 'Present'), ('absent', 'Absent'), ('cancelled', 'Cancelled'),
     ], string='Status', default=False)  # No default — must be explicitly selected
-    billable = fields.Boolean(string='Billable', default=True)
     remarks = fields.Text(string='Remarks')
     course_id = fields.Many2one('course.master', string='Course', related='class_schedule_occurrence_id.course_id', store=True, readonly=True)
     tutor_id = fields.Many2one('tutor.profile', string='Tutor', related='class_schedule_occurrence_id.tutor_id', store=True, readonly=True)
