@@ -205,6 +205,10 @@ class TmScheduleViewer extends Component {
             row.display_stop  = fmtTimeInTz(row.stop_datetime,  tz);
             row.course_name   = row.course_id ? row.course_id[1] : "";
             row.tutor_name    = row.tutor_id  ? row.tutor_id[1]  : "";
+            // `name` bakes in the date the occurrence was generated on (not tz-aware),
+            // which conflicts with the tz-aware Date column above — show the course
+            // name instead, keeping any "(Rescheduled)" suffix.
+            row.lesson_label  = row.course_name + (row.name && row.name.includes("(Rescheduled)") ? " (Rescheduled)" : "");
         }
         this.state.rows = rows;
         this.state.loading = false;

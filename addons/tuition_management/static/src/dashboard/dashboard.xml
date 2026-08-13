@@ -417,7 +417,7 @@
                         <tr t-foreach="state.schedule_rows" t-as="row" t-key="row.id"
                             t-on-click="openOccurrence" t-att-data-id="row.id">
                             <td><strong t-esc="row.start_time"/> — <span t-esc="row.stop_time"/></td>
-                            <td t-esc="row.name"/>
+                            <td t-esc="row.lesson_label"/>
                             <td t-esc="row.course_name"/>
                             <td t-esc="row.tutor_name"/>
                             <td>

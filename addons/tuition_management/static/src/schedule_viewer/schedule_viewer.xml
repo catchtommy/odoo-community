@@ -358,7 +358,7 @@
                                     <span style="color:#adb5bd;"> — </span>
                                     <span><t t-esc="row.display_stop"/></span>
                                 </td>
-                                <td><t t-esc="row.name"/></td>
+                                <td><t t-esc="row.lesson_label"/></td>
                                 <td><t t-esc="row.course_name"/></td>
                                 <td><t t-esc="row.tutor_name"/></td>
                                 <td>

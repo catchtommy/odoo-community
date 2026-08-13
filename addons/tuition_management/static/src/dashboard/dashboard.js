@@ -159,6 +159,10 @@ class TuitionDashboard extends Component {
             row.stop_time  = stop.toLocaleTimeString([],  { hour: "2-digit", minute: "2-digit", timeZone: tz });
             row.course_name = row.course_id ? row.course_id[1] : "";
             row.tutor_name  = row.tutor_id  ? row.tutor_id[1]  : "";
+            // `name` bakes in the date the occurrence was generated on (not tz-aware),
+            // which reads as the wrong date once converted to the viewer's timezone —
+            // show the course name instead, keeping any "(Rescheduled)" suffix.
+            row.lesson_label = row.course_name + (row.name && row.name.includes("(Rescheduled)") ? " (Rescheduled)" : "");
         }
         this.state.schedule_rows   = rows;
         this.state.today_schedules = rows.length;
