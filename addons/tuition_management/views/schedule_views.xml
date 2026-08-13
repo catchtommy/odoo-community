@@ -242,6 +242,11 @@
                             string="Cancel Lesson" class="btn-danger" icon="fa-ban"
                             invisible="not id or lesson_status == 'cancelled'"
                             groups="tuition_management.group_tuition_lesson_cancel,base.group_system"/>
+                    <button name="action_revert_cancellation" type="object"
+                            string="Revert Cancellation" class="btn-secondary" icon="fa-undo"
+                            invisible="not id or lesson_status != 'cancelled'"
+                            confirm="Revert this lesson's cancellation and set it back to Scheduled?"
+                            groups="tuition_management.group_tuition_lesson_uncancel,base.group_system"/>
                     <field name="lesson_status" widget="statusbar" readonly="1"
                            statusbar_visible="scheduled,completed,cancelled,under_review"
                            invisible="not id"/>

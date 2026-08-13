@@ -156,6 +156,10 @@
         <field name="name">Tuition / Cancel Lesson</field>
         <field name="privilege_id" ref="privilege_tuition_management"/>
     </record>
+    <record id="group_tuition_lesson_uncancel" model="res.groups">
+        <field name="name">Tuition / Revert Lesson Cancellation</field>
+        <field name="privilege_id" ref="privilege_tuition_management"/>
+    </record>
 
     <!-- — System — -->
     <record id="group_tuition_settings_access" model="res.groups">
@@ -211,6 +215,7 @@
             (4, ref('group_tuition_course_delete')),
             (4, ref('group_tuition_course_cancel')),
             (4, ref('group_tuition_lesson_cancel')),
+            (4, ref('group_tuition_lesson_uncancel')),
             (4, ref('group_tuition_attendance_approve')),
             (4, ref('group_tuition_settings_access')),
             (4, ref('group_tuition_reports_access')),

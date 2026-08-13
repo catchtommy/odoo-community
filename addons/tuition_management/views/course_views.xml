@@ -81,6 +81,12 @@
                                         string="View Cancellation" icon="fa-info-circle"
                                         class="btn-link text-danger"
                                         invisible="lesson_status != 'cancelled'"/>
+                                <button name="action_revert_cancellation" type="object"
+                                        string="Revert Cancellation" icon="fa-undo"
+                                        class="btn-link"
+                                        invisible="lesson_status != 'cancelled'"
+                                        confirm="Revert this lesson's cancellation and set it back to Scheduled?"
+                                        groups="tuition_management.group_tuition_lesson_uncancel,base.group_system"/>
                             </list>
                         </field>
                     </page>

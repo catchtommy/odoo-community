@@ -50,6 +50,7 @@ PERMISSION_GROUP_MAP = {
     'course_delete':              'group_tuition_course_delete',
     'course_cancel':              'group_tuition_course_cancel',
     'lesson_cancel':              'group_tuition_lesson_cancel',
+    'lesson_uncancel':            'group_tuition_lesson_uncancel',
     'attendance_approve':         'group_tuition_attendance_approve',
     'settings_access':            'group_tuition_settings_access',
     'reports_access':             'group_tuition_reports_access',
@@ -91,6 +92,7 @@ PERMISSION_LABELS = {
     'course_delete':              'Delete Courses',
     'course_cancel':              'Cancel Courses',
     'lesson_cancel':              'Cancel Lesson',
+    'lesson_uncancel':            'Revert Lesson Cancellation',
     'attendance_approve':         'Approve Attendance',
     'settings_access':            'Access Settings',
     'reports_access':             'Access Reports',
@@ -271,6 +273,9 @@ class UserPermissionGroup(models.Model):
     lesson_cancel = fields.Boolean(
         string='Cancel Lesson', tracking=True,
         help='Can cancel an individual scheduled lesson (class.schedule.occurrence).')
+    lesson_uncancel = fields.Boolean(
+        string='Revert Lesson Cancellation', tracking=True,
+        help='Can revert a cancelled lesson back to scheduled status.')
     attendance_approve = fields.Boolean(
         string='Approve Attendance', tracking=True,
         help='Can view and action the Attendance Approvals menu (lessons under review).')

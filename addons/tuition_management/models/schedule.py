@@ -1045,6 +1045,12 @@ class ClassScheduleOccurrence(models.Model):
             # statusbar, or any other direct write as a way to cancel a lesson.
             if not self.env.context.get('allow_lesson_cancel'):
                 raise UserError('Lessons can only be cancelled through the "Cancel Lesson" action, so the reason is captured.')
+        if 'lesson_status' in vals and vals.get('lesson_status') != 'cancelled':
+            if any(rec.lesson_status == 'cancelled' for rec in self):
+                if not user_has_permission(self.env.user, 'lesson_uncancel'):
+                    raise UserError("Only administrators or managers with the 'Revert Lesson Cancellation' permission can revert a cancelled lesson.")
+                if not self.env.context.get('allow_lesson_uncancel'):
+                    raise UserError('Cancelled lessons can only be reverted through the "Revert Cancellation" action.')
         reschedule_fields = {'tutor_id'}
         if reschedule_fields & set(vals.keys()) and 'lesson_status' not in vals:
             for rec in self:
@@ -1173,6 +1179,32 @@ class ClassScheduleOccurrence(models.Model):
         wizard = self.env['cancel.lesson.wizard'].create({'occurrence_id': self.id})
         return {'type': 'ir.actions.act_window', 'name': 'Cancel Lesson',
                 'res_model': 'cancel.lesson.wizard', 'view_mode': 'form', 'res_id': wizard.id, 'target': 'new'}
+
+    def action_revert_cancellation(self):
+        self.ensure_one()
+        if self.lesson_status != 'cancelled':
+            raise UserError('Only cancelled lessons can have their cancellation reverted.')
+        if not user_has_permission(self.env.user, 'lesson_uncancel'):
+            raise UserError("Only administrators or managers with the 'Revert Lesson Cancellation' permission can revert a cancelled lesson.")
+
+        cancelled_attendance = self.attendance_ids.filtered(lambda a: a.status == 'cancelled')
+        if cancelled_attendance:
+            cancelled_attendance.sudo().unlink()
+
+        self.sudo().with_context(allow_lesson_uncancel=True).write({
+            'lesson_status': 'scheduled',
+            'cancellation_reason': False,
+            'cancellation_note': False,
+            'cancellation_date': False,
+            'cancelled_by': False,
+        })
+
+        if self.course_id:
+            body = Markup('<b>Lesson Cancellation Reverted</b> — %s<br/>Reverted by: <b>%s</b>') % (
+                self.name or '—', self.env.user.name,
+            )
+            self.course_id.message_post(body=body, subtype_xmlid='mail.mt_note')
+        return True
 
     def action_view_cancellation_details(self):
         self.ensure_one()
