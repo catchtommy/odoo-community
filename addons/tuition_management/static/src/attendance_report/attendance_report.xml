@@ -1,0 +1,355 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="tuition_management.AttendanceReport">
+        <div class="tm-ar-wrap">
+            <style>
+                .tm-ar-wrap {
+                    padding: 24px;
+                    background: #f1f3f5;
+                    min-height: 100%;
+                    font-family: Inter, -apple-system, sans-serif;
+                    overflow-y: auto;
+                    height: calc(100vh - 50px);
+                }
+                .tm-ar-header {
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    margin-bottom: 20px;
+                    flex-wrap: wrap;
+                    gap: 12px;
+                }
+                .tm-ar-title {
+                    font-size: 20px;
+                    font-weight: 700;
+                    color: #1a1a2e;
+                    margin: 0;
+                }
+                .tm-ar-view-toggle {
+                    display: flex;
+                    border: 1px solid #dee2e6;
+                    border-radius: 6px;
+                    overflow: hidden;
+                }
+                .tm-ar-view-toggle button {
+                    border: none;
+                    border-right: 1px solid #dee2e6;
+                    background: #fff;
+                    padding: 7px 18px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    color: #495057;
+                    cursor: pointer;
+                    transition: all 0.15s;
+                }
+                .tm-ar-view-toggle button:last-child { border-right: none; }
+                .tm-ar-view-toggle button:hover { background: #f0f4ff; color: #4361ee; }
+                .tm-ar-view-toggle button.tm-ar-active { background: #4361ee; color: #fff; }
+                .tm-ar-period-label {
+                    font-size: 14px;
+                    font-weight: 600;
+                    color: #343a40;
+                }
+                .tm-ar-controls {
+                    background: #fff;
+                    border-radius: 10px;
+                    border: 1px solid #e9ecef;
+                    padding: 16px 20px;
+                    margin-bottom: 20px;
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 16px;
+                    align-items: flex-end;
+                }
+                .tm-ar-ctrl-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                    min-width: 170px;
+                }
+                .tm-ar-ctrl-group label {
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                    color: #6c757d;
+                }
+                .tm-ar-ctrl-group select,
+                .tm-ar-ctrl-group input {
+                    border: 1px solid #dee2e6;
+                    border-radius: 6px;
+                    padding: 7px 10px;
+                    font-size: 13px;
+                    color: #495057;
+                    background: #fff;
+                    outline: none;
+                }
+                .tm-ar-ctrl-group select:focus,
+                .tm-ar-ctrl-group input:focus {
+                    border-color: #4361ee;
+                    box-shadow: 0 0 0 2px rgba(67,97,238,0.12);
+                }
+                .tm-ar-ctrl-group .tm-ar-search-row { display: flex; gap: 6px; }
+                .tm-ar-ctrl-group .tm-ar-search-row input { flex: 1; }
+                /* Searchable Course / Tutor dropdowns */
+                .tm-ar-picker { position: relative; }
+                .tm-ar-picker input { width: 100%; cursor: pointer; }
+                .tm-ar-dropdown {
+                    position: absolute;
+                    top: calc(100% + 2px);
+                    left: 0;
+                    right: 0;
+                    background: #fff;
+                    border: 1px solid #dee2e6;
+                    border-radius: 6px;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+                    max-height: 220px;
+                    overflow-y: auto;
+                    z-index: 1000;
+                }
+                .tm-ar-option { padding: 8px 12px; font-size: 13px; color: #495057; cursor: pointer; }
+                .tm-ar-option:hover { background: #f0f4ff; }
+                .tm-ar-option.tm-ar-selected { background: #e8f0fe; color: #4361ee; font-weight: 600; }
+                .tm-ar-no-results { padding: 8px 12px; color: #adb5bd; font-size: 13px; }
+                .tm-ar-search-btn {
+                    background: #4361ee;
+                    color: #fff;
+                    border: none;
+                    border-radius: 6px;
+                    padding: 7px 14px;
+                    font-size: 13px;
+                    font-weight: 600;
+                    cursor: pointer;
+                    white-space: nowrap;
+                }
+                .tm-ar-search-btn:hover { background: #3a56d4; }
+                .tm-ar-card {
+                    background: #fff;
+                    border-radius: 10px;
+                    border: 1px solid #e9ecef;
+                    overflow: hidden;
+                }
+                .tm-ar-card-header {
+                    padding: 14px 20px;
+                    background: #f8f9fa;
+                    border-bottom: 1px solid #e9ecef;
+                    display: flex;
+                    align-items: center;
+                    justify-content: space-between;
+                    flex-wrap: wrap;
+                    gap: 8px;
+                }
+                .tm-ar-card-header span { font-size: 13px; font-weight: 600; color: #6c757d; }
+                .tm-ar-link-btn {
+                    background: none;
+                    border: 1px solid #dee2e6;
+                    border-radius: 6px;
+                    padding: 5px 12px;
+                    font-size: 12px;
+                    font-weight: 600;
+                    color: #495057;
+                    cursor: pointer;
+                }
+                .tm-ar-link-btn:hover { background: #4361ee; color: #fff; border-color: #4361ee; }
+                .tm-ar-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+                .tm-ar-table th {
+                    background: #4A7CC9;
+                    color: #fff;
+                    padding: 10px 14px;
+                    text-align: left;
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.5px;
+                }
+                .tm-ar-table td {
+                    padding: 10px 14px;
+                    border-bottom: 1px solid #f1f3f5;
+                    color: #495057;
+                    vertical-align: middle;
+                }
+                .tm-ar-table tbody tr { cursor: pointer; transition: background 0.15s; }
+                .tm-ar-table tbody tr:hover { background: #f0f4ff; }
+                .tm-ar-badge {
+                    display: inline-block;
+                    padding: 3px 10px;
+                    border-radius: 20px;
+                    font-size: 11px;
+                    font-weight: 600;
+                    text-transform: capitalize;
+                }
+                .tm-ar-badge.scheduled { background: #e3f2fd; color: #1565c0; }
+                .tm-ar-badge.completed { background: #e8f5e9; color: #2e7d32; }
+                .tm-ar-badge.cancelled { background: #fce4ec; color: #c62828; }
+                .tm-ar-badge.under_review { background: #fff3e0; color: #e65100; }
+                .tm-ar-empty { text-align: center; padding: 48px 20px; color: #adb5bd; font-size: 14px; }
+                .tm-ar-loading { text-align: center; padding: 32px; color: #6c757d; }
+            </style>
+
+            <!-- Page Header -->
+            <div class="tm-ar-header">
+                <h2 class="tm-ar-title">
+                    <i class="fa fa-check-square-o" style="margin-right:8px;color:#4361ee;"/>
+                    Attendance Report
+                </h2>
+                <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+                    <span class="tm-ar-period-label"><t t-esc="periodLabel"/></span>
+                    <div class="tm-ar-view-toggle">
+                        <button data-mode="today"
+                                t-att-class="state.viewMode === 'today' ? 'tm-ar-active' : ''"
+                                t-on-click="onViewModeClick">Today</button>
+                        <button data-mode="week"
+                                t-att-class="state.viewMode === 'week' ? 'tm-ar-active' : ''"
+                                t-on-click="onViewModeClick">This Week</button>
+                        <button data-mode="month"
+                                t-att-class="state.viewMode === 'month' ? 'tm-ar-active' : ''"
+                                t-on-click="onViewModeClick">This Month</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters / Controls -->
+            <div class="tm-ar-controls">
+                <div class="tm-ar-ctrl-group">
+                    <label><i class="fa fa-calendar" style="margin-right:4px;"/>Date From</label>
+                    <input type="date" t-att-value="state.dateFrom" t-on-change="onDateFromChange"/>
+                </div>
+                <div class="tm-ar-ctrl-group">
+                    <label><i class="fa fa-calendar" style="margin-right:4px;"/>Date To</label>
+                    <input type="date" t-att-value="state.dateTo" t-on-change="onDateToChange"/>
+                </div>
+                <div class="tm-ar-ctrl-group tm-ar-picker">
+                    <label><i class="fa fa-book" style="margin-right:4px;"/>Course</label>
+                    <input type="text"
+                           placeholder="Search course…"
+                           t-att-value="state.courseDropdownOpen ? state.courseSearch : selectedCourseLabel"
+                           t-on-input="onCourseSearchInput"
+                           t-on-focus="onCourseFocus"
+                           t-on-blur="onCourseBlur"/>
+                    <div t-if="state.courseDropdownOpen" class="tm-ar-dropdown">
+                        <div class="tm-ar-option" data-value="" t-on-mousedown="onCourseSelect">All Courses</div>
+                        <t t-if="filteredCourses.length == 0">
+                            <div class="tm-ar-no-results">No courses found</div>
+                        </t>
+                        <t t-foreach="filteredCourses" t-as="c" t-key="c.id">
+                            <div t-attf-class="tm-ar-option {{c.id == state.course_id ? 'tm-ar-selected' : ''}}"
+                                 t-att-data-value="c.id"
+                                 t-on-mousedown="onCourseSelect">
+                                <t t-esc="c.name"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+                <div class="tm-ar-ctrl-group tm-ar-picker">
+                    <label><i class="fa fa-user" style="margin-right:4px;"/>Tutor</label>
+                    <input type="text"
+                           placeholder="Search tutor…"
+                           t-att-value="state.tutorDropdownOpen ? state.tutorSearch : selectedTutorLabel"
+                           t-on-input="onTutorSearchInput"
+                           t-on-focus="onTutorFocus"
+                           t-on-blur="onTutorBlur"/>
+                    <div t-if="state.tutorDropdownOpen" class="tm-ar-dropdown">
+                        <div class="tm-ar-option" data-value="" t-on-mousedown="onTutorSelect">All Tutors</div>
+                        <t t-if="filteredTutors.length == 0">
+                            <div class="tm-ar-no-results">No tutors found</div>
+                        </t>
+                        <t t-foreach="filteredTutors" t-as="t" t-key="t.id">
+                            <div t-attf-class="tm-ar-option {{t.id == state.tutor_id ? 'tm-ar-selected' : ''}}"
+                                 t-att-data-value="t.id"
+                                 t-on-mousedown="onTutorSelect">
+                                <t t-esc="t.name"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+                <div class="tm-ar-ctrl-group">
+                    <label><i class="fa fa-flag" style="margin-right:4px;"/>Status</label>
+                    <select t-on-change="onStatusChange">
+                        <option value="">All Statuses</option>
+                        <option value="scheduled" t-att-selected="state.status === 'scheduled' ? 'selected' : undefined">Scheduled</option>
+                        <option value="completed" t-att-selected="state.status === 'completed' ? 'selected' : undefined">Completed</option>
+                        <option value="cancelled" t-att-selected="state.status === 'cancelled' ? 'selected' : undefined">Cancelled</option>
+                        <option value="under_review" t-att-selected="state.status === 'under_review' ? 'selected' : undefined">Under Review</option>
+                    </select>
+                </div>
+                <div class="tm-ar-ctrl-group">
+                    <label><i class="fa fa-graduation-cap" style="margin-right:4px;"/>Student</label>
+                    <div class="tm-ar-search-row">
+                        <input type="text" placeholder="Student name…"
+                               t-att-value="state.student_name"
+                               t-on-input="onStudentInput"
+                               t-on-keydown="onStudentKeydown"/>
+                        <button class="tm-ar-search-btn" t-on-click="searchStudent">
+                            <i class="fa fa-search"/>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Table -->
+            <div class="tm-ar-card">
+                <div class="tm-ar-card-header">
+                    <span><t t-esc="state.rows.length"/> lesson(s) found</span>
+                    <div style="display:flex;gap:8px;">
+                        <button class="tm-ar-link-btn" t-on-click="exportExcel">
+                            <i class="fa fa-file-excel-o" style="margin-right:4px;"/>Export to Excel
+                        </button>
+                    </div>
+                </div>
+
+                <div t-if="state.loading" class="tm-ar-loading">
+                    <i class="fa fa-spinner fa-spin" style="font-size:24px;"/>
+                    <div style="margin-top:8px;">Loading…</div>
+                </div>
+
+                <t t-elif="state.rows.length > 0">
+                    <table class="tm-ar-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Course</th>
+                                <th>Tutor</th>
+                                <th>Status</th>
+                                <th>Submitted</th>
+                                <th>Present</th>
+                                <th>Absent</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr t-foreach="state.rows" t-as="row" t-key="row.id"
+                                t-on-click="openOccurrence" t-att-data-id="row.id">
+                                <td style="white-space:nowrap;font-weight:600;color:#343a40;">
+                                    <t t-esc="row.display_date"/>
+                                </td>
+                                <td style="white-space:nowrap;">
+                                    <strong><t t-esc="row.display_start"/></strong>
+                                    <span style="color:#adb5bd;"> — </span>
+                                    <span><t t-esc="row.display_stop"/></span>
+                                </td>
+                                <td><t t-esc="row.course_name"/></td>
+                                <td><t t-esc="row.tutor_name"/></td>
+                                <td>
+                                    <span t-attf-class="tm-ar-badge {{row.lesson_status}}">
+                                        <t t-esc="row.lesson_status"/>
+                                    </span>
+                                </td>
+                                <td>
+                                    <i t-if="row.attendance_marked" class="fa fa-check-circle" style="color:#2e7d32;"/>
+                                    <span t-else="" style="color:#adb5bd;">—</span>
+                                </td>
+                                <td><t t-esc="row.attendance_present_count"/></td>
+                                <td><t t-esc="row.attendance_absent_count"/></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </t>
+
+                <div t-else="" class="tm-ar-empty">
+                    <i class="fa fa-calendar-o" style="font-size:28px;display:block;margin-bottom:10px;"/>
+                    No lessons found for this period
+                </div>
+            </div>
+        </div>
+    </t>
+</templates>

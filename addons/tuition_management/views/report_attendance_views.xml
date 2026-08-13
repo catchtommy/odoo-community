@@ -122,14 +122,18 @@
                 <field name="course_id"/>
                 <field name="tutor_id"/>
                 <field name="report_student_id" string="Student"/>
+                <field name="start_datetime" string="Date"/>
                 <separator/>
                 <!-- Date range filters -->
                 <filter string="Today" name="today"
                         domain="[('start_datetime', '&gt;=', context_today().strftime('%Y-%m-%d')), ('start_datetime', '&lt;', (context_today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d'))]"/>
-                <filter string="Last 7 Days" name="last_7_days"
-                        domain="[('start_datetime', '&gt;=', (context_today() - datetime.timedelta(days=6)).strftime('%Y-%m-%d')), ('start_datetime', '&lt;', (context_today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="This Week" name="this_week"
+                        domain="[('start_datetime', '&gt;=', (context_today() - datetime.timedelta(days=context_today().weekday())).strftime('%Y-%m-%d')),
+                                  ('start_datetime', '&lt;', (context_today() - datetime.timedelta(days=context_today().weekday()) + datetime.timedelta(days=7)).strftime('%Y-%m-%d'))]"/>
                 <filter string="This Month" name="this_month"
                         domain="[('start_datetime', '&gt;=', context_today().strftime('%Y-%m-01'))]"/>
+                <filter string="Last 7 Days" name="last_7_days"
+                        domain="[('start_datetime', '&gt;=', (context_today() - datetime.timedelta(days=6)).strftime('%Y-%m-%d')), ('start_datetime', '&lt;', (context_today() + datetime.timedelta(days=1)).strftime('%Y-%m-%d'))]"/>
                 <separator/>
                 <!-- Attendance submission status -->
                 <filter string="Attendance Submitted" name="submitted"
@@ -191,11 +195,21 @@
         <field name="context">{'search_default_today': 1}</field>
     </record>
 
+    <!-- ============================================================
+         Client action: Attendance Report dashboard (Today / This Week /
+         This Month toggle buttons + Date From/To range, mirrors the
+         Schedule Calendar's tm_schedule_viewer component).
+         ============================================================ -->
+    <record id="action_attendance_report_dashboard" model="ir.actions.client">
+        <field name="name">Attendance Report</field>
+        <field name="tag">tm_attendance_report</field>
+    </record>
+
     <!-- Menu: Reports → Attendance Report -->
     <menuitem id="menu_tuition_attendance_report"
               name="Attendance Report"
               parent="menu_tuition_reports"
-              action="action_attendance_report"
+              action="action_attendance_report_dashboard"
               sequence="5"
               groups="tuition_management.group_tuition_reports_access,base.group_system"/>
 </odoo>

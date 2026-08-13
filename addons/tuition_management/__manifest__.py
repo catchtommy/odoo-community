@@ -78,6 +78,8 @@
             "tuition_management/static/src/widgets/confirm_boolean_field.js",
             "tuition_management/static/src/schedule_viewer/schedule_viewer.js",
             "tuition_management/static/src/schedule_viewer/schedule_viewer.xml",
+            "tuition_management/static/src/attendance_report/attendance_report.js",
+            "tuition_management/static/src/attendance_report/attendance_report.xml",
         ],
     },
 }
