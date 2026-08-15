@@ -4,10 +4,10 @@
         <field name="name">tuition.subject.wise.wizard.form</field>
         <field name="model">tuition.subject.wise.wizard</field>
         <field name="arch" type="xml">
-            <form string="Subject-wise Report" create="false" delete="false" duplicate="false">
+            <form js_class="tm_report_form" string="Subject-wise Report" create="false" delete="false" duplicate="false">
                 <sheet>
                     <div class="tm-rf-filters-card">
-                        <group string="Filters">
+                        <group>
                             <group>
                                 <field name="from_date"/>
                                 <field name="to_date"/>
@@ -19,9 +19,7 @@
                         </group>
                         <div class="tm-rf-btn-row">
                             <button name="action_refresh" type="object" string="Apply" class="btn-primary tm-rf-btn-apply" icon="fa-filter"/>
-                            <button name="action_clear_filters" type="object" string="Clear Filters" class="btn-secondary tm-rf-btn" icon="fa-times"/>
                             <button name="action_export_excel" type="object" string="Export to Excel" class="btn-secondary tm-rf-btn" icon="fa-file-excel-o"/>
-                            <button name="action_close_report" type="object" string="Close" class="btn-secondary tm-rf-btn" icon="fa-sign-out"/>
                         </div>
                     </div>
                     <div class="tm-rf-table-card">

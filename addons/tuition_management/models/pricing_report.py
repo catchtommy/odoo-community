@@ -34,7 +34,11 @@ class TuitionPricingWizard(models.TransientModel):
     filter_currency_id = fields.Many2one('res.currency', string='Currency', default=_default_filter_currency_id)
     filter_product_id = fields.Many2one('product.product', string='Product')
     filter_pricelist_id = fields.Many2one('product.pricelist', string='Pricelist')
-    filter_number_of_classes = fields.Float(string='Number of Classes')
+    filter_number_of_classes = fields.Selection(
+        [(str(n), str(n)) for n in range(1, 8)],
+        string='Number of Classes',
+        help='Number of classes per week.',
+    )
     line_ids = fields.One2many('tuition.pricing.wizard.line', 'wizard_id', string='Lines')
 
     allowed_currency_ids = fields.Many2many('res.currency', compute='_compute_allowed_currency_ids')
@@ -140,7 +144,7 @@ class TuitionPricingWizard(models.TransientModel):
                 )
             )
             if filter_number_of_classes:
-                items = items.filtered(lambda i: (i.min_quantity or 0.0) == filter_number_of_classes)
+                items = items.filtered(lambda i: (i.min_quantity or 0.0) == float(filter_number_of_classes))
             for item in items:
                 product = item.product_id or products.filtered(
                     lambda p: p.product_tmpl_id == item.product_tmpl_id)[:1]
@@ -172,16 +176,10 @@ class TuitionPricingWizard(models.TransientModel):
                 self.env['tuition.pricing.wizard.line'].create(line)
 
     def action_refresh(self):
+        # Refresh in place — must NOT return a new act_window action, or the
+        # client pushes a second, duplicate breadcrumb/header for the same record.
         self.ensure_one()
         self._refresh_lines()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Pricing',
-            'res_model': self._name,
-            'view_mode': 'form',
-            'res_id': self.id,
-            'target': 'current',
-        }
 
     def action_clear_filters(self):
         self.ensure_one()

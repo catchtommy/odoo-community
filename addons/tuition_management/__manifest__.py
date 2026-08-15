@@ -70,6 +70,7 @@
     "assets": {
         "web.assets_backend": [
             "tuition_management/static/src/css/report_filters.css",
+            "tuition_management/static/src/report_form/report_form_controller.js",
             "tuition_management/static/src/dashboard/dashboard.js",
             "tuition_management/static/src/dashboard/dashboard.xml",
             "tuition_management/static/src/tutor_list/tutor_list_controller.js",

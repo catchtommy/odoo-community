@@ -178,16 +178,10 @@ class TuitionClassStatusWizard(models.TransientModel):
                 self.env['tuition.class.status.wizard.line'].create(line)
 
     def action_refresh(self):
+        # Refresh in place — must NOT return a new act_window action, or the
+        # client pushes a second, duplicate breadcrumb/header for the same record.
         self.ensure_one()
         self._refresh_lines()
-        return {
-            'type': 'ir.actions.act_window',
-            'name': 'Class Status Report',
-            'res_model': self._name,
-            'view_mode': 'form',
-            'res_id': self.id,
-            'target': 'current',
-        }
 
     def action_clear_filters(self):
         self.ensure_one()
