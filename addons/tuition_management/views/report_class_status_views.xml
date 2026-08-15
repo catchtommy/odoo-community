@@ -23,26 +23,20 @@
                     </div>
                     <div class="tm-rf-table-card">
                         <field name="line_ids" nolabel="1">
-                            <list string="Class Status Report" create="false" edit="false" delete="false">
+                            <list string="Class Status Report" create="false" edit="false" delete="false" no_open="1">
                                 <field name="report_date" string="Date"/>
-                                <field name="total_scheduled_classes" string="Scheduled" sum="Total Scheduled"/>
-                                <button name="action_view_scheduled" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="pending_classes" string="Pending (All)" sum="Total Pending"/>
-                                <button name="action_view_pending" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="under_review_classes" string="Under Review" sum="Total Under Review"/>
-                                <button name="action_view_under_review" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="total_demos" string="Demos" sum="Total Demos"/>
-                                <button name="action_view_demos" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="attendance_pending_classes" string="Attendance Pending" sum="Total Attendance Pending"/>
-                                <button name="action_view_attendance_pending" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="completed_classes" string="Completed" sum="Total Completed"/>
-                                <button name="action_view_completed" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="cancelled_classes" string="Cancelled" sum="Total Cancelled"/>
-                                <button name="action_view_cancelled" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="rescheduled_classes" string="Rescheduled" sum="Total Rescheduled"/>
-                                <button name="action_view_rescheduled" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="billable_actual_classes" string="Billable" sum="Total Billable"/>
-                                <button name="action_view_billable" type="object" icon="fa-external-link" string="Details"/>
+                                <field name="total_scheduled_classes" string="Scheduled" sum="Total Scheduled"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_view_scheduled'}"/>
+                                <field name="pending_classes" string="Pending (All)" sum="Total Pending"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_view_pending'}"/>
+                                <field name="total_demos" string="Demos" sum="Total Demos"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_view_demos'}"/>
+                                <field name="completed_classes" string="Completed" sum="Total Completed"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_view_completed'}"/>
+                                <field name="cancelled_classes" string="Cancelled" sum="Total Cancelled"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_view_cancelled'}"/>
+                                <field name="rescheduled_classes" string="Rescheduled" sum="Total Rescheduled"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_view_rescheduled'}"/>
                             </list>
                         </field>
                     </div>

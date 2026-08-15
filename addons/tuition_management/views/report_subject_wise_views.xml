@@ -24,15 +24,15 @@
                     </div>
                     <div class="tm-rf-table-card">
                         <field name="line_ids" nolabel="1">
-                            <list string="Subject-wise Report" create="false" edit="false" delete="false">
+                            <list string="Subject-wise Report" create="false" edit="false" delete="false" no_open="1">
                                 <field name="category_id"/>
                                 <field name="subject_id"/>
-                                <field name="total_classes" sum="Classes"/>
-                                <button name="action_open_classes" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="total_demos" sum="Demos"/>
-                                <button name="action_open_demos" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="total_sessions" sum="Total"/>
-                                <button name="action_open_total" type="object" icon="fa-external-link" string="Details"/>
+                                <field name="total_classes" sum="Classes"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_open_classes'}"/>
+                                <field name="total_demos" sum="Demos"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_open_demos'}"/>
+                                <field name="total_sessions" sum="Total"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_open_total'}"/>
                             </list>
                         </field>
                     </div>

@@ -119,14 +119,7 @@ class TuitionClassStatusWizard(models.TransientModel):
                 COUNT(*) FILTER (
                     WHERE occ.lesson_status IN ('scheduled', 'under_review')
                 )::integer AS pending_classes,
-                COUNT(*) FILTER (
-                    WHERE occ.lesson_status = 'under_review'
-                )::integer AS under_review_classes,
                 COUNT(*) FILTER (WHERE COALESCE(occ.is_demo, FALSE))::integer AS total_demos,
-                COUNT(*) FILTER (
-                    WHERE occ.lesson_status = 'completed'
-                      AND NOT COALESCE(occ.attendance_marked, FALSE)
-                )::integer AS attendance_pending_classes,
                 COUNT(*) FILTER (
                     WHERE occ.lesson_status = 'completed'
                 )::integer AS completed_classes,
@@ -137,11 +130,7 @@ class TuitionClassStatusWizard(models.TransientModel):
                 COUNT(*) FILTER (
                     WHERE NOT COALESCE(occ.is_demo, FALSE)
                       AND (COALESCE(occ.is_rescheduled, FALSE) OR occ.lesson_status = 'rescheduled')
-                )::integer AS rescheduled_classes,
-                COUNT(*) FILTER (
-                    WHERE NOT COALESCE(occ.is_demo, FALSE)
-                      AND occ.lesson_status = 'completed'
-                )::integer AS billable_actual_classes
+                )::integer AS rescheduled_classes
             FROM class_schedule_occurrence occ
             WHERE occ.start_datetime >= %s
               AND occ.start_datetime <= %s
@@ -158,13 +147,10 @@ class TuitionClassStatusWizard(models.TransientModel):
                 'report_date': row[0],
                 'total_scheduled_classes': row[1],
                 'pending_classes': row[2],
-                'under_review_classes': row[3],
-                'total_demos': row[4],
-                'attendance_pending_classes': row[5],
-                'completed_classes': row[6],
-                'cancelled_classes': row[7],
-                'rescheduled_classes': row[8],
-                'billable_actual_classes': row[9],
+                'total_demos': row[3],
+                'completed_classes': row[4],
+                'cancelled_classes': row[5],
+                'rescheduled_classes': row[6],
             }
             for row in self.env.cr.fetchall()
         ]
@@ -216,20 +202,19 @@ class TuitionClassStatusWizard(models.TransientModel):
         sheet.write(0, 0, 'Class Status Report', title_fmt)
         sheet.write(1, 0, f"Period: {self.from_date} to {self.to_date}")
 
-        headers = ['Date', 'Scheduled', 'Pending', 'Under Review', 'Demos', 'Attendance Pending', 'Completed', 'Cancelled', 'Rescheduled', 'Billable']
-        col_widths = [14, 12, 12, 14, 10, 18, 12, 12, 14, 10]
+        headers = ['Date', 'Scheduled', 'Pending', 'Demos', 'Completed', 'Cancelled', 'Rescheduled']
+        col_widths = [14, 12, 12, 10, 12, 12, 14]
         for col, (h, w) in enumerate(zip(headers, col_widths)):
             sheet.write(3, col, h, header_fmt)
             sheet.set_column(col, col, w)
 
-        totals = [0] * 9
+        totals = [0] * 6
         for row_idx, line in enumerate(self.line_ids, start=4):
             sheet.write(row_idx, 0, line.report_date, date_fmt)
             nums = [
-                line.total_scheduled_classes, line.pending_classes, line.under_review_classes,
-                line.total_demos, line.attendance_pending_classes,
+                line.total_scheduled_classes, line.pending_classes,
+                line.total_demos,
                 line.completed_classes, line.cancelled_classes, line.rescheduled_classes,
-                line.billable_actual_classes,
             ]
             for col, val in enumerate(nums, start=1):
                 sheet.write(row_idx, col, val, num_fmt)
@@ -267,13 +252,10 @@ class TuitionClassStatusWizardLine(models.TransientModel):
     report_date = fields.Date(string='Date', readonly=True)
     total_scheduled_classes = fields.Integer(string='Scheduled', readonly=True)
     pending_classes = fields.Integer(string='Pending', readonly=True)
-    under_review_classes = fields.Integer(string='Under Review', readonly=True)
     total_demos = fields.Integer(string='Demos', readonly=True)
-    attendance_pending_classes = fields.Integer(string='Attendance Pending', readonly=True)
     completed_classes = fields.Integer(string='Completed', readonly=True)
     cancelled_classes = fields.Integer(string='Cancelled', readonly=True)
     rescheduled_classes = fields.Integer(string='Rescheduled', readonly=True)
-    billable_actual_classes = fields.Integer(string='Billable', readonly=True)
 
     def _get_date_range(self):
         group_by = self.wizard_id.group_by or 'day'
@@ -316,17 +298,8 @@ class TuitionClassStatusWizardLine(models.TransientModel):
             [('lesson_status', 'in', ['scheduled', 'under_review'])],
         )
 
-    def action_view_under_review(self):
-        return self._occurrence_action('Under Review Classes', [('lesson_status', '=', 'under_review')])
-
     def action_view_demos(self):
         return self._occurrence_action('Demo Classes', [('is_demo', '=', True)])
-
-    def action_view_attendance_pending(self):
-        return self._occurrence_action(
-            'Attendance Pending',
-            [('lesson_status', '=', 'completed'), ('attendance_marked', '=', False)],
-        )
 
     def action_view_completed(self):
         return self._occurrence_action('Completed Classes', [('lesson_status', '=', 'completed')])
@@ -339,6 +312,3 @@ class TuitionClassStatusWizardLine(models.TransientModel):
             'Rescheduled Classes',
             [('is_demo', '=', False), '|', ('is_rescheduled', '=', True), ('lesson_status', '=', 'rescheduled')],
         )
-
-    def action_view_billable(self):
-        return self._occurrence_action('Billable Classes', [('is_demo', '=', False), ('lesson_status', '=', 'completed')])

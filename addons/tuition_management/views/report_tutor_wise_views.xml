@@ -26,21 +26,21 @@
                     </div>
                     <div class="tm-rf-table-card">
                         <field name="line_ids" nolabel="1">
-                            <list string="Tutor-wise Report" create="false" edit="false" delete="false">
+                            <list string="Tutor-wise Report" create="false" edit="false" delete="false" no_open="1">
                                 <field name="tutor_id"/>
                                 <field name="category_subject"/>
                                 <field name="category_id" optional="hide"/>
                                 <field name="subject_id" optional="hide"/>
-                                <field name="total_classes" sum="Classes"/>
-                                <button name="action_open_classes" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="total_demos" sum="Demos"/>
-                                <button name="action_open_demos" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="completed_classes" sum="Completed"/>
-                                <button name="action_open_completed" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="cancelled_classes" sum="Cancelled"/>
-                                <button name="action_open_cancelled" type="object" icon="fa-external-link" string="Details"/>
-                                <field name="effective_classes" sum="Effective"/>
-                                <button name="action_open_effective" type="object" icon="fa-external-link" string="Details"/>
+                                <field name="total_classes" sum="Classes"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_open_classes'}"/>
+                                <field name="total_demos" sum="Demos"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_open_demos'}"/>
+                                <field name="completed_classes" sum="Completed"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_open_completed'}"/>
+                                <field name="cancelled_classes" sum="Cancelled"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_open_cancelled'}"/>
+                                <field name="effective_classes" sum="Effective"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_open_effective'}"/>
                             </list>
                         </field>
                     </div>

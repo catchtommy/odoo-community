@@ -101,3 +101,15 @@
 .tm-rf-table-card table.o_list_table > tbody > tr.o_data_row > td {
     vertical-align: middle;
 }
+/* Clickable stat value — replaces the separate "Details" link/button */
+.tm-drilldown-stat {
+    color: #4361ee;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    transition: text-decoration-color 0.15s;
+}
+.tm-drilldown-stat:hover {
+    text-decoration-color: #4361ee;
+}

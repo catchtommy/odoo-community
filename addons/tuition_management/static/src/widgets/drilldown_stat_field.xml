@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="tuition_management.DrilldownStatField">
+        <span class="tm-drilldown-stat" t-on-click="onClick" t-esc="formattedValue"/>
+    </t>
+</templates>
