@@ -8,6 +8,13 @@ class TuitionPricingWizard(models.TransientModel):
     _name = 'tuition.pricing.wizard'
     _description = 'Tuition Pricing Wizard'
 
+    def _compute_display_name(self):
+        # No meaningful `name` field on this wizard — the default implementation
+        # falls back to "model,id" (e.g. "tuition.pricing.wizard,3"), which is
+        # confusing shown as the breadcrumb title. Show "Pricing" instead.
+        for rec in self:
+            rec.display_name = 'Pricing'
+
     def _default_filter_company_id(self):
         company = self.env['res.company'].search([('name', 'ilike', 'US Shiningace')], limit=1)
         return company or self.env.company

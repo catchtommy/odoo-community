@@ -98,6 +98,14 @@ class TuitionDateRangeWizardMixin(models.AbstractModel):
     from_date = fields.Date(string='From Date')
     to_date = fields.Date(string='To Date', default=fields.Date.context_today)
 
+    def _compute_display_name(self):
+        # These wizards have no meaningful `name` field, so the default
+        # implementation falls back to "model,id" (e.g. "tuition.class.status.wizard,5"),
+        # which is confusing shown as the breadcrumb title. Use the model's
+        # own description instead ("Class Status Report Wizard" -> "Class Status Report").
+        for rec in self:
+            rec.display_name = rec._description.removesuffix(' Wizard')
+
     def _check_date_range(self):
         for rec in self:
             if rec.from_date and rec.to_date and rec.from_date > rec.to_date:

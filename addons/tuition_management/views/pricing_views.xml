@@ -4,32 +4,36 @@
         <field name="name">tuition.pricing.wizard.form</field>
         <field name="model">tuition.pricing.wizard</field>
         <field name="arch" type="xml">
-            <form string="Pricing">
+            <form string="Pricing" create="false" delete="false" duplicate="false">
                 <sheet>
                     <field name="allowed_currency_ids" invisible="1"/>
                     <field name="allowed_product_ids" invisible="1"/>
                     <field name="allowed_pricelist_ids" invisible="1"/>
-                    <group string="Filters">
-                        <field name="filter_company_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
-                        <field name="filter_currency_id" domain="[('id', 'in', allowed_currency_ids)]" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
-                        <field name="filter_product_id" domain="[('id', 'in', allowed_product_ids)]" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
-                        <field name="filter_pricelist_id" domain="[('id', 'in', allowed_pricelist_ids)]" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
-                        <field name="filter_number_of_classes"/>
-                    </group>
-                    <div class="d-flex gap-2 mb-3">
-                        <button name="action_refresh" type="object" string="Apply" class="btn-primary" icon="fa-filter"/>
-                        <button name="action_clear_filters" type="object" string="Clear Filters" class="btn-secondary" icon="fa-times"/>
+                    <div class="tm-rf-filters-card">
+                        <group string="Filters">
+                            <field name="filter_company_id" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
+                            <field name="filter_currency_id" domain="[('id', 'in', allowed_currency_ids)]" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
+                            <field name="filter_product_id" domain="[('id', 'in', allowed_product_ids)]" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
+                            <field name="filter_pricelist_id" domain="[('id', 'in', allowed_pricelist_ids)]" options="{'no_open': True, 'no_create': True, 'no_create_edit': True, 'no_quick_create': True}"/>
+                            <field name="filter_number_of_classes"/>
+                        </group>
+                        <div class="tm-rf-btn-row">
+                            <button name="action_refresh" type="object" string="Apply" class="btn-primary tm-rf-btn-apply" icon="fa-filter"/>
+                            <button name="action_clear_filters" type="object" string="Clear Filters" class="btn-secondary tm-rf-btn" icon="fa-times"/>
+                        </div>
                     </div>
-                    <field name="line_ids" nolabel="1">
-                        <list string="Pricing" create="false" edit="false" delete="false" no_open="1">
-                            <field name="product_id" options="{'no_open': True}"/>
-                            <field name="pricelist_id" options="{'no_open': True}"/>
-                            <field name="company_id" options="{'no_open': True}"/>
-                            <field name="number_of_classes" string="Number of Classes"/>
-                            <field name="price" widget="monetary"/>
-                            <field name="currency_id" options="{'no_open': True}"/>
-                        </list>
-                    </field>
+                    <div class="tm-rf-table-card">
+                        <field name="line_ids" nolabel="1">
+                            <list string="Pricing" create="false" edit="false" delete="false" no_open="1">
+                                <field name="product_id" options="{'no_open': True}"/>
+                                <field name="pricelist_id" options="{'no_open': True}"/>
+                                <field name="company_id" options="{'no_open': True}"/>
+                                <field name="number_of_classes" string="Number of Classes"/>
+                                <field name="price" widget="monetary"/>
+                                <field name="currency_id" options="{'no_open': True}"/>
+                            </list>
+                        </field>
+                    </div>
                 </sheet>
             </form>
         </field>

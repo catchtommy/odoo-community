@@ -1,0 +1,103 @@
+/*
+ * Shared "filters card" styling for the wizard-based reports (Class Status,
+ * Subject-wise, Tutor-wise), matching the look & feel of the custom
+ * Attendance Report / Schedule Calendar OWL pages — rounded card, uppercase
+ * labels, accent-colored primary action. Purely cosmetic: no field or
+ * behavior changes, only classes added onto the existing form elements.
+ */
+.tm-rf-filters-card {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    padding: 16px 20px !important;
+    margin-bottom: 16px;
+}
+.tm-rf-filters-card > .o_horizontal_separator {
+    display: none;
+}
+.tm-rf-filters-card .o_form_label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #6c757d;
+}
+.tm-rf-filters-card .o_field_widget input,
+.tm-rf-filters-card .o_field_widget .o_input,
+.tm-rf-filters-card .o_field_widget select,
+.tm-rf-filters-card .o_field_widget textarea {
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+}
+.tm-rf-filters-card .o_field_widget input:focus,
+.tm-rf-filters-card .o_field_widget select:focus {
+    border-color: #4361ee;
+    box-shadow: 0 0 0 2px rgba(67, 97, 238, 0.12);
+}
+/* Action buttons row, now inside the filters card itself (not the page header) */
+.tm-rf-btn-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+/* Header action buttons (Apply / Clear Filters / Export to Excel / Close) */
+.tm-rf-btn-apply.btn-primary {
+    background-color: #4361ee !important;
+    border-color: #4361ee !important;
+    border-radius: 6px !important;
+    font-weight: 600;
+}
+.tm-rf-btn-apply.btn-primary:hover {
+    background-color: #3a56d4 !important;
+    border-color: #3a56d4 !important;
+}
+.tm-rf-btn.btn-secondary {
+    border-radius: 6px !important;
+    font-weight: 600;
+    color: #495057;
+}
+.tm-rf-btn.btn-secondary:hover {
+    background-color: #4361ee !important;
+    border-color: #4361ee !important;
+    color: #fff !important;
+}
+
+/* Report line table — mirrors the Attendance Report's tm-ar-table look */
+.tm-rf-table-card {
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e9ecef;
+    overflow: hidden;
+}
+.tm-rf-table-card .o_list_renderer {
+    overflow-x: auto;
+}
+.tm-rf-table-card table.o_list_table {
+    font-size: 13px;
+}
+.tm-rf-table-card table.o_list_table > thead {
+    background: #4A7CC9;
+}
+.tm-rf-table-card table.o_list_table > thead th {
+    background: #4A7CC9 !important;
+    color: #fff !important;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: none !important;
+    padding-top: 10px;
+    padding-bottom: 10px;
+}
+.tm-rf-table-card table.o_list_table > thead th .o_optional_columns_dropdown_toggle,
+.tm-rf-table-card table.o_list_table > thead th i {
+    color: #fff !important;
+}
+.tm-rf-table-card table.o_list_table > tbody > tr.o_data_row:hover {
+    background: #f0f4ff !important;
+}
+.tm-rf-table-card table.o_list_table > tbody > tr.o_data_row > td {
+    vertical-align: middle;
+}
