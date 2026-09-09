@@ -6,7 +6,7 @@
         <field name="name">student.profile.list</field>
         <field name="model">student.profile</field>
         <field name="arch" type="xml">
-            <list decoration-success="status == 'active'" decoration-muted="status == 'inactive'">
+            <list js_class="student_profile_list" decoration-success="status == 'active'" decoration-muted="status == 'inactive'">
                 <field name="name" string="Full Name"/>
                 <field name="email"/>
                 <field name="phone"/>
@@ -281,7 +281,7 @@
         <field name="name">parent.profile.list</field>
         <field name="model">parent.profile</field>
         <field name="arch" type="xml">
-            <list decoration-success="status == 'active'" decoration-muted="status == 'inactive'">
+            <list js_class="parent_profile_list" decoration-success="status == 'active'" decoration-muted="status == 'inactive'">
                 <field name="name" string="Full Name"/>
                 <field name="email"/>
                 <field name="phone"/>

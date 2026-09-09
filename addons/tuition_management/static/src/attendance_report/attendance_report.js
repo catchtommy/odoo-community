@@ -25,6 +25,12 @@ function getMonthStartStrInTz(tz) {
     return getTodayStrInTz(tz).slice(0, 8) + "01";
 }
 
+function getPrevMonthStartStrInTz(tz) {
+    const [y, m] = getMonthStartStrInTz(tz).split("-").map(Number);
+    const prev = new Date(Date.UTC(y, m - 2, 1)); // m-1 = current month (0-indexed), -1 more = previous month
+    return `${prev.getUTCFullYear()}-${String(prev.getUTCMonth() + 1).padStart(2, "0")}-01`;
+}
+
 function addDays(dateStr, days) {
     const [y, m, d] = dateStr.split("-").map(Number);
     return new Date(Date.UTC(y, m - 1, d + days)).toISOString().slice(0, 10);
@@ -102,11 +108,18 @@ class TmAttendanceReport extends Component {
             courseDropdownOpen: false,
             tutorSearch: "",
             tutorDropdownOpen: false,
+            timezones: [],
+            tzSearch: "",
+            tzDropdownOpen: false,
             loading: false,
         });
 
         onWillStart(async () => {
-            const userTz = await this.orm.call("class.schedule", "get_user_timezone", []);
+            const [userTz, timezones] = await Promise.all([
+                this.orm.call("class.schedule", "get_user_timezone", []),
+                this.orm.call("class.schedule", "get_common_timezones", []),
+            ]);
+            this.state.timezones = timezones;
             this.state.tz = userTz;
             const todayInTz = getTodayStrInTz(userTz);
             this.state.periodStart = todayInTz;
@@ -132,11 +145,22 @@ class TmAttendanceReport extends Component {
         });
     }
 
+    /** Push the current view mode's resolved range into the Date From/To inputs,
+     * so they stay visible and editable — the user can nudge either boundary to
+     * combine a quick filter (Today/Week/Month/Previous Month) with a custom
+     * range, instead of the inputs silently staying stale. */
+    syncDateInputsFromRange() {
+        const { dateFrom, dateTo } = this.rangeStrs();
+        this.state.dateFrom = dateFrom;
+        this.state.dateTo = dateTo;
+    }
+
     /** Resolve the effective from/to date strings for the current view mode. */
     rangeStrs() {
         const { viewMode, periodStart, dateFrom, dateTo, tz } = this.state;
         if (viewMode === "today") return { dateFrom: periodStart, dateTo: periodStart, viewMode };
         if (viewMode === "week") return { dateFrom: periodStart, dateTo: addDays(periodStart, 6), viewMode };
+        if (viewMode === "prev_month") return { dateFrom: periodStart, dateTo: monthEndStrInTz(periodStart), viewMode };
         if (viewMode === "month") return { dateFrom: periodStart, dateTo: monthEndStrInTz(periodStart), viewMode };
         return { dateFrom: dateFrom || getTodayStrInTz(tz), dateTo: dateTo || getTodayStrInTz(tz), viewMode };
     }
@@ -151,6 +175,11 @@ class TmAttendanceReport extends Component {
         return found ? found.name : "All Tutors";
     }
 
+    get selectedTzLabel() {
+        const found = this.state.timezones.find(t => t[0] === this.state.tz);
+        return found ? found[1] : this.state.tz;
+    }
+
     get filteredCourses() {
         const q = this.state.courseSearch.trim().toLowerCase();
         if (!q) return this.state.courses;
@@ -161,6 +190,12 @@ class TmAttendanceReport extends Component {
         const q = this.state.tutorSearch.trim().toLowerCase();
         if (!q) return this.state.tutors;
         return this.state.tutors.filter(t => t.name.toLowerCase().includes(q));
+    }
+
+    get filteredTimezones() {
+        const q = this.state.tzSearch.trim().toLowerCase();
+        if (!q) return this.state.timezones;
+        return this.state.timezones.filter(t => t[1].toLowerCase().includes(q));
     }
 
     // ── Data loaders ───────────────────────────────────────────────────────
@@ -220,7 +255,9 @@ class TmAttendanceReport extends Component {
         const { tz } = this.state;
         if (mode === "today") this.state.periodStart = getTodayStrInTz(tz);
         else if (mode === "week") this.state.periodStart = getMondayStrInTz(tz);
+        else if (mode === "prev_month") this.state.periodStart = getPrevMonthStartStrInTz(tz);
         else if (mode === "month") this.state.periodStart = getMonthStartStrInTz(tz);
+        this.syncDateInputsFromRange();
         await this.loadRows();
     }
 
@@ -278,6 +315,35 @@ class TmAttendanceReport extends Component {
 
     async onStatusChange(ev) {
         this.state.status = ev.target.value;
+        await this.loadRows();
+    }
+
+    onTzSearchInput(ev) { this.state.tzSearch = ev.target.value; }
+
+    onTzFocus() {
+        this.state.tzSearch = "";
+        this.state.tzDropdownOpen = true;
+    }
+
+    onTzBlur() {
+        this.state.tzDropdownOpen = false;
+        this.state.tzSearch = "";
+    }
+
+    /** Re-anchor the current view mode's date(s) in the newly selected timezone,
+     * then reload — "Today"/"This Week"/"This Month" must reflect the chosen
+     * timezone's calendar, not the timezone that was active when they were set. */
+    async onTzSelect(ev) {
+        ev.preventDefault(); // prevent blur before mousedown completes
+        this.state.tz = ev.currentTarget.dataset.value;
+        this.state.tzSearch = "";
+        this.state.tzDropdownOpen = false;
+        const { tz, viewMode } = this.state;
+        if (viewMode === "today") this.state.periodStart = getTodayStrInTz(tz);
+        else if (viewMode === "week") this.state.periodStart = getMondayStrInTz(tz);
+        else if (viewMode === "prev_month") this.state.periodStart = getPrevMonthStartStrInTz(tz);
+        else if (viewMode === "month") this.state.periodStart = getMonthStartStrInTz(tz);
+        if (viewMode !== "custom") this.syncDateInputsFromRange();
         await this.loadRows();
     }
 

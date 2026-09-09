@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!--
+        Derives a new standalone template from web.ListView (mirrors
+        tuition_management.TutorListController / StudentListController).
+        t-inherit-mode="primary" creates a NEW named template, so this
+        doesn't affect any other list view.
+    -->
+    <t t-name="tuition_management.ParentListController"
+       t-inherit="web.ListView"
+       t-inherit-mode="primary">
+        <!-- Remove the default search bar (text search box) and the Filters /
+             Group By / Favorites toggle — the custom filter bar below replaces
+             both, so the standard search UI would just be redundant/confusing. -->
+        <xpath expr="//t[@t-set-slot='layout-actions']" position="replace">
+            <t t-set-slot="layout-actions"/>
+        </xpath>
+        <xpath expr="//t[@t-set-slot='control-panel-navigation-additional']" position="replace">
+            <t t-set-slot="control-panel-navigation-additional"/>
+        </xpath>
+        <xpath expr="//t[@t-component='props.Renderer']" position="before">
+            <div class="tm-parent-filters">
+                <style>
+                    .tm-parent-filters {
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: flex-end;
+                        gap: 12px;
+                        background: #fff;
+                        border: 1px solid #e9ecef;
+                        border-radius: 8px;
+                        padding: 12px 16px;
+                        margin: 0 0 12px;
+                    }
+                    .tm-parent-filters .tm-pf-group {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                        min-width: 170px;
+                    }
+                    .tm-parent-filters .tm-pf-group label {
+                        font-size: 11px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        color: #6c757d;
+                    }
+                    .tm-parent-filters .tm-pf-group select,
+                    .tm-parent-filters .tm-pf-group input {
+                        border: 1px solid #dee2e6;
+                        border-radius: 6px;
+                        padding: 6px 9px;
+                        font-size: 13px;
+                        color: #495057;
+                        background: #fff;
+                        outline: none;
+                    }
+                    .tm-parent-filters .tm-pf-clear {
+                        background: none;
+                        border: 1px solid #dee2e6;
+                        border-radius: 6px;
+                        padding: 6px 14px;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #495057;
+                        cursor: pointer;
+                        height: 32px;
+                    }
+                    .tm-parent-filters .tm-pf-clear:hover { background: #f0f4ff; color: #4361ee; border-color: #4361ee; }
+                    /* Searchable Timezone dropdown */
+                    .tm-parent-filters .tm-pf-picker { position: relative; }
+                    .tm-parent-filters .tm-pf-picker input { width: 100%; cursor: pointer; }
+                    .tm-parent-filters .tm-pf-dropdown {
+                        position: absolute;
+                        top: calc(100% + 2px);
+                        left: 0;
+                        right: 0;
+                        background: #fff;
+                        border: 1px solid #dee2e6;
+                        border-radius: 6px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+                        max-height: 220px;
+                        overflow-y: auto;
+                        z-index: 1000;
+                    }
+                    .tm-parent-filters .tm-pf-option { padding: 8px 12px; font-size: 13px; color: #495057; cursor: pointer; }
+                    .tm-parent-filters .tm-pf-option:hover { background: #f0f4ff; }
+                    .tm-parent-filters .tm-pf-option.tm-pf-selected { background: #e8f0fe; color: #4361ee; font-weight: 600; }
+                    .tm-parent-filters .tm-pf-no-results { padding: 8px 12px; color: #adb5bd; font-size: 13px; }
+                </style>
+                <div class="tm-pf-group">
+                    <label>Name</label>
+                    <input type="text" placeholder="Search name…"
+                           t-att-value="parentFilters.name"
+                           t-on-input="onParentNameInput"
+                           t-on-keydown="onParentNameKeydown"/>
+                </div>
+                <div class="tm-pf-group">
+                    <label>Student Name</label>
+                    <input type="text" placeholder="Search student name…"
+                           t-att-value="parentFilters.studentName"
+                           t-on-input="onParentStudentNameInput"
+                           t-on-keydown="onParentStudentNameKeydown"/>
+                </div>
+                <div class="tm-pf-group">
+                    <label>Status</label>
+                    <select t-on-change="onParentStatusChange">
+                        <option value="" t-att-selected="parentFilters.status === '' ? 'selected' : undefined">All</option>
+                        <option value="active" t-att-selected="parentFilters.status === 'active' ? 'selected' : undefined">Active</option>
+                        <option value="inactive" t-att-selected="parentFilters.status === 'inactive' ? 'selected' : undefined">Inactive</option>
+                    </select>
+                </div>
+                <div class="tm-pf-group tm-pf-picker">
+                    <label>Timezone</label>
+                    <input type="text"
+                           placeholder="Search timezone…"
+                           t-att-value="parentFilters.tzDropdownOpen ? parentFilters.tzSearch : selectedTzLabel"
+                           t-on-input="onTzSearchInput"
+                           t-on-focus="onTzFocus"
+                           t-on-blur="onTzBlur"/>
+                    <div t-if="parentFilters.tzDropdownOpen" class="tm-pf-dropdown">
+                        <div class="tm-pf-option" data-value="" t-on-mousedown="onTzSelect">All Timezones</div>
+                        <t t-if="filteredTimezones.length == 0">
+                            <div class="tm-pf-no-results">No timezones found</div>
+                        </t>
+                        <t t-foreach="filteredTimezones" t-as="tzOpt" t-key="tzOpt[0]">
+                            <div t-attf-class="tm-pf-option {{tzOpt[0] == parentFilters.tz ? 'tm-pf-selected' : ''}}"
+                                 t-att-data-value="tzOpt[0]"
+                                 t-on-mousedown="onTzSelect">
+                                <t t-esc="tzOpt[1]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
+                <button class="tm-pf-clear" t-on-click="clearParentFilters">Clear Filters</button>
+            </div>
+        </xpath>
+    </t>
+</templates>

@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <!--
+        Derives a new standalone template from web.ListView (mirrors
+        tuition_management.TutorListController). t-inherit-mode="primary"
+        creates a NEW named template, so this doesn't affect any other list view.
+    -->
+    <t t-name="tuition_management.StudentListController"
+       t-inherit="web.ListView"
+       t-inherit-mode="primary">
+        <!-- Remove the default search bar (text search box) and the Filters /
+             Group By / Favorites toggle — the custom filter bar below replaces
+             both, so the standard search UI would just be redundant/confusing. -->
+        <xpath expr="//t[@t-set-slot='layout-actions']" position="replace">
+            <t t-set-slot="layout-actions"/>
+        </xpath>
+        <xpath expr="//t[@t-set-slot='control-panel-navigation-additional']" position="replace">
+            <t t-set-slot="control-panel-navigation-additional"/>
+        </xpath>
+        <xpath expr="//t[@t-component='props.Renderer']" position="before">
+            <div class="tm-student-filters">
+                <style>
+                    .tm-student-filters {
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: flex-end;
+                        gap: 12px;
+                        background: #fff;
+                        border: 1px solid #e9ecef;
+                        border-radius: 8px;
+                        padding: 12px 16px;
+                        margin: 0 0 12px;
+                    }
+                    .tm-student-filters .tm-sf-group {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                        min-width: 170px;
+                    }
+                    .tm-student-filters .tm-sf-group label {
+                        font-size: 11px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        color: #6c757d;
+                    }
+                    .tm-student-filters .tm-sf-group select,
+                    .tm-student-filters .tm-sf-group input {
+                        border: 1px solid #dee2e6;
+                        border-radius: 6px;
+                        padding: 6px 9px;
+                        font-size: 13px;
+                        color: #495057;
+                        background: #fff;
+                        outline: none;
+                    }
+                    .tm-student-filters .tm-sf-clear {
+                        background: none;
+                        border: 1px solid #dee2e6;
+                        border-radius: 6px;
+                        padding: 6px 14px;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #495057;
+                        cursor: pointer;
+                        height: 32px;
+                    }
+                    .tm-student-filters .tm-sf-clear:hover { background: #f0f4ff; color: #4361ee; border-color: #4361ee; }
+                </style>
+                <div class="tm-sf-group">
+                    <label>Name</label>
+                    <input type="text" placeholder="Search name…"
+                           t-att-value="studentFilters.name"
+                           t-on-input="onStudentNameInput"
+                           t-on-keydown="onStudentNameKeydown"/>
+                </div>
+                <div class="tm-sf-group">
+                    <label>Parent Name</label>
+                    <input type="text" placeholder="Search parent name…"
+                           t-att-value="studentFilters.parentName"
+                           t-on-input="onStudentParentNameInput"
+                           t-on-keydown="onStudentParentNameKeydown"/>
+                </div>
+                <div class="tm-sf-group">
+                    <label>Status</label>
+                    <select t-on-change="onStudentStatusChange">
+                        <option value="" t-att-selected="studentFilters.status === '' ? 'selected' : undefined">All</option>
+                        <option value="active" t-att-selected="studentFilters.status === 'active' ? 'selected' : undefined">Active</option>
+                        <option value="inactive" t-att-selected="studentFilters.status === 'inactive' ? 'selected' : undefined">Inactive</option>
+                    </select>
+                </div>
+                <div class="tm-sf-group">
+                    <label>Category</label>
+                    <select t-on-change="onStudentCategoryChange">
+                        <option value="" t-att-selected="studentFilters.categoryId === '' ? 'selected' : undefined">All Categories</option>
+                        <t t-foreach="studentFilters.categories" t-as="cat" t-key="cat.id">
+                            <option t-att-value="cat.id" t-att-selected="cat.id == studentFilters.categoryId ? 'selected' : undefined">
+                                <t t-esc="cat.name"/>
+                            </option>
+                        </t>
+                    </select>
+                </div>
+                <div class="tm-sf-group">
+                    <label>Subject</label>
+                    <select t-on-change="onStudentSubjectChange">
+                        <option value="" t-att-selected="studentFilters.subjectId === '' ? 'selected' : undefined">All Subjects</option>
+                        <t t-foreach="studentFilters.subjects" t-as="subj" t-key="subj.id">
+                            <option t-att-value="subj.id" t-att-selected="subj.id == studentFilters.subjectId ? 'selected' : undefined">
+                                <t t-esc="subj.name"/>
+                            </option>
+                        </t>
+                    </select>
+                </div>
+                <div class="tm-sf-group">
+                    <label>Grade</label>
+                    <select t-on-change="onStudentGradeChange">
+                        <option value="" t-att-selected="studentFilters.gradeId === '' ? 'selected' : undefined">All Grades</option>
+                        <t t-foreach="studentFilters.grades" t-as="gr" t-key="gr.id">
+                            <option t-att-value="gr.id" t-att-selected="gr.id == studentFilters.gradeId ? 'selected' : undefined">
+                                <t t-esc="gr.name"/>
+                            </option>
+                        </t>
+                    </select>
+                </div>
+                <button class="tm-sf-clear" t-on-click="clearStudentFilters">Clear Filters</button>
+            </div>
+        </xpath>
+    </t>
+</templates>

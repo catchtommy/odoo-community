@@ -16,5 +16,123 @@
                 Import / Export
             </button>
         </xpath>
+        <!-- Remove the default search bar (text search box) and the Filters /
+             Group By / Favorites toggle — the custom filter bar below replaces
+             both, so the standard search UI would just be redundant/confusing. -->
+        <xpath expr="//t[@t-set-slot='layout-actions']" position="replace">
+            <t t-set-slot="layout-actions"/>
+        </xpath>
+        <xpath expr="//t[@t-set-slot='control-panel-navigation-additional']" position="replace">
+            <t t-set-slot="control-panel-navigation-additional"/>
+        </xpath>
+        <xpath expr="//t[@t-component='props.Renderer']" position="before">
+            <div class="tm-tutor-filters">
+                <style>
+                    .tm-tutor-filters {
+                        display: flex;
+                        flex-wrap: wrap;
+                        align-items: flex-end;
+                        gap: 12px;
+                        background: #fff;
+                        border: 1px solid #e9ecef;
+                        border-radius: 8px;
+                        padding: 12px 16px;
+                        margin: 0 0 12px;
+                    }
+                    .tm-tutor-filters .tm-tf-group {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 4px;
+                        min-width: 170px;
+                    }
+                    .tm-tutor-filters .tm-tf-group label {
+                        font-size: 11px;
+                        font-weight: 600;
+                        text-transform: uppercase;
+                        letter-spacing: 0.5px;
+                        color: #6c757d;
+                    }
+                    .tm-tutor-filters .tm-tf-group select,
+                    .tm-tutor-filters .tm-tf-group input {
+                        border: 1px solid #dee2e6;
+                        border-radius: 6px;
+                        padding: 6px 9px;
+                        font-size: 13px;
+                        color: #495057;
+                        background: #fff;
+                        outline: none;
+                    }
+                    .tm-tutor-filters .tm-tf-clear {
+                        background: none;
+                        border: 1px solid #dee2e6;
+                        border-radius: 6px;
+                        padding: 6px 14px;
+                        font-size: 13px;
+                        font-weight: 600;
+                        color: #495057;
+                        cursor: pointer;
+                        height: 32px;
+                    }
+                    .tm-tutor-filters .tm-tf-clear:hover { background: #f0f4ff; color: #4361ee; border-color: #4361ee; }
+                </style>
+                <div class="tm-tf-group">
+                    <label>Name</label>
+                    <input type="text" placeholder="Search name…"
+                           t-att-value="tutorFilters.name"
+                           t-on-input="onTutorNameInput"
+                           t-on-keydown="onTutorNameKeydown"/>
+                </div>
+                <div class="tm-tf-group">
+                    <label>Employment Type</label>
+                    <select t-on-change="onTutorEmploymentChange">
+                        <option value="" t-att-selected="tutorFilters.employmentType === '' ? 'selected' : undefined">All</option>
+                        <option value="contract" t-att-selected="tutorFilters.employmentType === 'contract' ? 'selected' : undefined">Contract (Hourly)</option>
+                        <option value="permanent" t-att-selected="tutorFilters.employmentType === 'permanent' ? 'selected' : undefined">Permanent (Fixed Payroll)</option>
+                    </select>
+                </div>
+                <div class="tm-tf-group">
+                    <label>Status</label>
+                    <select t-on-change="onTutorStatusChange">
+                        <option value="" t-att-selected="tutorFilters.status === '' ? 'selected' : undefined">All</option>
+                        <option value="active" t-att-selected="tutorFilters.status === 'active' ? 'selected' : undefined">Active</option>
+                        <option value="inactive" t-att-selected="tutorFilters.status === 'inactive' ? 'selected' : undefined">Inactive</option>
+                    </select>
+                </div>
+                <div class="tm-tf-group">
+                    <label>Category</label>
+                    <select t-on-change="onTutorCategoryChange">
+                        <option value="" t-att-selected="tutorFilters.categoryId === '' ? 'selected' : undefined">All Categories</option>
+                        <t t-foreach="tutorFilters.categories" t-as="cat" t-key="cat.id">
+                            <option t-att-value="cat.id" t-att-selected="cat.id == tutorFilters.categoryId ? 'selected' : undefined">
+                                <t t-esc="cat.name"/>
+                            </option>
+                        </t>
+                    </select>
+                </div>
+                <div class="tm-tf-group">
+                    <label>Subject</label>
+                    <select t-on-change="onTutorSubjectChange">
+                        <option value="" t-att-selected="tutorFilters.subjectId === '' ? 'selected' : undefined">All Subjects</option>
+                        <t t-foreach="tutorFilters.subjects" t-as="subj" t-key="subj.id">
+                            <option t-att-value="subj.id" t-att-selected="subj.id == tutorFilters.subjectId ? 'selected' : undefined">
+                                <t t-esc="subj.name"/>
+                            </option>
+                        </t>
+                    </select>
+                </div>
+                <div class="tm-tf-group">
+                    <label>Grade</label>
+                    <select t-on-change="onTutorGradeChange">
+                        <option value="" t-att-selected="tutorFilters.gradeId === '' ? 'selected' : undefined">All Grades</option>
+                        <t t-foreach="tutorFilters.grades" t-as="gr" t-key="gr.id">
+                            <option t-att-value="gr.id" t-att-selected="gr.id == tutorFilters.gradeId ? 'selected' : undefined">
+                                <t t-esc="gr.name"/>
+                            </option>
+                        </t>
+                    </select>
+                </div>
+                <button class="tm-tf-clear" t-on-click="clearTutorFilters">Clear Filters</button>
+            </div>
+        </xpath>
     </t>
 </templates>

@@ -169,7 +169,7 @@ class ClassSchedule(models.Model):
             return
         lines = []
         for occ in conflicts[:5]:
-            start_str = occ.start_datetime.strftime('%a %d %b %Y %H:%M') if occ.start_datetime else '?'
+            start_str = self._fmt_conflict_dt(occ.start_datetime)
             lines.append('• %s  (%s)  —  Course: %s' % (
                 occ.name or '?', start_str, occ.course_id.name or '—'))
         if len(conflicts) > 5:
@@ -183,6 +183,23 @@ class ClassSchedule(models.Model):
                 ) % '\n'.join(lines),
             }
         }
+
+    def _fmt_conflict_dt(self, dt):
+        """Format a stored UTC datetime for a conflict message, converted into
+        this record's own timezone (not raw UTC) so the displayed time is
+        directly comparable to the schedule time the user just entered —
+        showing unlabeled UTC here previously made real conflicts look like
+        unrelated/wrong times and confused users into thinking the check was
+        broken."""
+        if not dt:
+            return '?'
+        tz_name = self.timezone or self.env.user.tz or DEFAULT_TIMEZONE
+        try:
+            tz = pytz.timezone(tz_name)
+        except pytz.UnknownTimeZoneError:
+            tz_name, tz = 'UTC', pytz.utc
+        local_dt = dt.replace(tzinfo=pytz.utc).astimezone(tz)
+        return local_dt.strftime('%a %d %b %Y %H:%M') + ' (' + tz_name + ')'
 
     def _find_tutor_schedule_conflicts(self):
         """Return existing non-cancelled occurrences that overlap the proposed time slots."""
@@ -255,8 +272,7 @@ class ClassSchedule(models.Model):
             if conflicts:
                 lines = []
                 for c in conflicts[:5]:
-                    dt_str = (c.start_datetime.strftime('%a %d %b %Y %H:%M UTC')
-                              if c.start_datetime else '?')
+                    dt_str = rec._fmt_conflict_dt(c.start_datetime)
                     lines.append('  • %s  (%s)  —  %s' % (c.name or '?', dt_str, c.course_id.name or '—'))
                 raise ValidationError(
                     'Cannot save: tutor "%s" already has a lesson at the same time:\n\n%s\n\n'
@@ -387,7 +403,18 @@ class ClassSchedule(models.Model):
                 if day_end.date() > cursor.date() and end_float == 0:
                     end_float = 24.0
                 avail = tutor.availability_ids.filtered(lambda a, d=day_name: a.day_of_week == d)
-                day_full = any(a.start_time <= start_float and a.end_time >= end_float for a in avail)
+                # Merge back-to-back / overlapping slots so a requested window
+                # spanning multiple adjacent availability rows (e.g. 09:00-12:00
+                # + 12:00-17:00) is still recognised as fully covered, instead of
+                # requiring one single row to contain the whole window.
+                intervals = sorted((a.start_time, a.end_time) for a in avail)
+                merged = []
+                for s, e in intervals:
+                    if merged and s <= merged[-1][1]:
+                        merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+                    else:
+                        merged.append((s, e))
+                day_full = any(m_start <= start_float and m_end >= end_float for m_start, m_end in merged)
                 if not day_full:
                     return False
                 cursor = day_end
@@ -836,6 +863,14 @@ class ClassScheduleOccurrence(models.Model):
         compute='_compute_start_local_display',
         store=False,
     )
+    start_tz_abbr = fields.Char(
+        string='TZ',
+        compute='_compute_start_tz_abbr',
+        store=False,
+        help='Abbreviation of the viewing user\'s timezone (e.g. EST, IST) at the '
+             'time of this lesson — matches the timezone the raw Start field is '
+             'displayed in, since the web client converts it to the user\'s tz.',
+    )
     calendar_label = fields.Char(
         string='Calendar Label',
         compute='_compute_calendar_label',
@@ -948,6 +983,20 @@ class ClassScheduleOccurrence(models.Model):
                 tz = pytz.utc
             local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
             rec.start_local_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
+
+    @api.depends('start_datetime')
+    def _compute_start_tz_abbr(self):
+        user_tz_name = self.env.user.tz or 'UTC'
+        try:
+            user_tz = pytz.timezone(user_tz_name)
+        except pytz.UnknownTimeZoneError:
+            user_tz = pytz.utc
+        for rec in self:
+            if not rec.start_datetime:
+                rec.start_tz_abbr = ''
+                continue
+            local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(user_tz)
+            rec.start_tz_abbr = local_dt.strftime('%Z')
 
     @api.depends('name', 'course_id', 'tutor_id', 'start_datetime', 'schedule_id', 'schedule_id.timezone')
     def _compute_calendar_label(self):

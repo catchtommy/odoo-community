@@ -201,6 +201,9 @@
                         <button data-mode="week"
                                 t-att-class="state.viewMode === 'week' ? 'tm-ar-active' : ''"
                                 t-on-click="onViewModeClick">This Week</button>
+                        <button data-mode="prev_month"
+                                t-att-class="state.viewMode === 'prev_month' ? 'tm-ar-active' : ''"
+                                t-on-click="onViewModeClick">Previous Month</button>
                         <button data-mode="month"
                                 t-att-class="state.viewMode === 'month' ? 'tm-ar-active' : ''"
                                 t-on-click="onViewModeClick">This Month</button>
@@ -262,6 +265,27 @@
                         </t>
                     </div>
                 </div>
+                <div class="tm-ar-ctrl-group tm-ar-picker">
+                    <label><i class="fa fa-globe" style="margin-right:4px;"/>Timezone</label>
+                    <input type="text"
+                           placeholder="Search timezone…"
+                           t-att-value="state.tzDropdownOpen ? state.tzSearch : selectedTzLabel"
+                           t-on-input="onTzSearchInput"
+                           t-on-focus="onTzFocus"
+                           t-on-blur="onTzBlur"/>
+                    <div t-if="state.tzDropdownOpen" class="tm-ar-dropdown">
+                        <t t-if="filteredTimezones.length == 0">
+                            <div class="tm-ar-no-results">No timezones found</div>
+                        </t>
+                        <t t-foreach="filteredTimezones" t-as="tzOpt" t-key="tzOpt[0]">
+                            <div t-attf-class="tm-ar-option {{tzOpt[0] == state.tz ? 'tm-ar-selected' : ''}}"
+                                 t-att-data-value="tzOpt[0]"
+                                 t-on-mousedown="onTzSelect">
+                                <t t-esc="tzOpt[1]"/>
+                            </div>
+                        </t>
+                    </div>
+                </div>
                 <div class="tm-ar-ctrl-group">
                     <label><i class="fa fa-flag" style="margin-right:4px;"/>Status</label>
                     <select t-on-change="onStatusChange">
@@ -307,7 +331,7 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Time</th>
+                                <th>Time (<t t-esc="state.tz"/>)</th>
                                 <th>Course</th>
                                 <th>Tutor</th>
                                 <th>Status</th>

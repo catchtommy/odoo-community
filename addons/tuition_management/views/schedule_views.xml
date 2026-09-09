@@ -8,7 +8,6 @@
             <list string="Class Schedules">
                 <field name="course_id"/><field name="schedule_type"/>
                 <field name="schedule_hour"/><field name="schedule_minute"/>
-                <field name="virtual_provider_default"/>
                 <field name="timezone"/><field name="status"/>
             </list>
         </field>

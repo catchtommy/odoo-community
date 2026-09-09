@@ -952,37 +952,50 @@ class DemoSession(models.Model):
             start_float = local_dt.hour + (local_dt.minute / 60.0)
             end_float = start_float + (rec.duration_minutes / 60.0)
 
-            # Initial domain filter: find tutors available on this day+time
-            # (comparison against stored times which are in the tutor's local timezone)
+            # Initial domain filter: narrow to tutors with ANY availability on this
+            # day. Do NOT filter by start_time/end_time here — a tutor's day can be
+            # split across multiple back-to-back rows (e.g. 09:00-12:00 +
+            # 12:00-17:00), and a single row is not required to cover the whole
+            # requested window. The real coverage check (with interval merging)
+            # happens per-tutor below.
             domain = [('availability_ids.day_of_week', '=', day_name),
-                      ('availability_ids.start_time', '<=', start_float),
-                      ('availability_ids.end_time', '>=', end_float),
                       ('active', '=', True)]
             if rec.subject_id:
                 domain.append(('subject_ids', 'in', rec.subject_id.id))
 
             candidates = self.env['tutor.profile'].search(domain)
 
-            # Secondary per-tutor filter: adjust for tutors whose timezone differs
-            # from the enquiry timezone (convert start_float to each tutor's local time).
+            def _covers_window(tutor, day, st, et):
+                """True if tutor's merged availability for `day` fully covers [st, et)."""
+                avail = tutor.availability_ids.filtered(lambda a, d=day: a.day_of_week == d)
+                intervals = sorted((a.start_time, a.end_time) for a in avail)
+                merged = []
+                for s, e in intervals:
+                    if merged and s <= merged[-1][1]:
+                        merged[-1] = (merged[-1][0], max(merged[-1][1], e))
+                    else:
+                        merged.append((s, e))
+                return any(m_start <= st and m_end >= et for m_start, m_end in merged)
+
+            # Per-tutor filter: adjust for tutors whose timezone differs from the
+            # enquiry timezone (convert start_float to each tutor's local time),
+            # then check merged-interval coverage for that day.
             available = self.env['tutor.profile']
             for tutor in candidates:
                 tutor_tz_name = tutor.timezone or 'UTC'
                 enq_tz_name = rec.timezone or 'UTC'
                 if tutor_tz_name == enq_tz_name:
-                    available |= tutor
+                    if _covers_window(tutor, day_name, start_float, end_float):
+                        available |= tutor
                     continue
                 # Convert enquiry local time to tutor's local time
                 try:
                     tutor_tz = _pytz.timezone(tutor_tz_name)
                     tutor_dt = local_dt.astimezone(tutor_tz)
+                    t_day = tutor_dt.strftime('%A').lower()
                     t_start = tutor_dt.hour + tutor_dt.minute / 60.0
                     t_end = t_start + (rec.duration_minutes / 60.0)
-                    covers = tutor.availability_ids.filtered(
-                        lambda a, d=day_name, st=t_start, et=t_end: a.day_of_week == d
-                        and a.start_time <= st and a.end_time >= et
-                    )
-                    if covers:
+                    if _covers_window(tutor, t_day, t_start, t_end):
                         available |= tutor
                 except Exception:
                     available |= tutor  # include on error rather than silently exclude
@@ -1015,9 +1028,19 @@ class DemoSession(models.Model):
         conflicts = self._find_demo_conflicts()
         if not conflicts:
             return
+        import pytz as _pytz
+        tz_name = self.timezone or self.env.user.tz or 'UTC'
+        try:
+            conflict_tz = _pytz.timezone(tz_name)
+        except _pytz.UnknownTimeZoneError:
+            tz_name, conflict_tz = 'UTC', _pytz.utc
         lines = []
         for occ in conflicts[:5]:
-            dt_str = occ.start_datetime.strftime('%a %d %b %Y %H:%M UTC') if occ.start_datetime else '?'
+            if occ.start_datetime:
+                local_dt = occ.start_datetime.replace(tzinfo=_pytz.utc).astimezone(conflict_tz)
+                dt_str = local_dt.strftime('%a %d %b %Y %H:%M') + ' (' + tz_name + ')'
+            else:
+                dt_str = '?'
             lines.append('• %s  (%s)  —  Course: %s' % (occ.name or '?', dt_str, occ.course_id.name or '—'))
         if len(conflicts) > 5:
             lines.append('… and %d more conflict(s).' % (len(conflicts) - 5))
