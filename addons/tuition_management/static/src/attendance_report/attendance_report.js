@@ -371,7 +371,12 @@ class TmAttendanceReport extends Component {
             return;
         }
         const ids = this.state.rows.map(r => r.id);
-        const action = await this.orm.call("class.schedule.occurrence", "action_export_attendance_excel", [ids]);
+        const action = await this.orm.call(
+            "class.schedule.occurrence",
+            "action_export_attendance_excel",
+            [ids],
+            { tz: this.state.tz }
+        );
         await this.action.doAction(action);
     }
 }

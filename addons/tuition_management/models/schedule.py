@@ -1178,9 +1178,15 @@ class ClassScheduleOccurrence(models.Model):
         return {'type': 'ir.actions.act_window', 'name': f'Mark Attendance - {self.name}',
                 'res_model': 'mark.attendance.wizard', 'view_mode': 'form', 'res_id': wizard.id, 'target': 'new'}
 
-    def action_export_attendance_excel(self):
+    def action_export_attendance_excel(self, tz=None):
         if not self:
             raise UserError("Please select at least one record to export.")
+
+        tz_name = tz or self.env.user.tz or DEFAULT_TIMEZONE
+        try:
+            export_tz = pytz.timezone(tz_name)
+        except pytz.UnknownTimeZoneError:
+            tz_name, export_tz = 'UTC', pytz.utc
 
         output = io.BytesIO()
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -1201,7 +1207,12 @@ class ClassScheduleOccurrence(models.Model):
             sheet.set_column(col, col, w)
 
         for row_idx, occ in enumerate(self.sorted('start_datetime'), start=3):
-            sheet.write(row_idx, 0, occ.start_local_display or '', text_fmt)
+            if occ.start_datetime:
+                local_dt = occ.start_datetime.replace(tzinfo=pytz.utc).astimezone(export_tz)
+                date_str = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
+            else:
+                date_str = ''
+            sheet.write(row_idx, 0, date_str, text_fmt)
             sheet.write(row_idx, 1, occ.course_id.name or '', text_fmt)
             sheet.write(row_idx, 2, occ.tutor_id.name or '', text_fmt)
             sheet.write(row_idx, 3, lesson_status_labels.get(occ.lesson_status, ''), text_fmt)
