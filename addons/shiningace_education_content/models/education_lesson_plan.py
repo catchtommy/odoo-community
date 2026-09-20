@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import fields, models
+from .education_lesson import _check_can_publish_content
 
 
 class EducationLessonPlan(models.Model):
@@ -32,3 +33,10 @@ class EducationLessonPlan(models.Model):
     state = fields.Selection(
         selection=[('draft', 'Draft'), ('published', 'Published')], default='draft', required=True,
     )
+
+    def action_publish(self):
+        _check_can_publish_content(self.env)
+        self.write({'state': 'published'})
+
+    def action_reset_draft(self):
+        self.write({'state': 'draft'})

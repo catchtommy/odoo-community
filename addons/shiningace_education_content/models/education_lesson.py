@@ -1,5 +1,16 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models
+from odoo.exceptions import UserError
+
+
+def _check_can_publish_content(env):
+    """Shared gate for moving teaching material (Lesson / Lesson Plan /
+    Lesson Content) from draft to published — same reviewer/curriculum
+    manager groups already trusted to approve tutor proposals and publish
+    a curriculum version itself."""
+    if not (env.user.has_group('shiningace_education_core.group_education_reviewer')
+            or env.user.has_group('shiningace_education_core.group_education_curriculum_manager')):
+        raise UserError("You are not allowed to publish curriculum content.")
 
 
 class EducationLesson(models.Model):
@@ -43,6 +54,7 @@ class EducationLesson(models.Model):
             rec.content_count = len(rec.content_ids)
 
     def action_publish(self):
+        _check_can_publish_content(self.env)
         self.write({'state': 'published'})
 
     def action_archive_lesson(self):
@@ -50,3 +62,15 @@ class EducationLesson(models.Model):
 
     def action_reset_draft(self):
         self.write({'state': 'draft'})
+
+
+class EducationSubtopicLessons(models.Model):
+    """Adds the reverse side of education.lesson.subtopic_id onto
+    education.subtopic. Kept here (in shiningace_education_content) rather
+    than on the base model in shiningace_education_curriculum, since
+    education.lesson is only defined once this module is installed —
+    curriculum must not depend on content (content depends on curriculum,
+    not the other way around)."""
+    _inherit = 'education.subtopic'
+
+    lesson_ids = fields.One2many('education.lesson', 'subtopic_id', string='Lessons')

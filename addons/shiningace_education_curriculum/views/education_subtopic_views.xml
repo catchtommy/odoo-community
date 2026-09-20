@@ -61,13 +61,20 @@
                             <field name="review_notes" placeholder="Notes for the tutor (shown when rejecting)…"/>
                         </group>
                     </group>
-                    <field name="description"/>
-                    <field name="learning_objective_ids">
-                        <list editable="bottom">
-                            <field name="name"/>
-                            <field name="bloom_level"/>
-                        </list>
-                    </field>
+                    <field name="description" widget="edu_math_text"/>
+                    <notebook>
+                        <!-- Other modules (e.g. shiningace_education_content, which adds
+                             lesson_ids) extend this notebook with more pages — see
+                             education_subtopic_lessons_views.xml. -->
+                        <page string="Learning Objectives" name="learning_objectives">
+                            <field name="learning_objective_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="bloom_level"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
                 </sheet>
             </form>
         </field>

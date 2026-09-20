@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
     <t t-name="shiningace_education_curriculum.CurriculumTree">
-        <div class="ect-wrap p-4" style="height: calc(100vh - 50px); overflow-y: auto;">
+        <div class="ect-wrap p-4" t-ref="ectRoot" style="height: calc(100vh - 50px); overflow-y: auto;">
             <style>
                 .ect-wrap { background: linear-gradient(180deg, #eef2ff 0%, #f7f7fb 360px); }
                 .ect-container { max-width: 1100px; margin: 0 auto; }

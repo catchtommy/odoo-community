@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<templates xml:space="preserve">
+    <t t-name="shiningace_education_core.EquationEditorDialog">
+        <Dialog title="'Insert Equation'" size="'md'">
+            <div class="o_edu_equation_dialog">
+                <p class="text-muted mb-2">
+                    Build your equation below — click the buttons for fractions, exponents,
+                    square roots, Greek letters, etc., or just type naturally
+                    (e.g. <code>x^2</code>, <code>sqrt(</code>, <code>1/2</code>) and it will
+                    format itself. No LaTeX knowledge needed.
+                </p>
+                <math-field t-ref="mathField" class="o_edu_math_field"/>
+            </div>
+            <t t-set-slot="footer">
+                <button class="btn btn-primary" t-on-click="insert">Insert Equation</button>
+                <button class="btn btn-secondary" t-on-click="() => this.props.close()">Cancel</button>
+            </t>
+        </Dialog>
+    </t>
+</templates>

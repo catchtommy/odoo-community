@@ -80,8 +80,14 @@
                                     <field name="content_file" widget="binary" filename="content_filename" string="File"/>
                                     <field name="external_url" string="URL" placeholder="https://…"/>
                                     <field name="visibility"/>
-                                    <field name="state"/>
+                                    <!-- readonly: publishing now goes through action_publish
+                                         (permission-checked) on the content's own form —
+                                         letting this be freely edited inline would bypass
+                                         that check entirely. -->
+                                    <field name="state" widget="badge" readonly="1"/>
                                     <field name="id" widget="content_preview_button" string="Preview"/>
+                                    <button name="action_publish" type="object" string="Publish"
+                                            icon="fa-check-circle" invisible="state != 'draft'"/>
                                 </list>
                             </field>
                         </page>

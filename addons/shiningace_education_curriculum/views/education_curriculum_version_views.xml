@@ -63,8 +63,12 @@
                     </group>
                     <notebook>
                         <page string="Topics">
+                            <!-- Not editable="bottom": clicking a topic should drill down into
+                                 its own form (Subtopics tab, Learning Objectives, etc.) rather
+                                 than open an inline edit row here. Renaming a topic is still
+                                 possible from that form. -->
                             <field name="topic_ids">
-                                <list editable="bottom">
+                                <list>
                                     <field name="sequence" widget="handle"/>
                                     <field name="name"/>
                                     <field name="code"/>

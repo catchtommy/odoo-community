@@ -1,0 +1,43 @@
+.o_edu_math_preview {
+    margin-top: 4px;
+    padding: 8px 10px;
+    background: #f8f9fc;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    font-size: 0.95em;
+}
+
+.o_edu_math_preview_label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #6b7280;
+    margin-bottom: 4px;
+}
+
+.o_edu_math_preview_text {
+    white-space: pre-wrap;
+}
+
+.o_edu_insert_equation_btn {
+    padding: 2px 4px;
+    font-size: 12px;
+}
+
+.o_edu_equation_dialog .o_edu_math_field {
+    display: block;
+    width: 100%;
+    min-height: 60px;
+    padding: 8px;
+    font-size: 22px;
+    border: 1px solid #c7d2fe;
+    border-radius: 6px;
+}
+
+/* MathLive's on-screen virtual keyboard defaults to z-index 105, which
+   sits behind Odoo's own modal backdrop/dialog (~1050+) — without this it
+   would be rendered but invisible underneath the dialog. */
+body {
+    --keyboard-zindex: 2000;
+}
+

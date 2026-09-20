@@ -53,7 +53,7 @@
                     </group>
                     <notebook>
                         <page string="Description">
-                            <field name="description"/>
+                            <field name="description" widget="edu_math_text"/>
                         </page>
                         <page string="Versions">
                             <field name="version_ids">

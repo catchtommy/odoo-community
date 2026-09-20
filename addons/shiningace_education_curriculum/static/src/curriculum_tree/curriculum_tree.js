@@ -1,8 +1,9 @@
 /** @odoo-module **/
 import { registry } from "@web/core/registry";
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, onMounted, onPatched, useRef, useState } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
+import { renderMathJax } from "@shiningace_education_core/js/math_typeset";
 
 const BLOOM_LABELS = {
     remember: "Remember",
@@ -21,6 +22,7 @@ class EducationCurriculumTree extends Component {
         this.orm = useService("orm");
         this.action = useService("action");
         this.notification = useService("notification");
+        this.rootRef = useRef("ectRoot");
 
         this.state = useState({
             loading: true,
@@ -32,6 +34,13 @@ class EducationCurriculumTree extends Component {
             addOpenKeys: new Set(),    // which "+ add" inline inputs are currently shown
             addValues: {},             // key -> current text typed in the inline input
         });
+
+        // Topic/subtopic/objective/skill/lesson names may contain LaTeX
+        // delimiters (e.g. a topic titled "Solving $x^2 = 4$") — re-typeset
+        // them with MathJax every time the tree renders or a toggle/edit
+        // changes the visible DOM.
+        onMounted(() => renderMathJax(this.rootRef.el));
+        onPatched(() => renderMathJax(this.rootRef.el));
 
         onWillStart(async () => {
             await this.loadTree();

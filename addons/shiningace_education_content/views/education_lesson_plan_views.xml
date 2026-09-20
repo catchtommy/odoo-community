@@ -21,6 +21,11 @@
         <field name="model">education.lesson.plan</field>
         <field name="arch" type="xml">
             <form>
+                <header>
+                    <button name="action_publish" type="object" string="Publish" class="btn-primary" invisible="state != 'draft'"/>
+                    <button name="action_reset_draft" type="object" string="Reset to Draft" invisible="state != 'published'"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
                 <sheet>
                     <group>
                         <group>
@@ -31,24 +36,23 @@
                         <group>
                             <field name="curriculum_version_id" readonly="1"/>
                             <field name="duration_minutes"/>
-                            <field name="state"/>
                         </group>
                     </group>
                     <group>
-                        <field name="summary" placeholder="High-level overview of this lesson's core focus…"/>
+                        <field name="summary" widget="edu_math_text" placeholder="High-level overview of this lesson's core focus…"/>
                     </group>
                     <notebook>
                         <page string="Key Concepts">
-                            <field name="key_concepts" placeholder="Key theoretical points covered…"/>
+                            <field name="key_concepts" widget="edu_math_text" placeholder="Key theoretical points covered…"/>
                         </page>
                         <page string="Agenda">
-                            <field name="agenda" placeholder="Step-by-step breakdown: Warm-up, Direct Instruction, Guided Practice, Exit Ticket/Assessment…"/>
+                            <field name="agenda" widget="edu_math_text" placeholder="Step-by-step breakdown: Warm-up, Direct Instruction, Guided Practice, Exit Ticket/Assessment…"/>
                         </page>
                         <page string="Exam Tip">
-                            <field name="exam_tip" placeholder="Test-taking tip tailored to the relevant exam format, if applicable…"/>
+                            <field name="exam_tip" widget="edu_math_text" placeholder="Test-taking tip tailored to the relevant exam format, if applicable…"/>
                         </page>
                         <page string="Additional Notes">
-                            <field name="plan_text"/>
+                            <field name="plan_text" widget="edu_math_text"/>
                         </page>
                     </notebook>
                 </sheet>

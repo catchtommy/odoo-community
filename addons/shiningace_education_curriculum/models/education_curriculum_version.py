@@ -132,12 +132,12 @@ class EducationCurriculumVersion(models.Model):
 
     def action_publish_all_content(self):
         """Bulk-publish everything under this version in one click, instead
-        of a manager having to open every topic/subtopic/lesson individually:
-        approves any still-pending tutor proposals (topics, subtopics,
-        lessons, lesson content), then flips every lesson and lesson plan
-        from draft to published. Does not change the version's own
-        draft/review/approved/published/archived state — that stays a
-        separate, deliberate step via action_publish.
+        of a manager having to open every topic/subtopic/lesson/lesson-content
+        individually: approves any still-pending tutor proposals (topics,
+        subtopics, lessons, lesson content), then flips every lesson, lesson
+        plan, and lesson content item from draft to published. Does not
+        change the version's own draft/review/approved/published/archived
+        state — that stays a separate, deliberate step via action_publish.
         """
         if not (self.env.user.has_group('shiningace_education_core.group_education_reviewer')
                 or self.env.user.has_group('shiningace_education_core.group_education_curriculum_manager')):
@@ -155,6 +155,11 @@ class EducationCurriculumVersion(models.Model):
 
             lessons.filtered(lambda l: l.state == 'draft').write({'state': 'published'})
             lessons.lesson_plan_ids.filtered(lambda p: p.state == 'draft').write({'state': 'published'})
+            # Lesson Content items were previously left out here entirely —
+            # their pending proposals got approved above, but state never
+            # moved past 'draft', so they stayed invisible/unpublished even
+            # after a manager ran "Publish All Content".
+            content.filtered(lambda c: c.state == 'draft').write({'state': 'published'})
 
     def action_archive(self):
         if not self.env.user.has_group('shiningace_education_core.group_education_curriculum_manager'):

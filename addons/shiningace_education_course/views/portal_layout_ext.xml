@@ -10,5 +10,19 @@
                 Curriculum
             </a>
         </xpath>
+        <!-- This portal shell (tuition_management.portal_sidebar_layout)
+             calls t-call="web.layout" directly, not "web.frontend_layout" —
+             so it never pulls in ANY Odoo asset bundle (web.assets_frontend,
+             _minimal, _lazy, none of it). Registering mathjax_loader.js
+             under an asset bundle key (as shiningace_education_core's
+             manifest does, for web.assets_backend) is therefore a no-op on
+             every tutor/student/parent portal page: they simply never load
+             it. Load it directly as a plain script tag instead, the same
+             way portal_assignment_annotator.js already is just above —
+             it's a self-contained script with no import/export statements,
+             so it works fine outside Odoo's module system. -->
+        <xpath expr="//script[@src='/tuition_management/static/src/js/portal_assignment_annotator.js']" position="after">
+            <script type="text/javascript" src="/shiningace_education_core/static/src/js/mathjax_loader.js"/>
+        </xpath>
     </template>
 </odoo>

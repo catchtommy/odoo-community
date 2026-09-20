@@ -28,6 +28,7 @@ Builds on education_curriculum to provide:
         'views/education_lesson_plan_views.xml',
         'views/education_resource_views.xml',
         'views/education_lesson_views.xml',
+        'views/education_subtopic_lessons_views.xml',
         'views/education_content_menus.xml',
     ],
     'demo': [

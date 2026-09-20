@@ -57,17 +57,22 @@
                         <field name="tag_ids" widget="many2many_tags"/>
                     </group>
                     <notebook>
-                        <page string="Description">
-                            <field name="description"/>
-                        </page>
+                        <!-- Subtopics first: this is the primary drill-down from a Topic
+                             (Curriculum Version > Topics > [this topic] > Subtopics > subtopic
+                             details). Not editable="bottom" — clicking a subtopic opens its own
+                             form (Learning Objectives, Lessons, Content, Key Concepts, etc.)
+                             instead of an inline edit row. -->
                         <page string="Subtopics">
                             <field name="subtopic_ids">
-                                <list editable="bottom">
+                                <list>
                                     <field name="sequence" widget="handle"/>
                                     <field name="name"/>
                                     <field name="parent_subtopic_id"/>
                                 </list>
                             </field>
+                        </page>
+                        <page string="Description">
+                            <field name="description" widget="edu_math_text"/>
                         </page>
                         <page string="Learning Objectives">
                             <field name="learning_objective_ids">

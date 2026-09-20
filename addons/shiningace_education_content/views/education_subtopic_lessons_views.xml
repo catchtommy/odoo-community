@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Adds a "Lessons" tab to the Subtopic details page (see
+         education_subtopic_views.xml in shiningace_education_curriculum for
+         the base notebook) — lesson_ids only exists once this module
+         (which defines education.lesson) is installed. Not editable="bottom":
+         clicking a lesson opens its own form, where Content and Lesson Plans
+         (key concepts, agenda, etc.) can be added/edited. -->
+    <record id="view_education_subtopic_form_lessons" model="ir.ui.view">
+        <field name="name">education.subtopic.form.lessons</field>
+        <field name="model">education.subtopic</field>
+        <field name="inherit_id" ref="shiningace_education_curriculum.view_education_subtopic_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//page[@name='learning_objectives']" position="after">
+                <page string="Lessons" name="lessons">
+                    <field name="lesson_ids">
+                        <list>
+                            <field name="sequence" widget="handle"/>
+                            <field name="name"/>
+                            <field name="duration_minutes"/>
+                            <field name="content_count"/>
+                            <field name="state" widget="badge"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>

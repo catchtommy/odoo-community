@@ -2,6 +2,8 @@
 from odoo import api, fields, models
 from odoo.exceptions import ValidationError
 
+from .education_lesson import _check_can_publish_content
+
 
 class EducationLessonContent(models.Model):
     _name = 'education.lesson.content'
@@ -48,6 +50,17 @@ class EducationLessonContent(models.Model):
         records = super().create(vals_list)
         records._check_has_payload()
         return records
+
+    def action_publish(self):
+        _check_can_publish_content(self.env)
+        self.write({'state': 'published'})
+
+    def action_archive_content(self):
+        _check_can_publish_content(self.env)
+        self.write({'state': 'archived'})
+
+    def action_reset_draft(self):
+        self.write({'state': 'draft'})
 
     def action_new_version(self):
         """Create a new content record carrying the version forward, keeping the old one for history."""
