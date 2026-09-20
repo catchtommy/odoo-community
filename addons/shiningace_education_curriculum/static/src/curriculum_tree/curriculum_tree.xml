@@ -3,21 +3,49 @@
     <t t-name="shiningace_education_curriculum.CurriculumTree">
         <div class="ect-wrap p-4" style="height: calc(100vh - 50px); overflow-y: auto;">
             <style>
-                .ect-wrap { background: #f7f7fa; }
+                .ect-wrap { background: linear-gradient(180deg, #eef2ff 0%, #f7f7fb 360px); }
                 .ect-container { max-width: 1100px; margin: 0 auto; }
+
+                /* ── Top bar: the curriculum's name/code, now the page's
+                   anchor color instead of a plain white box ── */
+                .ect-topbar {
+                    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+                    border: none; border-radius: 12px;
+                    padding: 20px 22px; margin-bottom: 24px;
+                    box-shadow: 0 4px 14px rgba(99,102,241,0.2);
+                    color: #fff;
+                }
+                .ect-topbar h3 { color: #fff; font-weight: 700; }
+                .ect-topbar small.text-muted { color: rgba(255,255,255,0.75) !important; }
+                .ect-topbar .btn-link { color: #fff; text-decoration: none; }
+                .ect-topbar .btn-link:hover { color: #e0e7ff; }
+                .ect-topbar label.text-muted { color: rgba(255,255,255,0.85) !important; }
+                .ect-topbar .form-select {
+                    background-color: rgba(255,255,255,0.95); border: none; font-weight: 600; color: #4338ca;
+                }
+                .ect-topbar .ect-add-pill { color: #fff; background: rgba(255,255,255,0.16); }
+                .ect-topbar .ect-add-pill:hover { background: rgba(255,255,255,0.28); }
+                .ect-topbar .alert-info {
+                    background: rgba(255,255,255,0.92); border: none; color: #4338ca; font-weight: 600;
+                }
+
+                /* ── Topic cards: a colored accent stripe + tinted header
+                   so each topic reads as a distinct block, not a grey box ── */
                 .ect-topic-card {
                     margin-bottom: 20px;
                     border: 1px solid #e5e7eb;
+                    border-left: 5px solid #6366f1;
                     border-radius: 10px;
-                    box-shadow: 0 1px 2px rgba(0,0,0,0.04);
+                    box-shadow: 0 2px 6px rgba(79,70,229,0.08);
                     overflow: hidden;
                 }
                 .ect-topic-header {
                     cursor: pointer; user-select: none;
                     padding: 14px 18px;
-                    background: #fbfbfd;
+                    background: linear-gradient(90deg, #eef2ff 0%, #fbfbfd 100%);
                 }
-                .ect-topic-header strong { font-size: 15px; }
+                .ect-topic-header strong { font-size: 15px; color: #3730a3; }
+                .ect-topic-header .fa-caret-down, .ect-topic-header .fa-caret-right { color: #6366f1; }
                 .ect-topic-header:hover .ect-delete { visibility: visible; }
                 .ect-delete { visibility: hidden; color: #dc2626; cursor: pointer; padding: 4px; }
                 .ect-delete:hover { color: #991b1b; }
@@ -46,7 +74,7 @@
                     padding: 7px 8px; border-radius: 6px;
                 }
                 .ect-item-row + .ect-item-row { margin-top: 2px; }
-                .ect-item-row:hover { background: #f0f0f5; }
+                .ect-item-row:hover { background: rgba(0,0,0,0.04); }
                 .ect-item-row:hover .ect-delete { visibility: visible; }
                 .ect-item-label { flex: 1; cursor: pointer; line-height: 1.5; }
                 .ect-add-pill {
@@ -62,17 +90,33 @@
                 }
                 .ect-add-row input:focus, .ect-add-row select:focus { border-color: #6366f1; }
                 .ect-empty-hint { color: #9ca3af; font-style: italic; font-size: 12px; margin-bottom: 4px; }
-                .ect-topbar {
-                    background: white; border: 1px solid #e5e7eb; border-radius: 10px;
-                    padding: 18px 20px; margin-bottom: 24px;
-                }
+
+                /* ── Section accents: each content type gets its own color
+                   so Objectives/Skills/Lessons are visually distinct at a
+                   glance, not three identical grey boxes ── */
+                .ect-section--objectives { background: #fffbeb; border-color: #fde68a; }
+                .ect-section--objectives .ect-section-title { color: #b45309; }
+                .ect-section--objectives .ect-add-pill { color: #b45309; }
+                .ect-section--objectives .ect-add-pill:hover { background: #fef3c7; }
+
+                .ect-section--skills { background: #ecfdf5; border-color: #a7f3d0; }
+                .ect-section--skills .ect-section-title { color: #047857; }
+                .ect-section--skills .ect-add-pill { color: #047857; }
+                .ect-section--skills .ect-add-pill:hover { background: #d1fae5; }
+
+                .ect-section--lessons { background: #eff6ff; border-color: #bfdbfe; }
+                .ect-section--lessons .ect-section-title { color: #1d4ed8; }
+                .ect-section--lessons .ect-add-pill { color: #1d4ed8; }
+                .ect-section--lessons .ect-add-pill:hover { background: #dbeafe; }
+
                 .ect-subtopics-block { margin-top: 20px; }
-                .ect-subtopics-block > .ect-section-title { margin-bottom: 10px; }
+                .ect-subtopics-block > .ect-section-title { margin-bottom: 10px; color: #7c3aed; }
                 .ect-subtopic-card {
-                    border: 1px solid #e0e0f0;
+                    border: 1px solid #ddd6fe;
+                    border-left: 4px solid #a78bfa;
                     border-radius: 8px;
                     margin-bottom: 12px;
-                    background: #fcfcff;
+                    background: #fdfcff;
                     overflow: hidden;
                 }
                 .ect-subtopic-card:last-child { margin-bottom: 0; }
@@ -80,8 +124,9 @@
                     cursor: pointer; user-select: none;
                     padding: 10px 14px;
                     display: flex; align-items: center; justify-content: space-between;
-                    background: #f4f4fb;
+                    background: linear-gradient(90deg, #f3f0ff 0%, #f8f7ff 100%);
                 }
+                .ect-subtopic-name { color: #6d28d9; font-weight: 600; }
                 .ect-subtopic-header:hover .ect-delete { visibility: visible; }
                 .ect-subtopic-body { padding: 14px 16px; }
                 .ect-subtopic-section-grid {
@@ -188,7 +233,7 @@
                                            subtopic they actually belong to. -->
                                       <div class="ect-section-grid">
                                         <!-- Learning Objectives (topic-level only) -->
-                                        <div class="ect-section">
+                                        <div class="ect-section ect-section--objectives">
                                             <div class="ect-section-title"><i class="fa fa-bullseye me-1"/>Learning Objectives <small class="text-muted ms-1">(topic-level)</small></div>
                                             <t t-if="!topic.objectives.length and !isAddOpen('add-objective-' + topic.id)">
                                                 <div class="ect-empty-hint">No topic-level learning objectives.</div>
@@ -221,7 +266,7 @@
                                         </div>
 
                                         <!-- Skills (schema-level: Skills can only ever be topic-level) -->
-                                        <div class="ect-section">
+                                        <div class="ect-section ect-section--skills">
                                             <div class="ect-section-title"><i class="fa fa-star me-1"/>Skills</div>
                                             <t t-if="!topic.skills.length and !isAddOpen('add-skill-' + topic.id)">
                                                 <div class="ect-empty-hint">No skills.</div>
@@ -254,7 +299,7 @@
                                         </div>
 
                                         <!-- Lessons (topic-level only) -->
-                                        <div class="ect-section mb-0">
+                                        <div class="ect-section ect-section--lessons mb-0">
                                             <div class="ect-section-title"><i class="fa fa-book me-1"/>Lessons <small class="text-muted ms-1">(topic-level)</small></div>
                                             <t t-if="!topic.lessons.length and !isAddOpen('add-lesson-' + topic.id)">
                                                 <div class="ect-empty-hint">No topic-level lessons.</div>
@@ -303,7 +348,7 @@
                                                 <div class="ect-subtopic-header" t-on-click="() => this.toggleSubtopic(subtopic.id)">
                                                     <span>
                                                         <i t-attf-class="fa {{isSubtopicOpen(subtopic.id) ? 'fa-caret-down' : 'fa-caret-right'}} me-2"/>
-                                                        <span t-on-click.stop="() => this.openRecord('education.subtopic', subtopic.id)" t-esc="subtopic.name"/>
+                                                        <span class="ect-subtopic-name" t-on-click.stop="() => this.openRecord('education.subtopic', subtopic.id)" t-esc="subtopic.name"/>
                                                         <span class="badge text-bg-light ms-2" t-esc="subtopic.objectives.length + ' LO'"/>
                                                         <span class="badge text-bg-light ms-1" t-esc="subtopic.lessons.length + ' lesson(s)'"/>
                                                         <span t-if="subtopic.approval_state === 'pending'" class="badge text-bg-warning ms-1">Pending</span>
@@ -316,7 +361,7 @@
                                                     <div class="ect-subtopic-body">
                                                         <div class="ect-subtopic-section-grid">
                                                             <!-- Learning Objectives for THIS subtopic -->
-                                                            <div class="ect-section mb-0">
+                                                            <div class="ect-section ect-section--objectives mb-0">
                                                                 <div class="ect-section-title"><i class="fa fa-bullseye me-1"/>Learning Objectives</div>
                                                                 <t t-if="!subtopic.objectives.length and !isAddOpen('add-objective-sub-' + subtopic.id)">
                                                                     <div class="ect-empty-hint">No learning objectives.</div>
@@ -349,7 +394,7 @@
                                                             </div>
 
                                                             <!-- Lessons for THIS subtopic -->
-                                                            <div class="ect-section mb-0">
+                                                            <div class="ect-section ect-section--lessons mb-0">
                                                                 <div class="ect-section-title"><i class="fa fa-book me-1"/>Lessons</div>
                                                                 <t t-if="!subtopic.lessons.length and !isAddOpen('add-lesson-sub-' + subtopic.id)">
                                                                     <div class="ect-empty-hint">No lessons.</div>
