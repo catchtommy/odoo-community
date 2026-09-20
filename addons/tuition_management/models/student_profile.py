@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
 from .user_permission import require_permission, user_has_permission
 from .phone_codes import COUNTRY_PHONE_CODES
@@ -72,6 +72,29 @@ class StudentProfile(models.Model):
                 ctx.update({'default_is_existing_user': True, 'default_existing_user_id': user.id, 'default_login': user.login})
         return {'type': 'ir.actions.act_window', 'name': 'Manage Portal Access',
                 'res_model': 'portal.access.wizard', 'view_mode': 'form', 'target': 'new', 'context': ctx}
+
+    def action_login_as_student(self):
+        """Open the student's portal, logged in as them, in a new browser
+        window — for admins to reproduce/debug an issue the student is
+        reporting. Restricted to full admins; see LoginAsToken/LoginAsLog
+        for the session-switch and audit-trail mechanics."""
+        self.ensure_one()
+        if not self.env.user.has_group('base.group_system'):
+            raise AccessError('Only administrators can log in as another user.')
+        if not self.has_portal_access:
+            raise UserError('This student does not have portal access yet.')
+        user = self.env['res.users'].sudo().search([
+            ('partner_id', '=', self.partner_id.id),
+        ], limit=1)
+        if not user:
+            raise UserError('No portal user found for this student.')
+        token = self.env['tuition.login.as.token']._create_for(
+            self.env.user, user, profile_model=self._name, profile_id=self.id)
+        return {
+            'type': 'ir.actions.act_url',
+            'url': '/web/login_as/%s' % token,
+            'target': 'new',
+        }
 
     def action_view_parent(self):
         self.ensure_one()

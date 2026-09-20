@@ -18,6 +18,34 @@
         <body class="o_portal tm-portal-layout">
             <div class="tm-layout">
 
+                <!-- ── ADMIN IMPERSONATION BAR ──
+                     Shown only inside a session that an admin switched into
+                     via "Login as Student/Tutor/Parent" (see
+                     controllers/login_as.py). Lets them get back to their
+                     own account without logging out/in, since switching
+                     into this session also replaced the shared browser
+                     cookie for any other open admin tabs. -->
+                <t t-if="request.session.get('login_as_admin_uid')">
+                    <div style="background:#7a1f1f;color:#fff;padding:8px 16px;text-align:center;font-size:13px;position:relative;z-index:1000;">
+                        Viewing as <strong><t t-esc="user.name"/></strong> for debugging.
+                        <a href="/web/login_as/return" style="color:#fff;text-decoration:underline;margin-left:12px;font-weight:bold;">
+                            Return to Admin
+                        </a>
+                    </div>
+                </t>
+
+                <!-- Generic "vc_error" banner: several controllers (virtual
+                     classroom join/start, login_as expiry) redirect here
+                     with ?vc_error=<message> on failure. Rendered from the
+                     query string directly so every portal page picks it up
+                     without each route having to thread it through its own
+                     template values. -->
+                <t t-if="request.httprequest.args.get('vc_error')">
+                    <div class="alert alert-warning" style="margin:12px 16px;">
+                        <t t-esc="request.httprequest.args.get('vc_error')"/>
+                    </div>
+                </t>
+
                 <!-- ── TOP NAVBAR ── -->
                 <header class="tm-topnav">
                     <div class="tm-topnav-inner">

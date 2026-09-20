@@ -8,3 +8,4 @@ from . import portal_parent
 from . import dashboard
 from . import public_enquiry
 from . import virtual_classroom
+from . import login_as

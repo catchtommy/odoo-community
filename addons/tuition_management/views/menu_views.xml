@@ -80,4 +80,6 @@
     <menuitem id="menu_tuition_virtual_classroom_google_accounts" name="Google Meet Accounts" parent="menu_tuition_settings" action="action_virtual_classroom_google_accounts" groups="base.group_system"/>
     <menuitem id="menu_tuition_company_currency_config" name="Company Currency Configuration" parent="menu_tuition_settings" action="action_company_tuition_currency_config"
               groups="tuition_management.group_tuition_company_currency_config,base.group_system"/>
+    <menuitem id="menu_tuition_login_as_log" name="Login As — Audit Log" parent="menu_tuition_settings" action="action_tuition_login_as_log"
+              groups="base.group_system"/>
 </odoo>

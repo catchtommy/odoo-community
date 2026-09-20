@@ -30,6 +30,10 @@
                     <button name="action_invite_to_portal" type="object"
                             string="Manage Portal Access" class="btn-secondary"
                             invisible="not has_portal_access or not id"/>
+                    <button name="action_login_as_student" type="object"
+                            string="Login as Student" class="btn-secondary"
+                            invisible="not has_portal_access or not id"
+                            groups="base.group_system"/>
                 </header>
                 <sheet>
                     <field name="has_portal_access" invisible="1"/>
@@ -116,10 +120,16 @@
                     <button name="action_invite_to_portal" type="object"
                             string="Manage Portal Access" class="btn-secondary"
                             invisible="not has_portal_access or not id"/>
+                    <button name="action_login_as_tutor" type="object"
+                            string="Login as Tutor" class="btn-secondary"
+                            invisible="not has_portal_access or not id"
+                            groups="base.group_system"/>
                 </header>
                 <sheet>
                     <field name="has_portal_access" invisible="1"/>
                     <field name="can_edit_tutor" invisible="1"/>
+                    <field name="can_view_subject_rate" invisible="1"/>
+                    <field name="can_view_fixed_rate" invisible="1"/>
                     <div class="oe_button_box" name="button_box">
                         <button class="oe_stat_button" icon="fa-globe"
                                 name="action_invite_to_portal" type="object"
@@ -165,7 +175,7 @@
                             </div>
                             <field name="availability_matrix_html" widget="html" readonly="1" nolabel="1"/>
                         </page>
-                        <page string="Pricing Matrix" invisible="employment_type != 'contract'"
+                        <page string="Pricing Matrix" invisible="employment_type != 'contract' or not can_view_subject_rate"
                               groups="tuition_management.group_tuition_tutor_pricing_view,base.group_system">
                             <field name="tutor_subject_rate_ids">
                                 <list editable="bottom">
@@ -181,7 +191,7 @@
                                 </list>
                             </field>
                         </page>
-                        <page string="Fixed Pricing Matrix" invisible="employment_type != 'permanent'"
+                        <page string="Fixed Pricing Matrix" invisible="employment_type != 'permanent' or not can_view_fixed_rate"
                               groups="tuition_management.group_tuition_tutor_pricing_view,base.group_system">
                             <field name="tutor_fixed_rate_ids">
                                 <list editable="bottom">
@@ -302,6 +312,10 @@
                     <button name="action_invite_to_portal" type="object"
                             string="Manage Portal Access" class="btn-secondary"
                             invisible="not has_portal_access or not id"/>
+                    <button name="action_login_as_parent" type="object"
+                            string="Login as Parent" class="btn-secondary"
+                            invisible="not has_portal_access or not id"
+                            groups="base.group_system"/>
                 </header>
                 <sheet>
                     <field name="has_portal_access" invisible="1"/>

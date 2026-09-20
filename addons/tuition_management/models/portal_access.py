@@ -14,8 +14,12 @@ class PortalAccessWizard(models.TransientModel):
     name = fields.Char(string='Name', readonly=True)
     email = fields.Char(string='Email', readonly=True)
     login = fields.Char(string='Login (Username)', required=True)
-    password = fields.Char(string='Password', required=True)
-    confirm_password = fields.Char(string='Confirm Password', required=True)
+    # Not required at the field level: for an existing user, leaving this
+    # blank means "don't touch the password" (see default_get / actions
+    # below). Only a brand-new portal user must have one, which is
+    # enforced explicitly in action_create_portal_user.
+    password = fields.Char(string='New Password (leave blank to keep current)')
+    confirm_password = fields.Char(string='Confirm New Password')
     is_existing_user = fields.Boolean(string='Existing User', readonly=True)
     existing_user_id = fields.Many2one('res.users', string='Existing Portal User', readonly=True)
 
@@ -47,9 +51,13 @@ class PortalAccessWizard(models.TransientModel):
             if profile.exists() and profile.partner_id:
                 user = self.env['res.users'].sudo().search([('partner_id', '=', profile.partner_id.id)], limit=1)
                 if user:
-                    pwd = self._generate_password()
+                    # Existing user: leave the password blank by default so
+                    # simply opening/saving this wizard (e.g. to check access
+                    # or update the login) doesn't silently overwrite their
+                    # real password. Admin must type a new one or click
+                    # "Generate New Password" to actually change it.
                     res.update({'is_existing_user': True, 'existing_user_id': user.id,
-                                'login': user.login, 'password': pwd, 'confirm_password': pwd})
+                                'login': user.login, 'password': False, 'confirm_password': False})
                     return res
         if not res.get('login') or res.get('login') == res.get('email'):
             res['login'] = self._generate_login_from_name(profile_name)
@@ -71,10 +79,20 @@ class PortalAccessWizard(models.TransientModel):
 
     def action_create_portal_user(self):
         self.ensure_one()
-        if self.password != self.confirm_password:
-            raise UserError("Passwords do not match.")
-        if len(self.password) < 6:
-            raise UserError("Password must be at least 6 characters.")
+        # A brand-new portal user must get a password now (there's no
+        # "current" one to keep). An existing user's password is only
+        # touched if the admin actually entered one — a blank field means
+        # "leave it as-is" so opening this wizard to check/update access
+        # doesn't reset their real password.
+        is_existing = self.is_existing_user and self.existing_user_id
+        change_password = bool(self.password) or bool(self.confirm_password)
+        if not is_existing or change_password:
+            if not self.password:
+                raise UserError("Password is required.")
+            if self.password != self.confirm_password:
+                raise UserError("Passwords do not match.")
+            if len(self.password) < 6:
+                raise UserError("Password must be at least 6 characters.")
         profile = self.env[self.profile_model].browse(self.profile_id)
         if not profile.exists():
             raise UserError("Profile record not found.")
@@ -86,7 +104,9 @@ class PortalAccessWizard(models.TransientModel):
             raise UserError(f"The username '{self.login}' is already taken by {duplicate.name}.")
         if self.is_existing_user and self.existing_user_id:
             user = self.existing_user_id.sudo()
-            update_vals = {'password': self.password, 'active': True}
+            update_vals = {'active': True}
+            if change_password:
+                update_vals['password'] = self.password
             if self.login and self.login != user.login:
                 update_vals['login'] = self.login
                 if user.partner_id: user.partner_id.sudo().write({'email': self.login})

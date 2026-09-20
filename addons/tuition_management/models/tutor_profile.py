@@ -1,9 +1,22 @@
 # -*- coding: utf-8 -*-
+from lxml import etree
+
 from odoo import models, fields, api
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
 from .user_permission import require_permission, user_has_permission
 from .phone_codes import COUNTRY_PHONE_CODES
+
+
+# Pricing-matrix o2m fields on tutor.profile, and the comodel each reads
+# from. Their form-view tabs are gated by custom permission groups that
+# don't necessarily line up with actual ir.model.access rights on these
+# comodels (those rows are scoped to base.group_user) — see
+# TutorProfile._strip_pricing_matrix_if_no_access below.
+PRICING_MATRIX_FIELDS = (
+    ('tutor_subject_rate_ids', 'tutor.subject.rate'),
+    ('tutor_fixed_rate_ids', 'tutor.fixed.rate'),
+)
 
 
 class TutorAvailability(models.Model):
@@ -315,6 +328,61 @@ class TutorProfile(models.Model):
     portal_login = fields.Char(string='Portal Login', compute='_compute_portal_access', store=False)
     has_portal_access = fields.Boolean(string='Has Portal Access', compute='_compute_portal_access', store=False)
     can_edit_tutor = fields.Boolean(string='Can Edit Tutor', compute='_compute_can_edit_tutor')
+    can_view_subject_rate = fields.Boolean(string='Can View Pricing Matrix', compute='_compute_can_view_pricing')
+    can_view_fixed_rate = fields.Boolean(string='Can View Fixed Pricing Matrix', compute='_compute_can_view_pricing')
+
+    @api.depends_context('uid')
+    def _compute_can_view_pricing(self):
+        # The "Pricing Matrix"/"Fixed Pricing Matrix" tabs are gated in the
+        # view by custom permission groups (group_tuition_tutor_pricing_view
+        # etc.), which don't necessarily line up with who actually has
+        # ir.model.access rights on tutor.subject.rate/tutor.fixed.rate (the
+        # access rows there are scoped to base.group_user). A user who
+        # passes the view-level group check but lacks the underlying model
+        # access previously hit a hard AccessError just opening this form.
+        # Checking the real access here lets the tab hide itself instead.
+        can_view_subject = self.env['tutor.subject.rate'].has_access('read')
+        can_view_fixed = self.env['tutor.fixed.rate'].has_access('read')
+        for rec in self:
+            rec.can_view_subject_rate = can_view_subject
+            rec.can_view_fixed_rate = can_view_fixed
+
+    def get_view(self, view_id=None, view_type='form', **options):
+        result = super().get_view(view_id=view_id, view_type=view_type, **options)
+        if view_type == 'form':
+            result['arch'] = self._strip_pricing_matrix_if_no_access(result['arch'])
+        return result
+
+    def _strip_pricing_matrix_if_no_access(self, arch_string):
+        """Remove the Pricing Matrix / Fixed Pricing Matrix tabs from the
+        arch entirely for a user who lacks read access to the underlying
+        comodel — the same effect the `groups` attribute already gives for
+        a missing permission group, extended to cover the ir.model.access
+        rows too. Without this, a user who passes the view-level group
+        check (e.g. has the custom pricing-view permission group) but not
+        the model-level one would still hit a hard AccessError as soon as
+        the form tries to read the o2m field, instead of simply not seeing
+        the tab. Setting `invisible` alone doesn't help here: it only hides
+        the tab client-side after the field has already been fetched."""
+        to_strip = [name for name, comodel in PRICING_MATRIX_FIELDS
+                    if not self.env[comodel].has_access('read')]
+        if not to_strip:
+            return arch_string
+        tree = etree.fromstring(arch_string)
+        for field_name in to_strip:
+            for field_node in tree.iter('field'):
+                if field_node.get('name') != field_name:
+                    continue
+                target = field_node
+                ancestor = field_node.getparent()
+                while ancestor is not None and ancestor.tag != 'page':
+                    ancestor = ancestor.getparent()
+                if ancestor is not None:
+                    target = ancestor
+                parent = target.getparent()
+                if parent is not None:
+                    parent.remove(target)
+        return etree.tostring(tree, encoding='unicode')
 
     @api.onchange('employee_id')
     def _onchange_employee_id(self):
@@ -448,6 +516,28 @@ class TutorProfile(models.Model):
                 ctx.update({'default_is_existing_user': True, 'default_existing_user_id': user.id, 'default_login': user.login})
         return {'type': 'ir.actions.act_window', 'name': 'Manage Portal Access',
                 'res_model': 'portal.access.wizard', 'view_mode': 'form', 'target': 'new', 'context': ctx}
+
+    def action_login_as_tutor(self):
+        """Open the tutor's portal, logged in as them, in a new browser
+        window — for admins to reproduce/debug an issue the tutor is
+        reporting. Restricted to full admins."""
+        self.ensure_one()
+        if not self.env.user.has_group('base.group_system'):
+            raise AccessError('Only administrators can log in as another user.')
+        if not self.has_portal_access:
+            raise UserError('This tutor does not have portal access yet.')
+        user = self.env['res.users'].sudo().search([
+            ('partner_id', '=', self.partner_id.id),
+        ], limit=1)
+        if not user:
+            raise UserError('No portal user found for this tutor.')
+        token = self.env['tuition.login.as.token']._create_for(
+            self.env.user, user, profile_model=self._name, profile_id=self.id)
+        return {
+            'type': 'ir.actions.act_url',
+            'url': '/web/login_as/%s' % token,
+            'target': 'new',
+        }
 
     @api.model_create_multi
     def create(self, vals_list):

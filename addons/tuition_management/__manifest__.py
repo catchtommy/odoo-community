@@ -42,6 +42,7 @@
         "views/parent_billing_run_views.xml",
         "views/approval_views.xml",
         "views/company_config_views.xml",
+        "views/login_as_log_views.xml",
         "views/menu_views.xml",
         "views/report_class_status_views.xml",
         "views/report_subject_wise_views.xml",

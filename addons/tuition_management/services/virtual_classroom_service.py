@@ -225,13 +225,22 @@ class VirtualClassroomService(models.AbstractModel):
         if occurrence.lesson_status == 'cancelled':
             raise UserError('This class has been cancelled.')
 
+        provider_code = self._selected_provider(occurrence)
         meeting = occurrence.virtual_meeting_id
+        # A previously-created meeting only stays valid if its provider still
+        # matches the course's currently selected provider. If the admin has
+        # since switched providers (e.g. Zoom -> Google Meet), the occurrence
+        # still points at the old, still-"ready" Zoom row until the tutor next
+        # starts the class (that's the only place the switch is reconciled) —
+        # so without this check the student would be handed a stale Zoom link
+        # even though the portal shows the new provider's name.
+        if meeting and meeting.provider != provider_code:
+            meeting = self.env['virtual.classroom.meeting']
         # Also check course-level meeting (one room per course — any session can reuse it).
         # Zoom and Google Meet meetings are per-occurrence, never shared across
         # sessions, so this fallback must not apply to them — otherwise a
         # student could be handed a different occurrence's join link.
         if not (meeting and meeting.state == 'ready'):
-            provider_code = self._selected_provider(occurrence)
             if provider_code not in ('zoom', 'google_meet'):
                 meeting = self.env['virtual.classroom.meeting'].sudo().search([
                     ('course_id', '=', occurrence.course_id.id),
@@ -248,7 +257,6 @@ class VirtualClassroomService(models.AbstractModel):
         if legacy_url:
             return legacy_url
 
-        provider_code = self._selected_provider(occurrence)
         meeting = self._ensure_meeting(occurrence, provider_code)
         display_name = student.name or self.env.user.name
         return self._provider(meeting.provider).get_attendee_url(meeting, display_name)
