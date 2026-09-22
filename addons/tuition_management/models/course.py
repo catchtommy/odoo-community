@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from datetime import timedelta
 import pytz
 from .user_permission import require_permission, user_has_permission
@@ -345,6 +345,42 @@ class CourseMaster(models.Model):
             'url': url,
             'target': 'new',
         }
+
+    def action_reset_virtual_classroom(self):
+        """Available to any internal staff user (not tutors/students, who
+        are portal users without backend access at all): end/discard this
+        course's current virtual classroom room and immediately create a
+        fresh one in its place — for when the room stopped working (e.g.
+        a BBB room deleted directly on the BBB server) and clicking Start
+        Virtual Class again isn't fixing it. Delegates to
+        virtual.classroom.meeting.action_force_regenerate, the same logic
+        already used from the technical Virtual Meetings list and from a
+        lesson's own Reset Virtual Classroom button.
+
+        BigBlueButton only: BBB deliberately shares one persistent room
+        across the whole course, so there's exactly one thing here to
+        reset. Zoom/Google Meet create a separate room per lesson instead
+        — reset those from that specific lesson's own Reset Virtual
+        Classroom button (on the schedule occurrence form), not here.
+        """
+        self.ensure_one()
+        if not self.env.user.has_group('base.group_user'):
+            raise AccessError('Only internal staff can reset the virtual classroom.')
+        provider = self.virtual_provider_default or 'bbb'
+        if provider != 'bbb':
+            raise UserError(
+                "This course's provider (%s) creates a separate room per lesson, not "
+                "one shared room for the whole course — reset it from the specific "
+                "lesson's own Reset Virtual Classroom button instead." % provider
+            )
+        meeting = self.env['virtual.classroom.meeting'].sudo().search([
+            ('course_id', '=', self.id),
+            ('provider', '=', provider),
+        ], limit=1)
+        if not meeting:
+            raise UserError('There is no virtual classroom to reset for this course yet — use Start Virtual Class instead.')
+        meeting.action_force_regenerate()
+        return True
 
     def action_cancel_course(self):
         self.ensure_one()

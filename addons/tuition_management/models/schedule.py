@@ -5,7 +5,7 @@ import io
 import xlsxwriter
 from markupsafe import Markup
 from odoo import models, fields, api
-from odoo.exceptions import UserError, ValidationError
+from odoo.exceptions import AccessError, UserError, ValidationError
 from datetime import datetime, time, timedelta
 import pytz
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE, COMMON_TIMEZONES
@@ -1312,10 +1312,26 @@ class ClassScheduleOccurrence(models.Model):
         }
 
     def action_reset_virtual_meeting(self):
+        """Available to any internal staff user (not tutors/students, who
+        are portal users without backend access at all): discard this
+        lesson's virtual classroom (telling the provider to end the old
+        room where supported, e.g. BBB, and wiping all the stale
+        meeting/URL fields) and immediately create a fresh one in its
+        place — for when the room stopped working (e.g. deleted directly
+        on the BBB server) and just clicking Start again isn't fixing it.
+        Delegates to virtual.classroom.meeting.action_force_regenerate,
+        the same logic already used from the technical Virtual Meetings
+        list, so there's one place implementing this instead of two
+        subtly-different copies."""
+        if not self.env.user.has_group('base.group_user'):
+            raise AccessError('Only internal staff can reset the virtual classroom.')
         for occurrence in self:
-            if occurrence.virtual_meeting_id:
-                occurrence.virtual_meeting_id.action_mark_cancelled()
-            occurrence.write({'virtual_meeting_id': False})
+            if not occurrence.virtual_meeting_id:
+                raise UserError(
+                    'There is no virtual classroom to reset for "%s" yet — use '
+                    'Start Virtual Class instead.' % occurrence.display_name
+                )
+            occurrence.virtual_meeting_id.action_force_regenerate()
         return True
 
 

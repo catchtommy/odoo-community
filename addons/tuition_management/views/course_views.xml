@@ -55,6 +55,10 @@
                 <group>
                     <group string="Virtual Classroom Settings">
                         <field name="virtual_provider_default" widget="radio"/>
+                        <newline/>
+                        <button name="action_reset_virtual_classroom" string="Reset Virtual Classroom" type="object" class="btn-primary" icon="fa-refresh"
+                                confirm="This ends the course's current shared room (if the provider supports it) and creates a brand new one. BigBlueButton only — Zoom/Google Meet rooms are per-lesson, reset those from the lesson itself. Continue?"
+                                groups="base.group_user" colspan="2"/>
                     </group>
                 </group>
                 <notebook>
