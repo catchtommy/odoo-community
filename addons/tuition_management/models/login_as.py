@@ -9,19 +9,19 @@ from odoo.exceptions import AccessError, UserError
 _logger = logging.getLogger(__name__)
 
 # A "Login as" link is only valid for a short window between the admin
-# clicking the button (server-side token creation) and the new window
+# clicking the button (server-side token creation) and the browser
 # actually loading it. Single-use on top of that.
 TOKEN_VALIDITY_MINUTES = 2
 
 
 class LoginAsToken(models.TransientModel):
-    """One-time, short-lived token that lets the admin's *next* request in a
-    freshly-opened window switch the session to the target portal user's
-    account, without needing (or storing) that user's password.
+    """One-time, short-lived token that lets the admin's *next* request
+    switch the session to the target portal user's account, without
+    needing (or storing) that user's password.
 
     Kept separate from the actual session switch so that the button click
     (an RPC on the backend form) only ever returns a URL to open — the
-    browser, not the server, decides to open that in a new window.
+    browser, not the server, then navigates to it.
     """
     _name = 'tuition.login.as.token'
     _description = 'Admin "Login As" One-Time Token'

@@ -74,8 +74,8 @@ class StudentProfile(models.Model):
                 'res_model': 'portal.access.wizard', 'view_mode': 'form', 'target': 'new', 'context': ctx}
 
     def action_login_as_student(self):
-        """Open the student's portal, logged in as them, in a new browser
-        window — for admins to reproduce/debug an issue the student is
+        """Open the student's portal, logged in as them, in the current
+        browser window — for admins to reproduce/debug an issue the student is
         reporting. Restricted to full admins; see LoginAsToken/LoginAsLog
         for the session-switch and audit-trail mechanics."""
         self.ensure_one()
@@ -93,7 +93,7 @@ class StudentProfile(models.Model):
         return {
             'type': 'ir.actions.act_url',
             'url': '/web/login_as/%s' % token,
-            'target': 'new',
+            'target': 'self',
         }
 
     def action_view_parent(self):

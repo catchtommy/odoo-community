@@ -3,7 +3,7 @@ import logging
 import time
 
 from odoo import models
-from odoo.http import SESSION_ROTATION_EXCLUDED_PATHS, SessionExpiredException, request
+from odoo.http import SessionExpiredException, request
 
 _logger = logging.getLogger(__name__)
 
@@ -11,17 +11,20 @@ _logger = logging.getLogger(__name__)
 # lifetime (which defaults to 7 days) — an admin backend/portal session
 # left open and unattended is a standing high-privilege target, especially
 # now that "Login as" can hand it straight back to full admin with no
-# password (see controllers/login_as.py). 30 minutes matches the
-# RETURN_TO_ADMIN_VALIDITY_SECONDS window used there.
-ADMIN_IDLE_TIMEOUT_SECONDS = 30 * 60
+# password (see controllers/login_as.py).
+ADMIN_IDLE_TIMEOUT_SECONDS = 90 * 60
 
 # Requests the browser fires on its own — presence heartbeats, notification
 # long-polling, websocket housekeeping — must NOT count as "activity", or
 # an admin who has simply walked away with a tab open would never actually
-# time out even though nobody is doing anything. Odoo core already drew
-# this same line for a related purpose (deciding when it's safe to rotate
-# the session id), so it's reused here rather than re-guessed.
-IDLE_TIMEOUT_IGNORED_PATHS = SESSION_ROTATION_EXCLUDED_PATHS + (
+# time out even though nobody is doing anything. The first three mirror
+# odoo.http.SESSION_ROTATION_EXCLUDED_PATHS, listed explicitly because that
+# constant only exists in newer Odoo builds and importing it breaks module
+# loading on servers running older core code.
+IDLE_TIMEOUT_IGNORED_PATHS = (
+    '/websocket/on_closed',
+    '/websocket/peek_notifications',
+    '/websocket/update_bus_presence',
     '/bus/has_missed_notifications',
     '/bus/websocket_worker_bundle',
     '/websocket/health',
@@ -67,7 +70,7 @@ class IrHttp(models.AbstractModel):
             last_activity = session.get(SESSION_ACTIVITY_KEY)
             if last_activity is not None and time.time() - last_activity > ADMIN_IDLE_TIMEOUT_SECONDS:
                 session.pop(SESSION_ACTIVITY_KEY, None)
-                raise SessionExpiredException('Your admin session expired after 30 minutes of inactivity.')
+                raise SessionExpiredException('Your admin session expired after 1 hour 30 minutes of inactivity.')
             return
 
         now = time.time()
@@ -75,6 +78,6 @@ class IrHttp(models.AbstractModel):
         if last_activity is not None and now - last_activity > ADMIN_IDLE_TIMEOUT_SECONDS:
             session.pop(SESSION_ACTIVITY_KEY, None)
             _logger.info('Admin %s logged out after %ss of inactivity.', request.env.user.login, ADMIN_IDLE_TIMEOUT_SECONDS)
-            raise SessionExpiredException('Your admin session expired after 30 minutes of inactivity.')
+            raise SessionExpiredException('Your admin session expired after 1 hour 30 minutes of inactivity.')
 
         session[SESSION_ACTIVITY_KEY] = now

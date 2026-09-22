@@ -518,8 +518,8 @@ class TutorProfile(models.Model):
                 'res_model': 'portal.access.wizard', 'view_mode': 'form', 'target': 'new', 'context': ctx}
 
     def action_login_as_tutor(self):
-        """Open the tutor's portal, logged in as them, in a new browser
-        window — for admins to reproduce/debug an issue the tutor is
+        """Open the tutor's portal, logged in as them, in the current
+        browser window — for admins to reproduce/debug an issue the tutor is
         reporting. Restricted to full admins."""
         self.ensure_one()
         if not self.env.user.has_group('base.group_system'):
@@ -536,7 +536,7 @@ class TutorProfile(models.Model):
         return {
             'type': 'ir.actions.act_url',
             'url': '/web/login_as/%s' % token,
-            'target': 'new',
+            'target': 'self',
         }
 
     @api.model_create_multi
