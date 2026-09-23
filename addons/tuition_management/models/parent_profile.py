@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import models, fields, api
-from odoo.exceptions import AccessError, UserError, ValidationError
+from odoo.exceptions import UserError, ValidationError
 from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
 from .user_permission import require_permission, user_has_permission
 from .phone_codes import COUNTRY_PHONE_CODES
@@ -62,25 +62,12 @@ class ParentProfile(models.Model):
 
     def action_login_as_parent(self):
         """Open the parent's portal, logged in as them, in the current
-        browser window — for admins to reproduce/debug an issue the parent is
-        reporting. Restricted to full admins."""
+        browser window — for staff to reproduce/debug an issue the parent is
+        reporting. Available to any internal user who can open this profile
+        under Users; see LoginAsToken._action_login_as for the checks and
+        LoginAsLog for the audit trail."""
         self.ensure_one()
-        if not self.env.user.has_group('base.group_system'):
-            raise AccessError('Only administrators can log in as another user.')
-        if not self.has_portal_access:
-            raise UserError('This parent does not have portal access yet.')
-        user = self.env['res.users'].sudo().search([
-            ('partner_id', '=', self.partner_id.id),
-        ], limit=1)
-        if not user:
-            raise UserError('No portal user found for this parent.')
-        token = self.env['tuition.login.as.token']._create_for(
-            self.env.user, user, profile_model=self._name, profile_id=self.id)
-        return {
-            'type': 'ir.actions.act_url',
-            'url': '/web/login_as/%s' % token,
-            'target': 'self',
-        }
+        return self.env['tuition.login.as.token']._action_login_as(self, 'parent')
 
     @api.constrains('email', 'phone')
     def _check_contact_info(self):

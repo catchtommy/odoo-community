@@ -34,6 +34,43 @@ class LoginAsToken(models.TransientModel):
     used = fields.Boolean(default=False)
 
     @api.model
+    def _check_can_login_as(self, actor, target_user):
+        """Who may impersonate whom. Any internal user who can reach the
+        Users → Students/Tutors/Parents screens may use "Login as", but only
+        full admins may switch into an internal (non-portal) account —
+        otherwise a staff member could use a tutor who also has a backend
+        login to pick up rights they don't have themselves."""
+        if not actor.has_group('base.group_user'):
+            raise AccessError('Only internal users can log in as another user.')
+        if not actor.has_group('base.group_system') and not target_user.share:
+            raise AccessError('Only administrators can log in as an internal user.')
+
+    @api.model
+    def _action_login_as(self, profile, role):
+        """Shared body of <student|tutor|parent>.profile.action_login_as_<role>():
+        find the profile's portal user, issue a one-time token and return
+        the URL that performs the session switch."""
+        profile.ensure_one()
+        # The caller must be able to see this profile themselves — "Login
+        # as" must not become a way around record rules on the profiles.
+        profile.check_access('read')
+        if not profile.has_portal_access:
+            raise UserError('This %s does not have portal access yet.' % role)
+        user = self.env['res.users'].sudo().search([
+            ('partner_id', '=', profile.partner_id.id),
+        ], limit=1)
+        if not user:
+            raise UserError('No portal user found for this %s.' % role)
+        self._check_can_login_as(self.env.user, user)
+        token = self._create_for(
+            self.env.user, user, profile_model=profile._name, profile_id=profile.id)
+        return {
+            'type': 'ir.actions.act_url',
+            'url': '/web/login_as/%s' % token,
+            'target': 'self',
+        }
+
+    @api.model
     def _create_for(self, admin_user, target_user, profile_model=False, profile_id=False):
         token = uuid.uuid4().hex
         self.sudo().create({
