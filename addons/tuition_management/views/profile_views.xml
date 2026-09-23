@@ -63,7 +63,7 @@
                         </group>
                         <group string="Academic Information">
                             <field name="grade_id" options="{'no_create': True, 'no_open': True}"/>
-                            <field name="subjects_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
+                            <field name="subjects_ids" widget="many2many_tags" domain="[('active', '=', True), '|', ('category_id', '=', False), ('category_id.active', '=', True)]" options="{'no_create': True, 'no_create_edit': True}"/>
                             <field name="parent_id"/>
                         </group>
                     </group>
@@ -154,9 +154,9 @@
                             <field name="partner_id"/>
                         </group>
                         <group string="Teaching Information">
-                            <field name="category_ids" widget="many2many_tags" options="{'no_create': True, 'no_create_edit': True}"/>
+                            <field name="category_ids" widget="many2many_tags" domain="[('active', '=', True)]" options="{'no_create': True, 'no_create_edit': True}"/>
                             <field name="subject_ids" widget="many2many_tags"
-                                  domain="[('category_id', 'in', category_ids)] if category_ids else []"
+                                  domain="[('active', '=', True), ('category_id.active', '=', True), ('category_id', 'in', category_ids)] if category_ids else [('active', '=', True), '|', ('category_id', '=', False), ('category_id.active', '=', True)]"
                                   options="{'no_create': True, 'no_create_edit': True}"/>
                             <field name="grade_ids" widget="many2many_tags"
                                   domain="[('category_ids', 'in', category_ids)] if category_ids else []"

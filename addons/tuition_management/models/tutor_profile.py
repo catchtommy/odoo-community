@@ -300,8 +300,10 @@ class TutorProfile(models.Model):
         default='active',
         required=True,
     )
-    subject_ids = fields.Many2many('subject.master', string='Subjects')
-    category_ids = fields.Many2many('subject.category', string='Categories')
+    # active_test=False keeps inactive subjects/categories visible on tutors
+    # that already have them; pickers restrict to active ones in the views.
+    subject_ids = fields.Many2many('subject.master', string='Subjects', context={'active_test': False})
+    category_ids = fields.Many2many('subject.category', string='Categories', context={'active_test': False})
     employment_type = fields.Selection([
         ('contract', 'Contract (Hourly)'),
         ('permanent', 'Permanent (Fixed Payroll)'),

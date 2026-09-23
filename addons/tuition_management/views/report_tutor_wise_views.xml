@@ -14,8 +14,8 @@
                                 <field name="filter_tutor_id"/>
                             </group>
                             <group>
-                                <field name="filter_category_id"/>
-                                <field name="filter_subject_id" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
+                                <field name="filter_category_id" context="{'active_test': False}"/>
+                                <field name="filter_subject_id" context="{'active_test': False}" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
                                 <field name="group_by"/>
                             </group>
                         </group>

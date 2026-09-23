@@ -88,7 +88,9 @@ class SubjectCategoryImportWizard(models.TransientModel):
     def _find_existing(self, name):
         if not name:
             return self.env['subject.category']
-        return self.env['subject.category'].search([('name', '=ilike', name)], limit=1)
+        # Include inactive categories so re-importing does not create duplicates.
+        return self.env['subject.category'].with_context(active_test=False).search(
+            [('name', '=ilike', name)], limit=1)
 
     def action_download_template(self):
         notes = ['# ' + c[3] for c in SC_COLUMNS]
@@ -296,12 +298,14 @@ class SubjectImportWizard(models.TransientModel):
     def _find_category(self, name):
         if not name:
             return self.env['subject.category']
-        return self.env['subject.category'].search([('name', '=ilike', name)], limit=1)
+        # Include inactive categories so re-importing does not create duplicates.
+        return self.env['subject.category'].with_context(active_test=False).search(
+            [('name', '=ilike', name)], limit=1)
 
     def _find_existing(self, name, category_id):
         if not name or not category_id:
             return self.env['subject.master']
-        return self.env['subject.master'].search(
+        return self.env['subject.master'].with_context(active_test=False).search(
             [('name', '=ilike', name), ('category_id', '=', category_id)], limit=1)
 
     def action_download_template(self):

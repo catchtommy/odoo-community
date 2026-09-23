@@ -13,8 +13,8 @@
                                 <field name="to_date"/>
                             </group>
                             <group>
-                                <field name="filter_category_id"/>
-                                <field name="filter_subject_id" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
+                                <field name="filter_category_id" context="{'active_test': False}"/>
+                                <field name="filter_subject_id" context="{'active_test': False}" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
                             </group>
                         </group>
                         <div class="tm-rf-btn-row">

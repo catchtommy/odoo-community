@@ -738,6 +738,7 @@ class EnquiryBatchWizard(models.TransientModel):
     email = fields.Char(string='Email')
     country_code = fields.Char(string='Country Code', default='+1')
     phone = fields.Char(string='Phone')
+    is_existing_parent = fields.Boolean(string='Existing Parent?')
     parent_profile_id = fields.Many2one('parent.profile', string='Existing Parent')
     enquiry_source = fields.Selection([
         ('website', 'Website'),
@@ -758,6 +759,15 @@ class EnquiryBatchWizard(models.TransientModel):
         for rec in self:
             rec.created_enquiry_count = len(rec.created_enquiry_ids)
 
+    @api.onchange('is_existing_parent')
+    def _onchange_is_existing_parent(self):
+        # Switching modes discards whatever was entered/copied for the other one.
+        self.parent_profile_id = False
+        self.name = False
+        self.email = False
+        self.phone = False
+        self.country_code = self.default_get(['country_code']).get('country_code')
+
     @api.onchange('parent_profile_id')
     def _onchange_parent_profile_id(self):
         if self.parent_profile_id:
@@ -765,10 +775,27 @@ class EnquiryBatchWizard(models.TransientModel):
             self.email = self.parent_profile_id.email
             self.phone = self.parent_profile_id.phone
             self.country_code = self.parent_profile_id.country_code
+        # Existing students picked for a different (or no) parent no longer apply.
+        for line in self.student_line_ids:
+            if line.student_profile_id and line.student_profile_id.parent_id != self.parent_profile_id:
+                line.student_profile_id = False
+                line.student_name = False
+                line.student_age = 0
 
     @api.model_create_multi
     def create(self, vals_list):
+        for vals in vals_list:
+            if not vals.get('is_existing_parent'):
+                vals['parent_profile_id'] = False
+            elif vals.get('parent_profile_id'):
+                # Parent Name is read-only in this mode; always take it from the profile.
+                vals['name'] = self.env['parent.profile'].browse(vals['parent_profile_id']).name
         records = super().create(vals_list)
+        for rec in records:
+            rec.student_line_ids.filtered(
+                lambda l: l.student_profile_id
+                and l.student_profile_id.parent_id != rec.parent_profile_id
+            ).student_profile_id = False
         # Creating enquiries here (rather than via a separate button) means the
         # standard Save button is the only action on this form — saving the
         # wizard for the first time is what submits it.
@@ -799,6 +826,7 @@ class EnquiryBatchWizard(models.TransientModel):
         first = self.env['enquiry'].create(dict(
             common,
             enquiry_batch_id=batch.id if batch else False,
+            student_profile_id=first_line.student_profile_id.id,
             student_name=first_line.student_name,
             student_age=first_line.student_age,
             category_id=first_line.category_id.id,
@@ -815,6 +843,7 @@ class EnquiryBatchWizard(models.TransientModel):
         rest_vals = [
             dict(
                 rest_common,
+                student_profile_id=line.student_profile_id.id,
                 student_name=line.student_name,
                 student_age=line.student_age,
                 category_id=line.category_id.id,
@@ -843,8 +872,23 @@ class EnquiryBatchWizardLine(models.TransientModel):
     _description = 'Enquiry Batch Wizard Student Line'
 
     wizard_id = fields.Many2one('enquiry.batch.wizard', required=True, ondelete='cascade')
+    student_profile_id = fields.Many2one(
+        'student.profile', string='Existing Student',
+        help="Pick one of the parent's existing students, or leave empty to add a new student.")
     student_name = fields.Char(string='Student Name', required=True)
     student_age = fields.Integer(string='Student Age')
+
+    @api.onchange('student_profile_id')
+    def _onchange_student_profile_id(self):
+        student = self.student_profile_id
+        if student:
+            self.student_name = student.name
+            self.student_age = student.age
+            if student.grade_id:
+                self.grade_id = student.grade_id
+        else:
+            self.student_name = False
+            self.student_age = 0
     category_id = fields.Many2one('subject.category', string='Category')
     subject_id = fields.Many2one('subject.master', string='Subject', required=True)
     grade_id = fields.Many2one('grade.master', string='Grade', required=True)

@@ -230,8 +230,9 @@
                         <strong><i class="fa fa-check-circle"/> Saved.</strong> The enquiries below have been created.
                     </div>
                     <group string="Parent / Guardian" readonly="created_enquiry_count">
-                        <field name="parent_profile_id"/>
-                        <field name="name" string="Parent Name"/>
+                        <field name="is_existing_parent" readonly="created_enquiry_count"/>
+                        <field name="parent_profile_id" invisible="not is_existing_parent" required="is_existing_parent" readonly="created_enquiry_count" options="{'no_create': True}"/>
+                        <field name="name" string="Parent Name" readonly="is_existing_parent or created_enquiry_count" force_save="1"/>
                         <field name="email"/>
                         <label for="phone" string="Phone Number"/>
                         <div style="display: grid; grid-template-columns:25% 75%; gap: 2px;">
@@ -241,11 +242,18 @@
                         <field name="enquiry_source"/>
                     </group>
                     <separator string="Students"/>
+                    <div class="text-muted small mb-2" invisible="not is_existing_parent or not parent_profile_id or created_enquiry_count">
+                        Pick an <strong>Existing Student</strong> for this parent, or leave it blank and type a name to add a new student.
+                    </div>
                     <div style="overflow-x:auto;">
                     <field name="student_line_ids" nolabel="1" readonly="created_enquiry_count">
                         <list editable="bottom">
-                            <field name="student_name" placeholder="Student Full Name"/>
-                            <field name="student_age" string="Age" placeholder="Age"/>
+                            <field name="student_profile_id" placeholder="New student"
+                                   column_invisible="not parent.is_existing_parent"
+                                   domain="[('parent_id', '=', parent.parent_profile_id)]"
+                                   options="{'no_create': True, 'no_open': True}"/>
+                            <field name="student_name" placeholder="Student Full Name" readonly="student_profile_id" force_save="1"/>
+                            <field name="student_age" string="Age" placeholder="Age" readonly="student_profile_id" force_save="1"/>
                             <field name="category_id" options="{'no_create': True, 'no_open': True}"/>
                             <field name="subject_id" domain="[('category_id', '=', category_id)]" options="{'no_create': True, 'no_open': True}"/>
                             <field name="grade_id" domain="[('category_ids', 'in', [category_id])]" options="{'no_create': True, 'no_open': True}"/>

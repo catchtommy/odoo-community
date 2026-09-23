@@ -18,7 +18,8 @@ class StudentProfile(models.Model):
     phone = fields.Char(string='Phone')
     age = fields.Integer(string='Age')
     grade_id = fields.Many2one('grade.master', string='Grade', required=True)
-    subjects_ids = fields.Many2many('subject.master', string='Subjects')
+    # active_test=False keeps inactive subjects visible on existing students.
+    subjects_ids = fields.Many2many('subject.master', string='Subjects', context={'active_test': False})
     parent_id = fields.Many2one('parent.profile', string='Parent')
     enrollment_ids = fields.One2many('course.enrollment', 'student_id', string='Enrollments')
     subscription_ids = fields.One2many('tuition.subscription', 'student_id', string='Subscriptions')

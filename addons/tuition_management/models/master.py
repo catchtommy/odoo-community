@@ -20,6 +20,7 @@ class GradeMaster(models.Model):
         'grade_id',
         'category_id',
         string='Categories',
+        context={'active_test': False},
     )
     sequence = fields.Integer(string='Sequence', default=10)
 
