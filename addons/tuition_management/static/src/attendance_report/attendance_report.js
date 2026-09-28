@@ -102,6 +102,7 @@ class TmAttendanceReport extends Component {
             tutor_id: "",
             status: "",
             student_name: "",
+            excludeRescheduledCancelled: true,
             courses: [],
             tutors: [],
             courseSearch: "",
@@ -220,9 +221,9 @@ class TmAttendanceReport extends Component {
         const domain = [
             ["start_datetime", ">=", msToOdooStr(startUtcMs)],
             ["start_datetime", "<=", msToOdooStr(endUtcMs)],
-            // A cancelled lesson that has a replacement is the same class — show only the replacement.
-            ["rescheduled_to_ids", "=", false],
         ];
+        // A cancelled lesson that has a replacement is the same class — optionally show only the replacement.
+        if (this.state.excludeRescheduledCancelled) domain.push(["rescheduled_to_ids", "=", false]);
         if (this.state.course_id) domain.push(["course_id", "=", parseInt(this.state.course_id)]);
         if (this.state.tutor_id) domain.push(["tutor_id", "=", parseInt(this.state.tutor_id)]);
         if (this.state.status) domain.push(["lesson_status", "=", this.state.status]);
@@ -317,6 +318,11 @@ class TmAttendanceReport extends Component {
 
     async onStatusChange(ev) {
         this.state.status = ev.target.value;
+        await this.loadRows();
+    }
+
+    async onExcludeRescheduledChange(ev) {
+        this.state.excludeRescheduledCancelled = ev.target.checked;
         await this.loadRows();
     }
 

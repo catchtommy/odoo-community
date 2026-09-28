@@ -58,11 +58,7 @@ class TuitionReportMixin(models.AbstractModel):
     def action_open_effective_classes(self):
         return self._occurrence_action(
             'Effective Classes',
-            [
-                '|',
-                '&', ('is_demo', '=', False), ('lesson_status', '=', 'completed'),
-                '&', ('is_demo', '=', True), ('lesson_status', '!=', 'cancelled'),
-            ],
+            [('lesson_status', '=', 'completed')],
         )
 
     def action_open_total_sessions(self):

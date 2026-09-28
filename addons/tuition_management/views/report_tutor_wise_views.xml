@@ -39,6 +39,8 @@
                                        widget="tm_drilldown_stat" options="{'action': 'action_open_completed'}"/>
                                 <field name="cancelled_classes" sum="Cancelled"
                                        widget="tm_drilldown_stat" options="{'action': 'action_open_cancelled'}"/>
+                                <field name="rescheduled_classes" sum="Rescheduled"
+                                       widget="tm_drilldown_stat" options="{'action': 'action_open_rescheduled'}"/>
                                 <field name="effective_classes" sum="Effective"
                                        widget="tm_drilldown_stat" options="{'action': 'action_open_effective'}"/>
                             </list>

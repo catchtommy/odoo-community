@@ -1168,7 +1168,31 @@ class ClassScheduleOccurrence(models.Model):
                     ) % (rec.name or '—', self.env.user.name, lines)
                     rec.course_id.message_post(body=body, subtype_xmlid='mail.mt_note')
 
+        if 'lesson_status' in vals:
+            self._sync_demo_session_status()
+
         return result
+
+    # Lesson status → demo.session status. All-absent lessons go to under_review,
+    # which for a demo means the student didn't show.
+    _DEMO_STATUS_FROM_LESSON = {
+        'scheduled': 'scheduled',
+        'completed': 'completed',
+        'cancelled': 'cancelled',
+        'under_review': 'no_show',
+    }
+
+    def _sync_demo_session_status(self):
+        """Keep the linked demo session's status in step with its lesson."""
+        demo_lessons = self.filtered('is_demo')
+        if not demo_lessons:
+            return
+        demos = self.env['demo.session'].sudo().search([('schedule_occurrence_id', 'in', demo_lessons.ids)])
+        for demo in demos:
+            new_status = self._DEMO_STATUS_FROM_LESSON.get(demo.schedule_occurrence_id.lesson_status)
+            if new_status and demo.status != new_status:
+                # from_lesson_sync: don't let the demo push its own values back onto the lesson
+                demo.with_context(from_lesson_sync=True).write({'status': new_status})
 
     def unlink(self):
         if self.env.context.get('force_delete_lesson'):

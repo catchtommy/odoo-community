@@ -1188,7 +1188,8 @@ class DemoSession(models.Model):
         old_statuses = {rec.id: rec.status for rec in self}
         res = super(DemoSession, self).write(vals)
         for rec in self:
-            if any(k in vals for k in ['status', 'scheduled_datetime', 'duration_minutes', 'tutor_id']):
+            if (any(k in vals for k in ['status', 'scheduled_datetime', 'duration_minutes', 'tutor_id'])
+                    and not self.env.context.get('from_lesson_sync')):
                 rec._create_or_update_schedule()
             if rec.course_id and old_statuses.get(rec.id) != rec.status:
                 if rec.status == 'completed':
@@ -1220,13 +1221,15 @@ class DemoSession(models.Model):
             'start_datetime': self.scheduled_datetime,
             'stop_datetime': end_dt,
             'is_demo': True,
-            'lesson_status': 'scheduled',
             'is_rescheduled': False,
         }
 
         if self.schedule_occurrence_id:
+            # Don't touch lesson_status on update — it's driven by attendance /
+            # cancellation, and resetting it would wipe a completed demo.
             self.schedule_occurrence_id.write(occ_vals)
         else:
+            occ_vals['lesson_status'] = 'scheduled'
             new_occ = self.env['class.schedule.occurrence'].create(occ_vals)
             self.schedule_occurrence_id = new_occ.id
 

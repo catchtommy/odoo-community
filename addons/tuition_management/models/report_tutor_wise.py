@@ -27,6 +27,7 @@ class TuitionTutorWiseReport(models.Model):
     total_demos = fields.Integer(string='Demos', readonly=True)
     completed_classes = fields.Integer(string='Completed', readonly=True)
     cancelled_classes = fields.Integer(string='Cancelled', readonly=True)
+    rescheduled_classes = fields.Integer(string='Rescheduled', readonly=True)
     effective_classes = fields.Integer(string='Effective', readonly=True)
 
     def _dimension_domain(self):
@@ -57,6 +58,7 @@ class TuitionTutorWiseReport(models.Model):
                         course.subject_id AS subject_id,
                         COALESCE(category.name, 'Uncategorised') || ' - ' || COALESCE(subject.name, 'No Subject') AS category_subject,
                         COALESCE(occ.is_demo, FALSE) AS is_demo,
+                        COALESCE(occ.is_rescheduled, FALSE) AS is_rescheduled,
                         occ.lesson_status
                     FROM class_schedule_occurrence occ
                     JOIN course_master course ON course.id = occ.course_id
@@ -80,10 +82,9 @@ class TuitionTutorWiseReport(models.Model):
                     COUNT(*) FILTER (WHERE is_demo)::integer AS total_demos,
                     COUNT(*) FILTER (WHERE NOT is_demo AND lesson_status = 'completed')::integer AS completed_classes,
                     COUNT(*) FILTER (WHERE NOT is_demo AND lesson_status = 'cancelled')::integer AS cancelled_classes,
-                    (
-                        COUNT(*) FILTER (WHERE NOT is_demo AND lesson_status = 'completed')
-                        + COUNT(*) FILTER (WHERE is_demo)
-                    )::integer AS effective_classes
+                    COUNT(*) FILTER (WHERE NOT is_demo AND is_rescheduled)::integer AS rescheduled_classes,
+                    -- Effective = completed lessons, regular and demo alike
+                    COUNT(*) FILTER (WHERE lesson_status = 'completed')::integer AS effective_classes
                 FROM base
                 GROUP BY report_date, tutor_id, category_id, subject_id, category_subject
             )
@@ -176,13 +177,12 @@ class TuitionTutorWiseWizard(models.TransientModel):
                     WHERE NOT COALESCE(occ.is_demo, FALSE)
                       AND occ.lesson_status = 'cancelled'
                 )::integer AS cancelled_classes,
-                (
-                    COUNT(*) FILTER (
-                        WHERE NOT COALESCE(occ.is_demo, FALSE)
-                          AND occ.lesson_status = 'completed'
-                    )
-                    + COUNT(*) FILTER (WHERE COALESCE(occ.is_demo, FALSE))
-                )::integer AS effective_classes
+                COUNT(*) FILTER (
+                    WHERE NOT COALESCE(occ.is_demo, FALSE)
+                      AND COALESCE(occ.is_rescheduled, FALSE)
+                )::integer AS rescheduled_classes,
+                -- Effective = completed lessons, regular and demo alike
+                COUNT(*) FILTER (WHERE occ.lesson_status = 'completed')::integer AS effective_classes
             FROM class_schedule_occurrence occ
             JOIN course_master course ON course.id = occ.course_id
             LEFT JOIN subject_master subject ON subject.id = course.subject_id
@@ -205,11 +205,12 @@ class TuitionTutorWiseWizard(models.TransientModel):
                 'total_demos': total_demos,
                 'completed_classes': completed_classes,
                 'cancelled_classes': cancelled_classes,
+                'rescheduled_classes': rescheduled_classes,
                 'effective_classes': effective_classes,
             }
             for (
                 tutor_id, category_id, subject_id, category_subject,
-                total_classes, total_demos, completed_classes, cancelled_classes, effective_classes,
+                total_classes, total_demos, completed_classes, cancelled_classes, rescheduled_classes, effective_classes,
             ) in self.env.cr.fetchall()
         ]
 
@@ -269,13 +270,13 @@ class TuitionTutorWiseWizard(models.TransientModel):
         sheet.write(0, 0, 'Tutor-wise Report', title_fmt)
         sheet.write(1, 0, f"Period: {self.from_date} to {self.to_date}")
 
-        headers = ['Tutor', 'Category + Subject', 'Classes', 'Demos', 'Completed', 'Cancelled', 'Effective']
-        col_widths = [25, 30, 10, 10, 12, 12, 12]
+        headers = ['Tutor', 'Category + Subject', 'Classes', 'Demos', 'Completed', 'Cancelled', 'Rescheduled', 'Effective']
+        col_widths = [25, 30, 10, 10, 12, 12, 12, 12]
         for col, (h, w) in enumerate(zip(headers, col_widths)):
             sheet.write(3, col, h, header_fmt)
             sheet.set_column(col, col, w)
 
-        totals = [0, 0, 0, 0, 0]
+        totals = [0, 0, 0, 0, 0, 0]
         for row_idx, line in enumerate(self.line_ids, start=4):
             sheet.write(row_idx, 0, line.tutor_id.name or '', cell_fmt)
             sheet.write(row_idx, 1, line.category_subject or '', cell_fmt)
@@ -283,12 +284,14 @@ class TuitionTutorWiseWizard(models.TransientModel):
             sheet.write(row_idx, 3, line.total_demos, num_fmt)
             sheet.write(row_idx, 4, line.completed_classes, num_fmt)
             sheet.write(row_idx, 5, line.cancelled_classes, num_fmt)
-            sheet.write(row_idx, 6, line.effective_classes, num_fmt)
+            sheet.write(row_idx, 6, line.rescheduled_classes, num_fmt)
+            sheet.write(row_idx, 7, line.effective_classes, num_fmt)
             totals[0] += line.total_classes
             totals[1] += line.total_demos
             totals[2] += line.completed_classes
             totals[3] += line.cancelled_classes
-            totals[4] += line.effective_classes
+            totals[4] += line.rescheduled_classes
+            totals[5] += line.effective_classes
 
         total_row = 4 + len(self.line_ids)
         sheet.write(total_row, 0, 'Total', total_lbl_fmt)
@@ -328,6 +331,7 @@ class TuitionTutorWiseWizardLine(models.TransientModel):
     total_demos = fields.Integer(string='Demos', readonly=True)
     completed_classes = fields.Integer(string='Completed', readonly=True)
     cancelled_classes = fields.Integer(string='Cancelled', readonly=True)
+    rescheduled_classes = fields.Integer(string='Rescheduled', readonly=True)
     effective_classes = fields.Integer(string='Effective', readonly=True)
 
     def _dimension_domain(self):
@@ -361,12 +365,14 @@ class TuitionTutorWiseWizardLine(models.TransientModel):
             self._dimension_domain() + [('is_demo', '=', False), ('lesson_status', '=', 'cancelled')],
         )
 
+    def action_open_rescheduled(self):
+        return self.wizard_id._open_occurrences(
+            'Tutor Rescheduled Classes',
+            self._dimension_domain() + [('is_demo', '=', False), ('is_rescheduled', '=', True)],
+        )
+
     def action_open_effective(self):
         return self.wizard_id._open_occurrences(
             'Tutor Effective Classes',
-            self._dimension_domain() + [
-                '|',
-                '&', ('is_demo', '=', False), ('lesson_status', '=', 'completed'),
-                '&', ('is_demo', '=', True), ('lesson_status', '!=', 'cancelled'),
-            ],
+            self._dimension_domain() + [('lesson_status', '=', 'completed')],
         )
