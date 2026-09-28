@@ -974,9 +974,30 @@ class DemoSession(models.Model):
         default=lambda self: self.env.user.tz or DEFAULT_TIMEZONE,
     )
     duration_minutes = fields.Integer(string='Duration (Minutes)', default=30)
+    scheduled_local_display = fields.Char(
+        string='Scheduled Date & Time',
+        compute='_compute_scheduled_local_display',
+        store=False,
+        help='Scheduled time in the demo\'s own timezone, not the viewer\'s.',
+    )
     available_tutor_ids = fields.Many2many('tutor.profile', compute='_compute_available_tutors', store=False)
     no_tutor_available = fields.Boolean(compute='_compute_available_tutors', store=False)
     
+    @api.depends('scheduled_datetime', 'timezone')
+    def _compute_scheduled_local_display(self):
+        import pytz as _pytz
+        for rec in self:
+            if not rec.scheduled_datetime:
+                rec.scheduled_local_display = ''
+                continue
+            tz_name = rec.timezone or 'UTC'
+            try:
+                tz = _pytz.timezone(tz_name)
+            except _pytz.UnknownTimeZoneError:
+                tz = _pytz.utc
+            local_dt = rec.scheduled_datetime.replace(tzinfo=_pytz.utc).astimezone(tz)
+            rec.scheduled_local_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
+
     @api.depends('scheduled_datetime', 'duration_minutes', 'subject_id', 'timezone')
     def _compute_available_tutors(self):
         for rec in self:

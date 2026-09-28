@@ -225,6 +225,7 @@ class ClassSchedule(models.Model):
             if not selected:
                 return self.env['class.schedule.occurrence']
             today = fields.Date.today()
+            now = fields.Datetime.now()
             check_end = min(self.end_date, today + timedelta(days=90))
             current = max(self.start_date, today)
             while current <= check_end:
@@ -232,7 +233,9 @@ class ClassSchedule(models.Model):
                     local_dt = tz.localize(datetime.combine(
                         current, time(self.schedule_hour, self.schedule_minute)))
                     utc_start = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
-                    slots.append((utc_start, utc_start + timedelta(minutes=duration)))
+                    # Already-passed slots are not generated, so don't check them for conflicts.
+                    if utc_start > now:
+                        slots.append((utc_start, utc_start + timedelta(minutes=duration)))
                 current += timedelta(days=1)
 
         if not slots:
@@ -549,6 +552,11 @@ class ClassSchedule(models.Model):
                     local_dt = tz.localize(fields.Datetime.to_datetime(current_date).replace(
                         hour=record.schedule_hour, minute=record.schedule_minute, second=0))
                     utc_start = local_dt.astimezone(pytz.utc).replace(tzinfo=None)
+                    # Skip slots whose start time has already passed (e.g. today's 9am
+                    # when the schedule is created at 11am) — first class is next week.
+                    if utc_start <= now:
+                        current_date += timedelta(days=1)
+                        continue
                     occurrences.append({
                         'schedule_id': record.id, 'course_id': record.course_id.id,
                         'tutor_id': record.tutor_id.id if record.tutor_id else False,
@@ -863,6 +871,13 @@ class ClassScheduleOccurrence(models.Model):
         compute='_compute_start_local_display',
         store=False,
     )
+    lesson_time_display = fields.Char(
+        string='Lesson Time',
+        compute='_compute_lesson_time_display',
+        store=False,
+        help='Start time in the timezone the lesson was scheduled in: the '
+             'schedule\'s timezone, or the demo session\'s for demo lessons.',
+    )
     start_tz_abbr = fields.Char(
         string='TZ',
         compute='_compute_start_tz_abbr',
@@ -906,6 +921,7 @@ class ClassScheduleOccurrence(models.Model):
     cancelled_by = fields.Many2one('res.users', string='Cancelled By', readonly=True)
     is_rescheduled = fields.Boolean(string='Rescheduled', default=False)
     rescheduled_from_id = fields.Many2one('class.schedule.occurrence', string='Rescheduled From')
+    rescheduled_to_ids = fields.One2many('class.schedule.occurrence', 'rescheduled_from_id', string='Rescheduled To')
     is_demo = fields.Boolean(string='Is Demo Session', default=False)
 
     # Academic Traceability
@@ -983,6 +999,24 @@ class ClassScheduleOccurrence(models.Model):
                 tz = pytz.utc
             local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
             rec.start_local_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
+
+    @api.depends('start_datetime', 'schedule_id', 'schedule_id.timezone')
+    def _compute_lesson_time_display(self):
+        # Demo lessons have no schedule; their timezone lives on the demo session.
+        occ_ids = [i for i in self._origin.ids if i]
+        demos = self.env['demo.session'].sudo().search([('schedule_occurrence_id', 'in', occ_ids)]) if occ_ids else []
+        demo_tz = {d.schedule_occurrence_id.id: d.timezone for d in demos}
+        for rec in self:
+            if not rec.start_datetime:
+                rec.lesson_time_display = ''
+                continue
+            tz_name = rec.schedule_id.timezone or demo_tz.get(rec._origin.id) or 'UTC'
+            try:
+                tz = pytz.timezone(tz_name)
+            except pytz.UnknownTimeZoneError:
+                tz = pytz.utc
+            local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
+            rec.lesson_time_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
 
     @api.depends('start_datetime')
     def _compute_start_tz_abbr(self):
@@ -1100,13 +1134,6 @@ class ClassScheduleOccurrence(models.Model):
                     raise UserError("Only administrators or managers with the 'Revert Lesson Cancellation' permission can revert a cancelled lesson.")
                 if not self.env.context.get('allow_lesson_uncancel'):
                     raise UserError('Cancelled lessons can only be reverted through the "Revert Cancellation" action.')
-        reschedule_fields = {'tutor_id'}
-        if reschedule_fields & set(vals.keys()) and 'lesson_status' not in vals:
-            for rec in self:
-                if rec.lesson_status == 'scheduled':
-                    vals = dict(vals, is_rescheduled=True)
-                    break
-
         is_cancellation = vals.get('lesson_status') == 'cancelled'
         tracked = {} if is_cancellation else {
             f: l for f, l in self._LESSON_LOG_LABELS.items()

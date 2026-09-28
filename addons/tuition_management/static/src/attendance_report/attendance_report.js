@@ -220,6 +220,8 @@ class TmAttendanceReport extends Component {
         const domain = [
             ["start_datetime", ">=", msToOdooStr(startUtcMs)],
             ["start_datetime", "<=", msToOdooStr(endUtcMs)],
+            // A cancelled lesson that has a replacement is the same class — show only the replacement.
+            ["rescheduled_to_ids", "=", false],
         ];
         if (this.state.course_id) domain.push(["course_id", "=", parseInt(this.state.course_id)]);
         if (this.state.tutor_id) domain.push(["tutor_id", "=", parseInt(this.state.tutor_id)]);
@@ -231,7 +233,7 @@ class TmAttendanceReport extends Component {
         const rows = await this.orm.searchRead(
             "class.schedule.occurrence",
             domain,
-            ["course_id", "tutor_id", "start_datetime", "stop_datetime", "lesson_status",
+            ["course_id", "tutor_id", "start_datetime", "stop_datetime", "lesson_status", "rescheduled_from_id",
              "attendance_marked", "attendance_present_count", "attendance_absent_count"],
             { order: "start_datetime asc" }
         );

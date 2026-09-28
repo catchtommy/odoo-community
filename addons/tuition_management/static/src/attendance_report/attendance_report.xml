@@ -351,7 +351,11 @@
                                     <span style="color:#adb5bd;"> — </span>
                                     <span><t t-esc="row.display_stop"/></span>
                                 </td>
-                                <td><t t-esc="row.course_name"/></td>
+                                <td>
+                                    <t t-esc="row.course_name"/>
+                                    <span t-if="row.rescheduled_from_id" style="color:#6c757d;font-size:11px;margin-left:6px;"
+                                          title="Replaces a cancelled lesson">(Rescheduled)</span>
+                                </td>
                                 <td><t t-esc="row.tutor_name"/></td>
                                 <td>
                                     <span t-attf-class="tm-ar-badge {{row.lesson_status}}">
