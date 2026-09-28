@@ -1001,6 +1001,19 @@ class ClassScheduleOccurrence(models.Model):
             rec.start_local_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
 
     @api.depends('start_datetime', 'schedule_id', 'schedule_id.timezone')
+    def _get_lesson_tz_name(self):
+        """Timezone the lesson was scheduled in: the schedule's, or the demo
+        session's for demo lessons (which have no schedule). Falls back to UTC."""
+        self.ensure_one()
+        if self.schedule_id.timezone:
+            return self.schedule_id.timezone
+        if self._origin.id:
+            demo = self.env['demo.session'].sudo().search(
+                [('schedule_occurrence_id', '=', self._origin.id)], limit=1)
+            if demo.timezone:
+                return demo.timezone
+        return 'UTC'
+
     def _compute_lesson_time_display(self):
         # Demo lessons have no schedule; their timezone lives on the demo session.
         occ_ids = [i for i in self._origin.ids if i]
@@ -1287,7 +1300,24 @@ class ClassScheduleOccurrence(models.Model):
 
     def action_cancel_lesson(self):
         self.ensure_one()
-        wizard = self.env['cancel.lesson.wizard'].create({'occurrence_id': self.id})
+        # Pre-fill the reschedule time with the lesson's current time in its own timezone.
+        time_vals = {}
+        if self.start_datetime:
+            try:
+                tz = pytz.timezone(self._get_lesson_tz_name())
+            except pytz.UnknownTimeZoneError:
+                tz = pytz.utc
+            local_dt = self.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
+            time_vals = {
+                'new_lesson_hour': str(local_dt.hour % 12 or 12),
+                'new_lesson_minute': '%02d' % local_dt.minute,
+                'new_lesson_ampm': 'am' if local_dt.hour < 12 else 'pm',
+            }
+        wizard = self.env['cancel.lesson.wizard'].create({
+            'occurrence_id': self.id,
+            'new_tutor_id': (self.tutor_id or self.schedule_id.tutor_id).id,
+            **time_vals,
+        })
         return {'type': 'ir.actions.act_window', 'name': 'Cancel Lesson',
                 'res_model': 'cancel.lesson.wizard', 'view_mode': 'form', 'res_id': wizard.id, 'target': 'new'}
 
@@ -1428,12 +1458,46 @@ class CancelLessonWizard(models.TransientModel):
     ], string='Cancellation Reason')
     note = fields.Text(string='Note')
     reschedule = fields.Boolean(string='Reschedule this lesson?', default=False)
-    new_date = fields.Datetime(string='New Date & Time')
-    new_tutor_id = fields.Many2one('tutor.profile', string='New Tutor')
+    # The reschedule time is entered as a date + time in the original lesson's
+    # timezone (not the browser's), since the wizard offers no timezone choice.
+    lesson_timezone = fields.Char(string='Lesson Timezone', compute='_compute_lesson_timezone')
+    lesson_time_display = fields.Char(related='occurrence_id.lesson_time_display', string='Current Lesson Time')
+    new_lesson_date = fields.Date(string='New Date')
+    # 12-hour clock pickers so AM/PM is always explicit.
+    new_lesson_hour = fields.Selection(
+        [(str(h), str(h)) for h in range(1, 13)], string='Hour')
+    new_lesson_minute = fields.Selection(
+        [('%02d' % m, '%02d' % m) for m in range(60)], string='Minute')
+    new_lesson_ampm = fields.Selection([('am', 'AM'), ('pm', 'PM')], string='AM/PM')
+    new_date = fields.Datetime(string='New Date & Time (UTC)', compute='_compute_new_date')
+    new_tutor_id = fields.Many2one('tutor.profile', string='Tutor')
+
+    @api.depends('occurrence_id')
+    def _compute_lesson_timezone(self):
+        for wiz in self:
+            wiz.lesson_timezone = wiz.occurrence_id._get_lesson_tz_name() if wiz.occurrence_id else 'UTC'
+
+    @api.depends('new_lesson_date', 'new_lesson_hour', 'new_lesson_minute', 'new_lesson_ampm', 'lesson_timezone')
+    def _compute_new_date(self):
+        for wiz in self:
+            if not (wiz.new_lesson_date and wiz.new_lesson_hour and wiz.new_lesson_minute and wiz.new_lesson_ampm):
+                wiz.new_date = False
+                continue
+            try:
+                tz = pytz.timezone(wiz.lesson_timezone or 'UTC')
+            except pytz.UnknownTimeZoneError:
+                tz = pytz.utc
+            hour = int(wiz.new_lesson_hour) % 12 + (12 if wiz.new_lesson_ampm == 'pm' else 0)
+            naive = datetime.combine(wiz.new_lesson_date, time(hour, int(wiz.new_lesson_minute)))
+            wiz.new_date = tz.localize(naive).astimezone(pytz.utc).replace(tzinfo=None)
 
     def action_confirm_cancel(self):
         self.ensure_one()
         occ = self.occurrence_id
+        if self.reschedule and not self.new_lesson_date:
+            raise UserError('Please enter the new date for the rescheduled lesson.')
+        if self.reschedule and not (self.new_lesson_hour and self.new_lesson_minute and self.new_lesson_ampm):
+            raise UserError('Please select the hour, minute and AM/PM for the rescheduled lesson.')
 
         # Cancel the current lesson
         occ.sudo().with_context(allow_lesson_cancel=True).write({

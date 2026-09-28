@@ -69,8 +69,24 @@
                 </group>
                 <group string="Reschedule">
                     <field name="reschedule"/>
-                    <field name="new_date" invisible="not reschedule" required="reschedule"/>
-                    <field name="new_tutor_id" invisible="not reschedule"/>
+                </group>
+                <div class="alert alert-info" role="status" invisible="not reschedule">
+                    <i class="fa fa-globe me-1"/>
+                    The new date and time are taken in this lesson's scheduled timezone:
+                    <strong><field name="lesson_timezone" readonly="1" class="d-inline"/></strong>.
+                    Current lesson time: <field name="lesson_time_display" readonly="1" class="d-inline"/>
+                </div>
+                <group invisible="not reschedule">
+                    <field name="new_lesson_date" required="reschedule"/>
+                    <label for="new_lesson_hour" string="New Time"/>
+                    <div class="d-flex align-items-center gap-1">
+                        <field name="new_lesson_hour" required="reschedule" nolabel="1" placeholder="Hour" style="max-width: 5rem;"/>
+                        <span>:</span>
+                        <field name="new_lesson_minute" required="reschedule" nolabel="1" placeholder="Min" style="max-width: 5rem;"/>
+                        <field name="new_lesson_ampm" required="reschedule" nolabel="1" placeholder="AM/PM" style="max-width: 5rem;"/>
+                        <span class="text-muted ms-2">(<field name="lesson_timezone" readonly="1" nolabel="1" class="d-inline"/>)</span>
+                    </div>
+                    <field name="new_tutor_id"/>
                 </group>
                 <footer>
                     <button name="action_confirm_cancel" type="object" string="Confirm Cancellation" class="btn-danger"/>
