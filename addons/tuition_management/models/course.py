@@ -87,6 +87,9 @@ class CourseMaster(models.Model):
     progress_report_ids = fields.One2many('progress.report', 'course_id', string='Progress Reports')
     assignment_ids = fields.One2many('course.assignment', 'course_id', string='Assignments')
     occurrence_ids = fields.One2many('class.schedule.occurrence', 'course_id', string='Schedule Occurrences')
+    # UI-only toggle above the Lessons table: switches the Lesson Time column
+    # from the schedule's timezone to the viewing user's timezone.
+    view_lessons_in_my_tz = fields.Boolean(string='View schedule in my timezone', store=False, default=False)
     demo_session_ids = fields.One2many('demo.session', 'course_id', string='Demo Sessions')
 
     # Virtual Classroom — provider is defined ONLY at course level.

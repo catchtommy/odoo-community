@@ -63,11 +63,18 @@
                 </group>
                 <notebook>
                     <page string="Lessons" name="lessons">
+                        <div class="d-flex align-items-center gap-2 mb-2">
+                            <field name="view_lessons_in_my_tz" nolabel="1"/>
+                            <label for="view_lessons_in_my_tz" class="mb-0"/>
+                        </div>
                         <field name="occurrence_ids">
                             <list string="Lessons" create="false" delete="false" editable="bottom">
                                 <field name="is_demo" string="Demo" widget="boolean_toggle"/>
-                                <!-- Shown in the schedule's / demo's own timezone, not the viewer's -->
-                                <field name="lesson_time_display" string="Lesson Time" readonly="1"/>
+                                <!-- Shown in the schedule's / demo's own timezone, or the viewer's when the toggle above is on -->
+                                <field name="lesson_time_display" string="Lesson Time" readonly="1"
+                                       column_invisible="parent.view_lessons_in_my_tz"/>
+                                <field name="lesson_time_user_display" string="Lesson Time (My Timezone)" readonly="1"
+                                       column_invisible="not parent.view_lessons_in_my_tz"/>
                                 <field name="tutor_id" string="Teacher"/>
                                 <field name="lesson_status" string="Status" readonly="1"/>
                                 <field name="payable_hours" readonly="1" optional="hide"/>

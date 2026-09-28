@@ -878,6 +878,12 @@ class ClassScheduleOccurrence(models.Model):
         help='Start time in the timezone the lesson was scheduled in: the '
              'schedule\'s timezone, or the demo session\'s for demo lessons.',
     )
+    lesson_time_user_display = fields.Char(
+        string='Lesson Time (My Timezone)',
+        compute='_compute_lesson_time_user_display',
+        store=False,
+        help='Start time converted to the viewing user\'s timezone.',
+    )
     start_tz_abbr = fields.Char(
         string='TZ',
         compute='_compute_start_tz_abbr',
@@ -1000,7 +1006,6 @@ class ClassScheduleOccurrence(models.Model):
             local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
             rec.start_local_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
 
-    @api.depends('start_datetime', 'schedule_id', 'schedule_id.timezone')
     def _get_lesson_tz_name(self):
         """Timezone the lesson was scheduled in: the schedule's, or the demo
         session's for demo lessons (which have no schedule). Falls back to UTC."""
@@ -1014,6 +1019,7 @@ class ClassScheduleOccurrence(models.Model):
                 return demo.timezone
         return 'UTC'
 
+    @api.depends('start_datetime', 'schedule_id', 'schedule_id.timezone')
     def _compute_lesson_time_display(self):
         # Demo lessons have no schedule; their timezone lives on the demo session.
         occ_ids = [i for i in self._origin.ids if i]
@@ -1030,6 +1036,21 @@ class ClassScheduleOccurrence(models.Model):
                 tz = pytz.utc
             local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
             rec.lesson_time_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
+
+    @api.depends('start_datetime')
+    @api.depends_context('tz')
+    def _compute_lesson_time_user_display(self):
+        tz_name = self.env.context.get('tz') or self.env.user.tz or 'UTC'
+        try:
+            tz = pytz.timezone(tz_name)
+        except pytz.UnknownTimeZoneError:
+            tz_name, tz = 'UTC', pytz.utc
+        for rec in self:
+            if not rec.start_datetime:
+                rec.lesson_time_user_display = ''
+                continue
+            local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
+            rec.lesson_time_user_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
 
     @api.depends('start_datetime')
     def _compute_start_tz_abbr(self):
