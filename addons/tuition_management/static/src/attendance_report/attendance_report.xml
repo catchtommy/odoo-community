@@ -111,6 +111,30 @@
                 .tm-ar-option:hover { background: #f0f4ff; }
                 .tm-ar-option.tm-ar-selected { background: #e8f0fe; color: #4361ee; font-weight: 600; }
                 .tm-ar-no-results { padding: 8px 12px; color: #adb5bd; font-size: 13px; }
+                /* Multi-select Type dropdown */
+                .tm-ar-multi-btn {
+                    border: 1px solid #dee2e6; border-radius: 6px; padding: 7px 10px;
+                    font-size: 13px; color: #495057; background: #fff; cursor: pointer;
+                    display: flex; justify-content: space-between; align-items: center; gap: 8px;
+                    width: 100%; text-align: left;
+                }
+                .tm-ar-multi-btn:focus { border-color: #4361ee; box-shadow: 0 0 0 2px rgba(67,97,238,0.12); outline: none; }
+                .tm-ar-check-option {
+                    display: flex; align-items: center; gap: 8px; padding: 7px 12px;
+                    font-size: 13px; color: #495057; cursor: pointer; margin: 0;
+                    text-transform: none; letter-spacing: 0; font-weight: normal;
+                }
+                .tm-ar-check-option:hover { background: #f0f4ff; }
+                /* Undo the generic .tm-ar-ctrl-group / .tm-ar-picker input styles
+                   (width:100%, padding, border) so the box stays checkbox-sized. */
+                .tm-ar-ctrl-group .tm-ar-check-option input[type="checkbox"] {
+                    width: auto; flex: 0 0 auto; margin: 0; padding: 0;
+                    border: none; box-shadow: none; cursor: pointer;
+                }
+                .tm-ar-check-option span { white-space: nowrap; }
+                /* Let the Type list grow to fit its labels instead of the 170px column. */
+                .tm-ar-type-dropdown { right: auto; min-width: 100%; width: max-content; }
+                .tm-ar-check-option.tm-ar-check-all { border-bottom: 1px solid #f1f3f5; font-weight: 600; }
                 .tm-ar-search-btn {
                     background: #4361ee;
                     color: #fff;
@@ -286,6 +310,27 @@
                         </t>
                     </div>
                 </div>
+                <div class="tm-ar-ctrl-group tm-ar-picker" t-ref="typePicker">
+                    <label><i class="fa fa-tags" style="margin-right:4px;"/>Type</label>
+                    <button type="button" class="tm-ar-multi-btn" t-on-click="toggleTypeDropdown">
+                        <span><t t-esc="selectedTypesLabel"/></span>
+                        <i t-attf-class="fa fa-caret-{{state.typeDropdownOpen ? 'up' : 'down'}}"/>
+                    </button>
+                    <div t-if="state.typeDropdownOpen" class="tm-ar-dropdown tm-ar-type-dropdown">
+                        <label class="tm-ar-check-option tm-ar-check-all">
+                            <input type="checkbox" t-att-checked="!state.lessonTypes.length" t-on-change="onTypeAll"/>
+                            <span>All Types</span>
+                        </label>
+                        <t t-foreach="state.lessonTypeOptions" t-as="opt" t-key="opt[0]">
+                            <label class="tm-ar-check-option">
+                                <input type="checkbox" t-att-data-value="opt[0]"
+                                       t-att-checked="state.lessonTypes.includes(opt[0])"
+                                       t-on-change="onTypeToggle"/>
+                                <span><t t-esc="opt[1]"/></span>
+                            </label>
+                        </t>
+                    </div>
+                </div>
                 <div class="tm-ar-ctrl-group">
                     <label><i class="fa fa-flag" style="margin-right:4px;"/>Status</label>
                     <select t-on-change="onStatusChange">
@@ -346,6 +391,7 @@
                                 <th>Time</th>
                                 <th>Course</th>
                                 <th>Tutor</th>
+                                <th>Type</th>
                                 <th>Status</th>
                                 <th>Submitted</th>
                                 <th>Present</th>
@@ -372,6 +418,7 @@
                                           title="Replaces a cancelled lesson">(Rescheduled)</span>
                                 </td>
                                 <td><t t-esc="row.tutor_name"/></td>
+                                <td style="white-space:nowrap;"><t t-esc="row.type_label"/></td>
                                 <td>
                                     <span t-attf-class="tm-ar-badge {{row.lesson_status}}">
                                         <t t-esc="row.lesson_status"/>

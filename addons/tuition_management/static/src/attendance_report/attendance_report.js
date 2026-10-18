@@ -1,6 +1,6 @@
 /** @odoo-module **/
 import { registry } from "@web/core/registry";
-import { Component, onWillStart, useState } from "@odoo/owl";
+import { Component, onWillStart, useExternalListener, useRef, useState } from "@odoo/owl";
 import { useService } from "@web/core/utils/hooks";
 import { session } from "@web/session";
 import { _t } from "@web/core/l10n/translation";
@@ -103,6 +103,9 @@ class TmAttendanceReport extends Component {
             status: "",
             student_name: "",
             excludeRescheduledCancelled: true,
+            lessonTypes: [],          // selected lesson_type keys; empty = all types
+            lessonTypeOptions: [],    // [[key, label], ...] from the lesson_type field
+            typeDropdownOpen: false,
             courses: [],
             tutors: [],
             courseSearch: "",
@@ -115,11 +118,22 @@ class TmAttendanceReport extends Component {
             loading: false,
         });
 
+        // Close the multi-select Type dropdown on any click outside it.
+        this.typePickerRef = useRef("typePicker");
+        useExternalListener(window, "mousedown", (ev) => {
+            const el = this.typePickerRef.el;
+            if (this.state.typeDropdownOpen && el && !el.contains(ev.target)) {
+                this.state.typeDropdownOpen = false;
+            }
+        });
+
         onWillStart(async () => {
-            const [userTz, timezones] = await Promise.all([
+            const [userTz, timezones, typeField] = await Promise.all([
                 this.orm.call("class.schedule", "get_user_timezone", []),
                 this.orm.call("class.schedule", "get_common_timezones", []),
+                this.orm.call("class.schedule.occurrence", "fields_get", [["lesson_type"]], { attributes: ["selection"] }),
             ]);
+            this.state.lessonTypeOptions = typeField.lesson_type.selection;
             this.state.timezones = timezones;
             this.state.tz = userTz;
             const todayInTz = getTodayStrInTz(userTz);
@@ -181,6 +195,18 @@ class TmAttendanceReport extends Component {
         return found ? found[1] : this.state.tz;
     }
 
+    get selectedTypesLabel() {
+        const selected = this.state.lessonTypes;
+        if (!selected.length || selected.length === this.state.lessonTypeOptions.length) return "All Types";
+        if (selected.length === 1) return this.lessonTypeLabel(selected[0]);
+        return `${selected.length} types selected`;
+    }
+
+    lessonTypeLabel(key) {
+        const found = this.state.lessonTypeOptions.find(o => o[0] === key);
+        return found ? found[1] : "";
+    }
+
     get filteredCourses() {
         const q = this.state.courseSearch.trim().toLowerCase();
         if (!q) return this.state.courses;
@@ -227,6 +253,7 @@ class TmAttendanceReport extends Component {
         if (this.state.course_id) domain.push(["course_id", "=", parseInt(this.state.course_id)]);
         if (this.state.tutor_id) domain.push(["tutor_id", "=", parseInt(this.state.tutor_id)]);
         if (this.state.status) domain.push(["lesson_status", "=", this.state.status]);
+        if (this.state.lessonTypes.length) domain.push(["lesson_type", "in", this.state.lessonTypes]);
         if (this.state.student_name.trim()) {
             domain.push(["course_id.enrollment_ids.student_id.name", "ilike", this.state.student_name.trim()]);
         }
@@ -235,7 +262,7 @@ class TmAttendanceReport extends Component {
             "class.schedule.occurrence",
             domain,
             ["course_id", "tutor_id", "start_datetime", "stop_datetime", "lesson_status", "rescheduled_from_id",
-             "attendance_marked", "attendance_present_count", "attendance_absent_count", "start_tz_abbr"],
+             "attendance_marked", "attendance_present_count", "attendance_absent_count", "start_tz_abbr", "lesson_type"],
             // start_tz_abbr is the short code (IST, EDT, ...) of context.tz at each lesson's start.
             { order: "start_datetime asc", context: { tz } }
         );
@@ -246,6 +273,7 @@ class TmAttendanceReport extends Component {
             row.display_stop  = fmtTimeInTz(row.stop_datetime,  tz);
             row.course_name   = row.course_id ? row.course_id[1] : "";
             row.tutor_name    = row.tutor_id  ? row.tutor_id[1]  : "";
+            row.type_label    = this.lessonTypeLabel(row.lesson_type);
         }
         this.state.rows = rows;
         this.state.loading = false;
@@ -319,6 +347,25 @@ class TmAttendanceReport extends Component {
 
     async onStatusChange(ev) {
         this.state.status = ev.target.value;
+        await this.loadRows();
+    }
+
+    toggleTypeDropdown() {
+        this.state.typeDropdownOpen = !this.state.typeDropdownOpen;
+    }
+
+    /** Tick / untick one lesson type. Ticking every type is the same as "All". */
+    async onTypeToggle(ev) {
+        const key = ev.currentTarget.dataset.value;
+        const selected = new Set(this.state.lessonTypes);
+        if (ev.currentTarget.checked) selected.add(key);
+        else selected.delete(key);
+        this.state.lessonTypes = selected.size === this.state.lessonTypeOptions.length ? [] : [...selected];
+        await this.loadRows();
+    }
+
+    async onTypeAll() {
+        this.state.lessonTypes = [];
         await this.loadRows();
     }
 

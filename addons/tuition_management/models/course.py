@@ -18,6 +18,14 @@ class CourseMaster(models.Model):
     status = fields.Selection([
         ('draft', 'Draft'), ('active', 'Active'), ('completed', 'Completed'), ('cancelled', 'Cancelled'),
     ], string='Status', default='draft', tracking=True)
+    # What the form's Status dropdown edits: "Cancelled" is left out so a course
+    # can only be cancelled through Cancel Course (action_cancel_course).
+    status_choice = fields.Selection([
+        ('draft', 'Draft'), ('active', 'Active'), ('completed', 'Completed'),
+    ], string='Course Status', compute='_compute_status_choice', inverse='_inverse_status_choice')
+    cancellation_reason = fields.Text(string='Cancellation Reason', readonly=True, tracking=True)
+    cancelled_date = fields.Date(string='Cancelled On', readonly=True)
+    cancelled_by_id = fields.Many2one('res.users', string='Cancelled By', readonly=True)
     start_date = fields.Date(string='Start Date')
     end_date = fields.Date(string='End Date')
     category_id = fields.Many2one(
@@ -173,8 +181,25 @@ class CourseMaster(models.Model):
                 rec._schedule_tutor_assignment_activity()
         return records
 
+    @api.depends('status')
+    def _compute_status_choice(self):
+        for rec in self:
+            rec.status_choice = rec.status if rec.status != 'cancelled' else False
+
+    def _inverse_status_choice(self):
+        for rec in self:
+            if rec.status_choice and rec.status_choice != rec.status:
+                rec.status = rec.status_choice
+
     def write(self, vals):
         require_permission(self.env.user, 'course_edit')
+        if 'status' in vals and not self.env.context.get('course_cancellation'):
+            if vals['status'] == 'cancelled':
+                raise UserError('Use the "Cancel Course" button to cancel a course.')
+            if any(rec.status == 'cancelled' for rec in self):
+                raise UserError(
+                    'A cancelled course cannot be reinstated. Please create a new course instead.'
+                )
         old_tutors = {rec.id: rec.tutor_id for rec in self}
         res = super().write(vals)
         if {'enrollment_ids', 'tutor_id', 'tutor_ids'} & set(vals.keys()):
@@ -428,45 +453,35 @@ class CourseMaster(models.Model):
             ('lesson_status', '=', 'scheduled'),
         ])
 
-        if unmarked_occurrences:
-            wizard = self.env['course.cancel.wizard'].create({
-                'course_id': self.id,
-                'message': 'Some schedules do not have attendance marked. If you proceed with cancellation, '
-                           'these schedules will be marked as Cancelled.',
+        # Always confirm through the wizard, which explains the consequences and
+        # requires a cancellation reason.
+        wizard = self.env['course.cancel.wizard'].create({
+            'course_id': self.id,
+            'message': 'Some schedules do not have attendance marked. If you proceed with cancellation, '
+                       'these schedules will be marked as Cancelled.' if unmarked_occurrences else False,
+        })
+        for occ in unmarked_occurrences:
+            self.env['course.cancel.wizard.line'].create({
+                'wizard_id': wizard.id,
+                'occurrence_id': occ.id,
+                'schedule_date': occ.start_datetime,
+                'lesson_name': occ.name,
+                'tutor_name': occ.tutor_id.name if occ.tutor_id else '',
             })
-            for occ in unmarked_occurrences:
-                self.env['course.cancel.wizard.line'].create({
-                    'wizard_id': wizard.id,
-                    'occurrence_id': occ.id,
-                    'schedule_date': occ.start_datetime,
-                    'lesson_name': occ.name,
-                    'tutor_name': occ.tutor_id.name if occ.tutor_id else '',
-                })
-            return {
-                'type': 'ir.actions.act_window',
-                'name': 'Confirm Course Cancellation',
-                'res_model': 'course.cancel.wizard',
-                'view_mode': 'form',
-                'res_id': wizard.id,
-                'target': 'new',
-            }
-
-        self._execute_cancellation()
         return {
-            'type': 'ir.actions.client',
-            'tag': 'display_notification',
-            'params': {
-                'title': 'Course Cancelled',
-                'message': f'Course "{self.name}" has been cancelled successfully.',
-                'type': 'warning',
-                'sticky': False,
-                'next': {'type': 'ir.actions.act_window_close'},
-            },
+            'type': 'ir.actions.act_window',
+            'name': 'Cancel Course',
+            'res_model': 'course.cancel.wizard',
+            'view_mode': 'form',
+            'res_id': wizard.id,
+            'target': 'new',
         }
 
-    def _execute_cancellation(self):
+    def _execute_cancellation(self, reason):
         """Execute all cascading cancellation updates."""
         self.ensure_one()
+        if not (reason or '').strip():
+            raise UserError('Please enter the reason for cancelling the course.')
         tomorrow = fields.Date.today() + timedelta(days=1)
         now = fields.Datetime.now()
 
@@ -507,7 +522,13 @@ class CourseMaster(models.Model):
             # planned end date keeps it.
             subscriptions.plan_line_ids.filtered(lambda p: not p.end_date).sudo().write({'end_date': fields.Date.today()})
 
-        self.write({'status': 'cancelled', 'end_date': fields.Date.today()})
+        self.with_context(course_cancellation=True).write({
+            'status': 'cancelled',
+            'end_date': fields.Date.today(),
+            'cancellation_reason': reason.strip(),
+            'cancelled_date': fields.Date.today(),
+            'cancelled_by_id': self.env.user.id,
+        })
 
     def unlink(self):
         require_permission(self.env.user, 'course_delete')
@@ -570,10 +591,11 @@ class CourseCancelWizard(models.TransientModel):
     course_id = fields.Many2one('course.master', string='Course', required=True, readonly=True)
     message = fields.Text(string='Warning', readonly=True)
     line_ids = fields.One2many('course.cancel.wizard.line', 'wizard_id', string='Unmarked Schedules')
+    reason = fields.Text(string='Reason for Cancellation')
 
     def action_confirm_cancel(self):
         self.ensure_one()
-        self.course_id._execute_cancellation()
+        self.course_id._execute_cancellation(self.reason)
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',

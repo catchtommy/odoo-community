@@ -18,9 +18,9 @@
             <header>
                 <button name="action_enroll_student" string="Enroll Student" type="object" class="btn-primary" icon="fa-user-plus"/>
                 <button name="action_start_virtual_class" string="Start Virtual Class" type="object" class="btn-success" icon="fa-video-camera" invisible="status not in ('active',)"/>
-                <button name="action_cancel_course" string="Cancel Course" type="object" class="btn-danger" icon="fa-times-circle" invisible="status == 'cancelled'" confirm="Are you sure you want to cancel this course?"
+                <button name="action_cancel_course" string="Cancel Course" type="object" class="btn-danger" icon="fa-times-circle" invisible="status == 'cancelled'"
                         groups="tuition_management.group_tuition_course_cancel,base.group_system"/>
-                <field name="status" widget="statusbar"/>
+                <field name="status" widget="statusbar" statusbar_visible="draft,active,completed"/>
             </header>
             <sheet>
                 <div class="oe_button_box" name="button_box">
@@ -49,7 +49,21 @@
                         <field name="coordinator_id" domain="[('share', '=', False)]"/>
                     </group>
                     <group string="Course Dates">
-                        <field name="start_date"/><field name="end_date"/><field name="status"/>
+                        <field name="start_date"/><field name="end_date"/>
+                        <!-- "Cancelled" is not offered here: only Cancel Course sets it,
+                             and a cancelled course's status is locked. -->
+                        <field name="status" invisible="1"/>
+                        <field name="status_choice" string="Status" required="status != 'cancelled'" invisible="status == 'cancelled'"/>
+                        <field name="status" string="Status" readonly="1" invisible="status != 'cancelled'"/>
+                    </group>
+                </group>
+                <group string="Cancellation" invisible="status != 'cancelled'">
+                    <group>
+                        <field name="cancelled_date"/>
+                        <field name="cancelled_by_id"/>
+                    </group>
+                    <group>
+                        <field name="cancellation_reason"/>
                     </group>
                 </group>
                 <group>
@@ -219,11 +233,19 @@
     <field name="arch" type="xml">
         <form string="Confirm Course Cancellation">
             <field name="course_id" invisible="1"/>
-            <div class="alert alert-warning" role="alert">
-                <strong><i class="fa fa-exclamation-triangle"/> Warning</strong>
-                <p><field name="message" nolabel="1" readonly="1"/></p>
+            <div class="alert alert-danger" role="alert">
+                <strong><i class="fa fa-exclamation-triangle"/> Cancelling this course will:</strong>
+                <ul class="mb-2">
+                    <li>Remove all upcoming lessons from the schedule</li>
+                    <li>Cancel all enrolments and the linked subscriptions</li>
+                </ul>
+                <strong>This cannot be undone.</strong> A cancelled course will not be reinstated —
+                to continue teaching this student, please create a new course.
             </div>
-            <group string="Schedules Without Attendance">
+            <div class="alert alert-warning" role="alert" invisible="not message">
+                <field name="message" nolabel="1" readonly="1"/>
+            </div>
+            <group string="Schedules Without Attendance" invisible="not line_ids">
                 <field name="line_ids" nolabel="1" readonly="1">
                     <list string="Unmarked Schedules" create="false" delete="false">
                         <field name="schedule_date" string="Date"/>
@@ -232,15 +254,10 @@
                     </list>
                 </field>
             </group>
-            <div class="alert alert-danger mt-2" role="alert">
-                <strong>On cancellation:</strong>
-                <ul class="mb-0">
-                    <li>All future lessons will be <strong>deleted</strong> (regardless of status)</li>
-                    <li>Unmarked past schedules (listed above) will be marked as Cancelled</li>
-                    <li>All enrolments will be cancelled</li>
-                    <li>All linked subscriptions will be cancelled</li>
-                </ul>
-            </div>
+            <group>
+                <field name="reason" required="1"
+                       placeholder="Why is this course being cancelled?"/>
+            </group>
             <footer>
                 <button name="action_confirm_cancel" type="object" string="Confirm Cancellation" class="btn-danger"/>
                 <button name="action_discard" type="object" string="Go Back" class="btn-secondary"/>

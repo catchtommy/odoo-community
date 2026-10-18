@@ -47,7 +47,17 @@ class ClassSchedule(models.Model):
     start_date = fields.Date(string='Start Date', default=fields.Date.today)
     end_date = fields.Date(string='End Date')
     schedule_date = fields.Date(string='Date')  # used for one_time schedules only
-    one_time_reason = fields.Text(string='Reason for One-Time Session')  # used for one_time schedules only
+    one_time_reason = fields.Selection([  # used for one_time schedules only
+        ('mock_test', 'Mock test'),
+        ('review_session', 'Review sessions'),
+        ('parent_meeting', 'Parent meeting'),
+        ('reschedule', 'Reschedule'),
+    ], string='Reason for One-Time Session')
+    # Optional extra detail for a one-time session. Also holds free-text reasons
+    # from before the reason became a dropdown (19.0.2.10) that matched no option.
+    one_time_reason_note = fields.Text(string='Notes')
+    # Set from one_time_reason: a one-time class is a reschedule exactly when its
+    # reason is "Reschedule" (the form hides the checkbox otherwise).
     is_reschedule = fields.Boolean(string='Is a Reschedule?', default=False)
     rescheduled_from_id = fields.Many2one(
         'class.schedule.occurrence', string='Replaces Cancelled Class',
@@ -621,8 +631,24 @@ class ClassSchedule(models.Model):
                 return profile.timezone
         return self.env.user.tz or 'UTC'
 
+    @api.onchange('one_time_reason')
+    def _onchange_one_time_reason(self):
+        self.is_reschedule = self.one_time_reason == 'reschedule'
+        if not self.is_reschedule:
+            self.rescheduled_from_id = False
+
+    @api.model
+    def _force_reschedule_flag(self, vals):
+        """Keep is_reschedule / rescheduled_from_id in line with the reason."""
+        if 'one_time_reason' in vals:
+            vals['is_reschedule'] = vals['one_time_reason'] == 'reschedule'
+            if not vals['is_reschedule']:
+                vals['rescheduled_from_id'] = False
+        return vals
+
     @api.model_create_multi
     def create(self, vals_list):
+        vals_list = [self._force_reschedule_flag(dict(vals)) for vals in vals_list]
         records = super().create(vals_list)
         for record in records:
             record._generate_occurrences()
@@ -658,7 +684,10 @@ class ClassSchedule(models.Model):
 
         reason_line = Markup('')
         if self.schedule_type == 'one_time' and self.one_time_reason:
-            reason_line = Markup('<br/>Reason: <b>%s</b>') % self.one_time_reason
+            reason_label = dict(self._fields['one_time_reason'].selection).get(self.one_time_reason)
+            reason_line = Markup('<br/>Reason: <b>%s</b>') % reason_label
+            if self.one_time_reason_note:
+                reason_line += Markup('<br/>Notes: %s') % self.one_time_reason_note
 
         body = Markup(
             '<b>Schedule Created</b><br/>'
@@ -712,6 +741,7 @@ class ClassSchedule(models.Model):
         trigger_fields = ['start_date', 'end_date', 'schedule_date', 'schedule_hour', 'schedule_minute', 'schedule_duration',
                           'timezone', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday',
                           'schedule_type', 'course_id', 'is_reschedule', 'rescheduled_from_id']
+        vals = self._force_reschedule_flag(dict(vals))
         # When editing a recurring schedule, advance start_date to today so only
         # future occurrences are (re)generated; past occurrences are left untouched.
         if any(f in vals for f in trigger_fields) and 'start_date' not in vals:
@@ -822,13 +852,17 @@ class ClassSchedule(models.Model):
             schedule_str,
         )
 
-    @api.constrains('schedule_type', 'start_date', 'end_date', 'schedule_date', 'one_time_reason')
+    @api.constrains('schedule_type', 'start_date', 'end_date', 'schedule_date', 'one_time_reason', 'rescheduled_from_id', 'is_reschedule')
     def _check_required_dates(self):
         for rec in self:
             if rec.schedule_type == 'one_time' and not rec.schedule_date:
                 raise UserError('Please set a Date for a one-time schedule.')
-            if rec.schedule_type == 'one_time' and not (rec.one_time_reason or '').strip():
-                raise UserError('Please provide a reason for the one-time session.')
+            if rec.schedule_type == 'one_time' and not rec.one_time_reason:
+                raise UserError('Please select a reason for the one-time session.')
+            if rec.schedule_type == 'one_time' and rec.one_time_reason == 'reschedule' and not rec.rescheduled_from_id:
+                raise UserError('Please select the cancelled class this reschedule replaces.')
+            if rec.schedule_type == 'one_time' and rec.is_reschedule and rec.one_time_reason != 'reschedule':
+                raise UserError('Only a one-time session with the reason "Reschedule" can be marked as a reschedule.')
             if rec.schedule_type == 'recurring' and (not rec.start_date or not rec.end_date):
                 raise UserError('Please set Start Date and End Date for a recurring schedule.')
 
@@ -929,6 +963,16 @@ class ClassScheduleOccurrence(models.Model):
     rescheduled_from_id = fields.Many2one('class.schedule.occurrence', string='Rescheduled From')
     rescheduled_to_ids = fields.One2many('class.schedule.occurrence', 'rescheduled_from_id', string='Rescheduled To')
     is_demo = fields.Boolean(string='Is Demo Session', default=False)
+    # What kind of lesson this is, for filtering reports (e.g. the Attendance Report).
+    lesson_type = fields.Selection([
+        ('regular', 'Regular'),
+        ('demo', 'Demo'),
+        ('mock_test', 'Mock test'),
+        ('review_session', 'Review sessions'),
+        ('parent_meeting', 'Parent meeting'),
+        ('reschedule', 'Reschedule'),
+        ('one_time_other', 'One-time (no reason)'),
+    ], string='Lesson Type', compute='_compute_lesson_type', store=True, index=True)
 
     # Academic Traceability
     topic_covered = fields.Text(string='What Was Taught')
@@ -986,6 +1030,20 @@ class ClassScheduleOccurrence(models.Model):
         for rec in self:
             rec.attendance_present_count = len(rec.attendance_ids.filtered(lambda a: a.status == 'present'))
             rec.attendance_absent_count = len(rec.attendance_ids.filtered(lambda a: a.status == 'absent'))
+
+    @api.depends('is_demo', 'is_rescheduled', 'schedule_id.schedule_type', 'schedule_id.one_time_reason')
+    def _compute_lesson_type(self):
+        for rec in self:
+            schedule = rec.schedule_id
+            if rec.is_demo:
+                rec.lesson_type = 'demo'
+            elif rec.is_rescheduled or (schedule.schedule_type == 'one_time' and schedule.one_time_reason == 'reschedule'):
+                # Both one-time "Reschedule" sessions and lessons rescheduled via Cancel Lesson.
+                rec.lesson_type = 'reschedule'
+            elif schedule.schedule_type == 'one_time':
+                rec.lesson_type = schedule.one_time_reason or 'one_time_other'
+            else:
+                rec.lesson_type = 'regular'
 
     @api.depends('attendance_ids')
     def _compute_attendance_marked(self):
@@ -1268,8 +1326,9 @@ class ClassScheduleOccurrence(models.Model):
         sheet.write(0, 0, 'Attendance Report', title_fmt)
 
         lesson_status_labels = dict(self._fields['lesson_status'].selection)
-        headers = ['Date & Time', 'Course', 'Tutor', 'Lesson Status', 'Attendance Submitted', 'Present', 'Absent']
-        col_widths = [26, 22, 18, 14, 18, 10, 10]
+        lesson_type_labels = dict(self._fields['lesson_type'].selection)
+        headers = ['Date & Time', 'Course', 'Tutor', 'Type', 'Lesson Status', 'Attendance Submitted', 'Present', 'Absent']
+        col_widths = [26, 22, 18, 18, 14, 18, 10, 10]
         for col, (h, w) in enumerate(zip(headers, col_widths)):
             sheet.write(2, col, h, header_fmt)
             sheet.set_column(col, col, w)
@@ -1282,10 +1341,11 @@ class ClassScheduleOccurrence(models.Model):
             sheet.write(row_idx, 0, date_str, text_fmt)
             sheet.write(row_idx, 1, occ.course_id.name or '', text_fmt)
             sheet.write(row_idx, 2, occ.tutor_id.name or '', text_fmt)
-            sheet.write(row_idx, 3, lesson_status_labels.get(occ.lesson_status, ''), text_fmt)
-            sheet.write(row_idx, 4, 'Yes' if occ.attendance_marked else 'No', text_fmt)
-            sheet.write(row_idx, 5, occ.attendance_present_count, num_fmt)
-            sheet.write(row_idx, 6, occ.attendance_absent_count, num_fmt)
+            sheet.write(row_idx, 3, lesson_type_labels.get(occ.lesson_type, ''), text_fmt)
+            sheet.write(row_idx, 4, lesson_status_labels.get(occ.lesson_status, ''), text_fmt)
+            sheet.write(row_idx, 5, 'Yes' if occ.attendance_marked else 'No', text_fmt)
+            sheet.write(row_idx, 6, occ.attendance_present_count, num_fmt)
+            sheet.write(row_idx, 7, occ.attendance_absent_count, num_fmt)
 
         workbook.close()
         xlsx_data = output.getvalue()

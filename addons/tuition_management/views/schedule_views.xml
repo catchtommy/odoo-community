@@ -32,14 +32,16 @@
                     <!-- One Time: single date picker -->
                     <group invisible="schedule_type != 'one_time'">
                         <field name="schedule_date" required="schedule_type == 'one_time'"/>
-                        <field name="one_time_reason" required="schedule_type == 'one_time'"
-                               placeholder="Why is this a one-time session? (e.g. makeup class, special request)"/>
+                        <field name="one_time_reason" required="schedule_type == 'one_time'"/>
+                        <field name="one_time_reason_note"
+                               placeholder="Optional: any extra details about this session"/>
                     </group>
-                    <!-- One Time: reschedule linkage -->
-                    <group string="Reschedule" invisible="schedule_type != 'one_time'">
-                        <field name="is_reschedule"/>
-                        <field name="rescheduled_from_id" invisible="not is_reschedule"
-                               required="is_reschedule and schedule_type == 'one_time'"/>
+                    <!-- One Time: reschedule linkage, shown only for the reason "Reschedule".
+                         is_reschedule follows the reason (read-only, force_save so it is saved). -->
+                    <group string="Reschedule" invisible="schedule_type != 'one_time' or one_time_reason != 'reschedule'">
+                        <field name="is_reschedule" readonly="1" force_save="1"/>
+                        <field name="rescheduled_from_id"
+                               required="one_time_reason == 'reschedule' and schedule_type == 'one_time'"/>
                     </group>
                     <!-- Recurring: days of week -->
                     <group string="Days of Week" invisible="schedule_type == 'one_time'">
