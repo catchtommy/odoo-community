@@ -47,6 +47,7 @@
         "views/report_class_status_views.xml",
         "views/report_subject_wise_views.xml",
         "views/report_tutor_wise_views.xml",
+        "views/report_enquiry_views.xml",
         "views/report_views.xml",
         "views/pricing_views.xml",
         "views/report_attendance_views.xml",
@@ -89,6 +90,10 @@
             "tuition_management/static/src/schedule_viewer/schedule_viewer.xml",
             "tuition_management/static/src/attendance_report/attendance_report.js",
             "tuition_management/static/src/attendance_report/attendance_report.xml",
+            "tuition_management/static/src/datetime_picker/hide_week_numbers.js",
+        ],
+        "web.assets_frontend": [
+            "tuition_management/static/src/datetime_picker/hide_week_numbers.js",
         ],
     },
 }

@@ -3,7 +3,7 @@ from odoo import models, fields, api
 from odoo.exceptions import UserError, ValidationError
 from datetime import timedelta
 import logging
-from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE
+from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE, format_local_dt
 from .user_permission import require_permission, user_has_permission
 
 _logger = logging.getLogger(__name__)
@@ -87,6 +87,12 @@ class Enquiry(models.Model):
         ('lost', 'Lost'),
     ], string='Status', compute='_compute_status', inverse='_inverse_status', store=True, tracking=True)
     enquiry_date = fields.Date(string='Enquiry Date', default=fields.Date.today)
+    create_local_display = fields.Char(
+        string='Created On',
+        compute='_compute_create_local_display',
+        help='Creation time in context tz (the Enquiry Report passes its selected '
+             'timezone), with the timezone code, e.g. "21 Oct 2026, 14:30 IST".',
+    )
     notes = fields.Text(string='Notes')
     partner_id = fields.Many2one('res.partner', string='Contact')
     assigned_user_id = fields.Many2one(
@@ -157,6 +163,13 @@ class Enquiry(models.Model):
         )
         for rec in self:
             rec.can_edit_enquiry = can_edit
+
+    @api.depends('create_date')
+    @api.depends_context('tz')
+    def _compute_create_local_display(self):
+        tz_name = self.env.context.get('tz') or self.env.user.tz or 'UTC'
+        for rec in self:
+            rec.create_local_display = format_local_dt(rec.create_date, tz_name) if rec.create_date else ''
 
     @api.depends('stage_id', 'is_enrolled')
     def _compute_can_convert_course(self):

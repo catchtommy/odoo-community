@@ -66,6 +66,24 @@ action = {
         </field>
     </record>
 
+    <!-- Enquiry Report: pre-create wizard so form opens with a real res_id -->
+    <record id="action_open_enquiry_report" model="ir.actions.server">
+        <field name="name">Open Enquiry Report</field>
+        <field name="model_id" ref="model_tuition_enquiry_report_wizard"/>
+        <field name="state">code</field>
+        <field name="code">
+rec = env['tuition.enquiry.report.wizard'].create({})
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Enquiry Report',
+    'res_model': 'tuition.enquiry.report.wizard',
+    'view_mode': 'form',
+    'res_id': rec.id,
+    'target': 'current',
+}
+        </field>
+    </record>
+
     <!-- Reports menu — restricted to users with reports_access permission -->
     <menuitem id="menu_tuition_reports"             name="Reports"               parent="menu_tuition_root"    sequence="35"
               groups="tuition_management.group_tuition_reports_access,base.group_system"/>
@@ -74,5 +92,7 @@ action = {
     <menuitem id="menu_tuition_subject_wise_report" name="Subject-wise Report"   parent="menu_tuition_reports" action="action_open_subject_wise_report" sequence="20"
               groups="tuition_management.group_tuition_reports_access,base.group_system"/>
     <menuitem id="menu_tuition_tutor_wise_report"   name="Tutor-wise Report"     parent="menu_tuition_reports" action="action_open_tutor_wise_report"   sequence="30"
+              groups="tuition_management.group_tuition_reports_access,base.group_system"/>
+    <menuitem id="menu_tuition_enquiry_report"      name="Enquiry Report"        parent="menu_tuition_reports" action="action_open_enquiry_report"      sequence="40"
               groups="tuition_management.group_tuition_reports_access,base.group_system"/>
 </odoo>
