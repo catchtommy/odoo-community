@@ -8,7 +8,7 @@ from odoo import models, fields, api
 from odoo.exceptions import AccessError, UserError, ValidationError
 from datetime import datetime, time, timedelta
 import pytz
-from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE, COMMON_TIMEZONES
+from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE, COMMON_TIMEZONES, format_local_dt, tz_abbr
 from .user_permission import user_has_permission
 
 
@@ -999,12 +999,7 @@ class ClassScheduleOccurrence(models.Model):
                 rec.start_local_display = ''
                 continue
             tz_name = (rec.schedule_id.timezone if rec.schedule_id else None) or 'UTC'
-            try:
-                tz = pytz.timezone(tz_name)
-            except pytz.UnknownTimeZoneError:
-                tz = pytz.utc
-            local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
-            rec.start_local_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
+            rec.start_local_display = format_local_dt(rec.start_datetime, tz_name)
 
     def _get_lesson_tz_name(self):
         """Timezone the lesson was scheduled in: the schedule's, or the demo
@@ -1040,31 +1035,19 @@ class ClassScheduleOccurrence(models.Model):
     @api.depends('start_datetime')
     @api.depends_context('tz')
     def _compute_lesson_time_user_display(self):
+        # Reports pass their selected timezone as context['tz'].
         tz_name = self.env.context.get('tz') or self.env.user.tz or 'UTC'
-        try:
-            tz = pytz.timezone(tz_name)
-        except pytz.UnknownTimeZoneError:
-            tz_name, tz = 'UTC', pytz.utc
         for rec in self:
-            if not rec.start_datetime:
-                rec.lesson_time_user_display = ''
-                continue
-            local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(tz)
-            rec.lesson_time_user_display = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
+            rec.lesson_time_user_display = (
+                format_local_dt(rec.start_datetime, tz_name) if rec.start_datetime else ''
+            )
 
     @api.depends('start_datetime')
+    @api.depends_context('tz')
     def _compute_start_tz_abbr(self):
-        user_tz_name = self.env.user.tz or 'UTC'
-        try:
-            user_tz = pytz.timezone(user_tz_name)
-        except pytz.UnknownTimeZoneError:
-            user_tz = pytz.utc
+        tz_name = self.env.context.get('tz') or self.env.user.tz or 'UTC'
         for rec in self:
-            if not rec.start_datetime:
-                rec.start_tz_abbr = ''
-                continue
-            local_dt = rec.start_datetime.replace(tzinfo=pytz.utc).astimezone(user_tz)
-            rec.start_tz_abbr = local_dt.strftime('%Z')
+            rec.start_tz_abbr = tz_abbr(tz_name, rec.start_datetime) if rec.start_datetime else ''
 
     @api.depends('name', 'course_id', 'tutor_id', 'start_datetime', 'schedule_id', 'schedule_id.timezone')
     def _compute_calendar_label(self):
@@ -1269,9 +1252,9 @@ class ClassScheduleOccurrence(models.Model):
 
         tz_name = tz or self.env.user.tz or DEFAULT_TIMEZONE
         try:
-            export_tz = pytz.timezone(tz_name)
+            pytz.timezone(tz_name)
         except pytz.UnknownTimeZoneError:
-            tz_name, export_tz = 'UTC', pytz.utc
+            tz_name = 'UTC'
 
         output = io.BytesIO()
         workbook = xlsxwriter.Workbook(output, {'in_memory': True})
@@ -1293,8 +1276,7 @@ class ClassScheduleOccurrence(models.Model):
 
         for row_idx, occ in enumerate(self.sorted('start_datetime'), start=3):
             if occ.start_datetime:
-                local_dt = occ.start_datetime.replace(tzinfo=pytz.utc).astimezone(export_tz)
-                date_str = local_dt.strftime('%d %b %Y, %H:%M') + ' (' + tz_name + ')'
+                date_str = format_local_dt(occ.start_datetime, tz_name)
             else:
                 date_str = ''
             sheet.write(row_idx, 0, date_str, text_fmt)

@@ -100,17 +100,17 @@ class TuitionSubjectWiseWizard(models.TransientModel):
         from_date = fields.Date.to_date(vals.get('from_date')) or fields.Date.context_today(self).replace(day=1)
         to_date = fields.Date.to_date(vals.get('to_date')) or fields.Date.context_today(self).replace(day=calendar.monthrange(fields.Date.context_today(self).year, fields.Date.context_today(self).month)[1])
         if 'line_ids' in fields_list:
-            vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(from_date, to_date)]
+            vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(
+                from_date, to_date, tz_name=vals.get('report_tz') or self._default_report_tz(),
+            )]
         return vals
 
-    def _get_line_values(self, from_date, to_date, filter_category_id=None, filter_subject_id=None):
+    def _get_line_values(self, from_date, to_date, filter_category_id=None, filter_subject_id=None, tz_name='UTC'):
         if from_date > to_date:
             return []
         extra_where = []
-        params = [
-            datetime.combine(from_date, time.min),
-            datetime.combine(to_date, time.max),
-        ]
+        # Local dates in tz_name -> UTC bounds, since start_datetime is stored in UTC.
+        params = list(self._local_dates_to_utc(from_date, to_date, tz_name))
         if filter_category_id:
             extra_where.append("AND COALESCE(course.category_id, subject.category_id) = %s")
             params.append(filter_category_id)
@@ -130,7 +130,7 @@ class TuitionSubjectWiseWizard(models.TransientModel):
             JOIN course_master course ON course.id = occ.course_id
             LEFT JOIN subject_master subject ON subject.id = course.subject_id
             WHERE occ.start_datetime >= %s
-              AND occ.start_datetime <= %s
+              AND occ.start_datetime < %s
               {extra_sql}
             GROUP BY COALESCE(course.category_id, subject.category_id), course.subject_id
             ORDER BY COALESCE(course.category_id, subject.category_id), course.subject_id
@@ -156,6 +156,7 @@ class TuitionSubjectWiseWizard(models.TransientModel):
                 rec.from_date, rec.to_date,
                 filter_category_id=rec.filter_category_id.id or None,
                 filter_subject_id=rec.filter_subject_id.id or None,
+                tz_name=rec.report_tz,
             ):
                 line['wizard_id'] = rec.id
                 self.env['tuition.subject.wise.wizard.line'].create(line)
@@ -174,6 +175,7 @@ class TuitionSubjectWiseWizard(models.TransientModel):
             'to_date': today.replace(day=calendar.monthrange(today.year, today.month)[1]),
             'filter_category_id': False,
             'filter_subject_id': False,
+            'report_tz': self._default_report_tz(),
         })
         return {
             'type': 'ir.actions.act_window',
@@ -198,7 +200,7 @@ class TuitionSubjectWiseWizard(models.TransientModel):
         total_lbl_fmt = workbook.add_format({'bold': True, 'bg_color': '#F0F0F0', 'border': 1})
 
         sheet.write(0, 0, 'Subject-wise Report', title_fmt)
-        sheet.write(1, 0, f"Period: {self.from_date} to {self.to_date}")
+        sheet.write(1, 0, f"Period: {self.from_date} to {self.to_date} ({self._get_report_tz_name()})")
 
         headers = ['Category', 'Subject', 'Classes', 'Demos', 'Total']
         col_widths = [20, 25, 12, 10, 10]

@@ -11,6 +11,7 @@
                             <group>
                                 <field name="from_date"/>
                                 <field name="to_date"/>
+                                <field name="report_tz" required="1"/>
                                 <field name="filter_tutor_id"/>
                             </group>
                             <group>

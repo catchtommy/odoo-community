@@ -235,8 +235,9 @@ class TmAttendanceReport extends Component {
             "class.schedule.occurrence",
             domain,
             ["course_id", "tutor_id", "start_datetime", "stop_datetime", "lesson_status", "rescheduled_from_id",
-             "attendance_marked", "attendance_present_count", "attendance_absent_count"],
-            { order: "start_datetime asc" }
+             "attendance_marked", "attendance_present_count", "attendance_absent_count", "start_tz_abbr"],
+            // start_tz_abbr is the short code (IST, EDT, ...) of context.tz at each lesson's start.
+            { order: "start_datetime asc", context: { tz } }
         );
 
         for (const row of rows) {

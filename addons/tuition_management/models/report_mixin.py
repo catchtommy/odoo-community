@@ -1,8 +1,12 @@
 # -*- coding: utf-8 -*-
 from datetime import datetime, time, timedelta
 
+import pytz
+
 from odoo import fields, models
 from odoo.exceptions import UserError
+
+from .tz_utils import get_tz_selection, DEFAULT_TIMEZONE, tz_abbr
 
 
 class TuitionReportMixin(models.AbstractModel):
@@ -93,6 +97,54 @@ class TuitionDateRangeWizardMixin(models.AbstractModel):
 
     from_date = fields.Date(string='From Date')
     to_date = fields.Date(string='To Date', default=fields.Date.context_today)
+    # Dates in the filters and in the result rows are interpreted in this
+    # timezone; start_datetime is stored in UTC.
+    report_tz = fields.Selection(
+        selection=get_tz_selection,
+        string='Timezone',
+        default=lambda self: self._default_report_tz(),
+    )
+
+    def _default_report_tz(self):
+        return self.env.user.tz or DEFAULT_TIMEZONE
+
+    @staticmethod
+    def _valid_tz_name(tz_name):
+        try:
+            pytz.timezone(tz_name or 'UTC')
+        except pytz.UnknownTimeZoneError:
+            return 'UTC'
+        return tz_name or 'UTC'
+
+    def _get_report_tz_name(self):
+        self.ensure_one()
+        return self._valid_tz_name(self.report_tz)
+
+    @classmethod
+    def _local_dates_to_utc(cls, from_date, to_date, tz_name):
+        """Return naive UTC datetimes [start, end) covering from_date 00:00 to
+        the end of to_date, both taken as local dates in tz_name."""
+        tz = pytz.timezone(cls._valid_tz_name(tz_name))
+
+        def to_utc(day):
+            local = tz.localize(datetime.combine(day, time.min))
+            return local.astimezone(pytz.utc).replace(tzinfo=None)
+
+        return to_utc(from_date), to_utc(to_date + timedelta(days=1))
+
+    @classmethod
+    def _tz_abbr_on(cls, day, tz_name):
+        """Short timezone code in effect on a local date (EST vs EDT etc.)."""
+        start, _end = cls._local_dates_to_utc(day, day, tz_name)
+        return tz_abbr(cls._valid_tz_name(tz_name), start + timedelta(hours=12))
+
+    def _drilldown_views(self):
+        """Lesson list that shows times in the report timezone, with its code."""
+        return [
+            (self.env.ref('tuition_management.view_report_occurrence_drilldown_list').id, 'list'),
+            (False, 'form'),
+            (False, 'calendar'),
+        ]
 
     def _compute_display_name(self):
         # These wizards have no meaningful `name` field, so the default
@@ -110,10 +162,8 @@ class TuitionDateRangeWizardMixin(models.AbstractModel):
     def _date_range_domain(self):
         self.ensure_one()
         self._check_date_range()
-        return [
-            ('start_datetime', '>=', datetime.combine(self.from_date, time.min)),
-            ('start_datetime', '<=', datetime.combine(self.to_date, time.max)),
-        ]
+        start, end = self._local_dates_to_utc(self.from_date, self.to_date, self.report_tz)
+        return [('start_datetime', '>=', start), ('start_datetime', '<', end)]
 
     def _subject_dimension_domain(self, category, subject):
         domain = []
@@ -136,8 +186,9 @@ class TuitionDateRangeWizardMixin(models.AbstractModel):
             'name': name,
             'res_model': 'class.schedule.occurrence',
             'view_mode': 'list,form,calendar',
+            'views': self._drilldown_views(),
             'domain': self._date_range_domain() + domain,
-            'context': {'create': False},
+            'context': {'create': False, 'tz': self._get_report_tz_name()},
         }
 
     def action_close_report(self):

@@ -343,7 +343,7 @@
                         <thead>
                             <tr>
                                 <th>Date</th>
-                                <th>Time (<t t-esc="state.tz"/>)</th>
+                                <th>Time</th>
                                 <th>Course</th>
                                 <th>Tutor</th>
                                 <th>Status</th>
@@ -362,6 +362,9 @@
                                     <strong><t t-esc="row.display_start"/></strong>
                                     <span style="color:#adb5bd;"> — </span>
                                     <span><t t-esc="row.display_stop"/></span>
+                                    <span class="tm-ar-tz-abbr" style="color:#6c757d;margin-left:6px;" t-att-title="state.tz">
+                                        <t t-esc="row.start_tz_abbr"/>
+                                    </span>
                                 </td>
                                 <td>
                                     <t t-esc="row.course_name"/>

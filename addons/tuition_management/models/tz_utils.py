@@ -59,3 +59,27 @@ def get_tz_selection(self=None):
         )
     """
     return COMMON_TIMEZONES
+
+
+def tz_abbr(tz_name, utc_dt=None):
+    """Short code for tz_name at the given naive-UTC moment (default: now),
+    e.g. IST, EST/EDT, GMT/BST. Zones with no letter code get "UTC+04"."""
+    try:
+        tz = pytz.timezone(tz_name or 'UTC')
+    except pytz.UnknownTimeZoneError:
+        tz = pytz.utc
+    utc_dt = utc_dt or datetime.utcnow()
+    abbr = pytz.utc.localize(utc_dt).astimezone(tz).strftime('%Z')
+    if abbr[:1] in '+-':
+        abbr = 'UTC' + abbr
+    return abbr
+
+
+def format_local_dt(utc_dt, tz_name, fmt='%d %b %Y, %H:%M'):
+    """Format a naive-UTC datetime in tz_name, suffixed with its short code."""
+    try:
+        tz = pytz.timezone(tz_name or 'UTC')
+    except pytz.UnknownTimeZoneError:
+        tz_name, tz = 'UTC', pytz.utc
+    local_dt = pytz.utc.localize(utc_dt).astimezone(tz)
+    return '%s %s' % (local_dt.strftime(fmt), tz_abbr(tz_name, utc_dt))

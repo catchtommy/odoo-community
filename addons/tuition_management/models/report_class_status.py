@@ -99,20 +99,34 @@ class TuitionClassStatusWizard(models.TransientModel):
         from_date = fields.Date.to_date(vals.get('from_date')) or today.replace(day=1)
         to_date = fields.Date.to_date(vals.get('to_date')) or today.replace(day=calendar.monthrange(today.year, today.month)[1])
         if 'line_ids' in fields_list:
-            vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(from_date, to_date, vals.get('group_by', 'day'))]
+            vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(
+                from_date, to_date, vals.get('group_by', 'day'),
+                vals.get('report_tz') or self._default_report_tz(),
+            )]
         return vals
 
-    def _get_line_values(self, from_date, to_date, group_by='day'):
+    def _get_line_values(self, from_date, to_date, group_by='day', tz_name='UTC'):
         if from_date > to_date:
             return []
+        tz_name = self._valid_tz_name(tz_name)
+        start, end = self._local_dates_to_utc(from_date, to_date, tz_name)
+        # start_datetime is naive UTC; bucket each lesson by its date in tz_name.
         if group_by == 'week':
-            group_expr = "date_trunc('week', occ.start_datetime)::date"
+            group_expr = "date_trunc('week', occ.local_dt)::date"
         elif group_by == 'month':
-            group_expr = "date_trunc('month', occ.start_datetime)::date"
+            group_expr = "date_trunc('month', occ.local_dt)::date"
         else:
-            group_expr = "occ.start_datetime::date"
+            group_expr = "occ.local_dt::date"
         self.env.cr.execute(
             f"""
+            WITH occ AS (
+                SELECT
+                    o.*,
+                    (o.start_datetime AT TIME ZONE 'UTC') AT TIME ZONE %s AS local_dt
+                FROM class_schedule_occurrence o
+                WHERE o.start_datetime >= %s
+                  AND o.start_datetime < %s
+            )
             SELECT
                 {group_expr} AS report_date,
                 COUNT(*) FILTER (WHERE NOT COALESCE(occ.is_demo, FALSE))::integer AS total_scheduled_classes,
@@ -131,20 +145,16 @@ class TuitionClassStatusWizard(models.TransientModel):
                     WHERE NOT COALESCE(occ.is_demo, FALSE)
                       AND (COALESCE(occ.is_rescheduled, FALSE) OR occ.lesson_status = 'rescheduled')
                 )::integer AS rescheduled_classes
-            FROM class_schedule_occurrence occ
-            WHERE occ.start_datetime >= %s
-              AND occ.start_datetime <= %s
+            FROM occ
             GROUP BY {group_expr}
             ORDER BY {group_expr}
             """,
-            (
-                datetime.combine(from_date, time.min),
-                datetime.combine(to_date, time.max),
-            ),
+            (tz_name, start, end),
         )
         return [
             {
                 'report_date': row[0],
+                'tz_abbr': self._tz_abbr_on(row[0], tz_name),
                 'total_scheduled_classes': row[1],
                 'pending_classes': row[2],
                 'total_demos': row[3],
@@ -159,7 +169,7 @@ class TuitionClassStatusWizard(models.TransientModel):
         for rec in self:
             rec._check_date_range()
             rec.line_ids.unlink()
-            for line in self._get_line_values(rec.from_date, rec.to_date, rec.group_by or 'day'):
+            for line in self._get_line_values(rec.from_date, rec.to_date, rec.group_by or 'day', rec.report_tz):
                 line['wizard_id'] = rec.id
                 self.env['tuition.class.status.wizard.line'].create(line)
 
@@ -176,6 +186,7 @@ class TuitionClassStatusWizard(models.TransientModel):
             'from_date': today.replace(day=1),
             'to_date': today.replace(day=calendar.monthrange(today.year, today.month)[1]),
             'group_by': 'day',
+            'report_tz': self._default_report_tz(),
         })
         return {
             'type': 'ir.actions.act_window',
@@ -195,15 +206,16 @@ class TuitionClassStatusWizard(models.TransientModel):
         title_fmt = workbook.add_format({'bold': True, 'font_size': 13})
         header_fmt = workbook.add_format({'bold': True, 'bg_color': '#2E86AB', 'font_color': '#FFFFFF', 'border': 1, 'align': 'center'})
         date_fmt = workbook.add_format({'num_format': 'dd/mm/yyyy', 'border': 1})
+        text_fmt = workbook.add_format({'border': 1, 'align': 'center'})
         num_fmt = workbook.add_format({'num_format': '#,##0', 'border': 1, 'align': 'center'})
         total_fmt = workbook.add_format({'bold': True, 'num_format': '#,##0', 'bg_color': '#F0F0F0', 'border': 1, 'align': 'center'})
         total_lbl_fmt = workbook.add_format({'bold': True, 'bg_color': '#F0F0F0', 'border': 1})
 
         sheet.write(0, 0, 'Class Status Report', title_fmt)
-        sheet.write(1, 0, f"Period: {self.from_date} to {self.to_date}")
+        sheet.write(1, 0, f"Period: {self.from_date} to {self.to_date} ({self._get_report_tz_name()})")
 
-        headers = ['Date', 'Scheduled', 'Pending', 'Demos', 'Completed', 'Cancelled', 'Rescheduled']
-        col_widths = [14, 12, 12, 10, 12, 12, 14]
+        headers = ['Date', 'TZ', 'Scheduled', 'Pending', 'Demos', 'Completed', 'Cancelled', 'Rescheduled']
+        col_widths = [14, 8, 12, 12, 10, 12, 12, 14]
         for col, (h, w) in enumerate(zip(headers, col_widths)):
             sheet.write(3, col, h, header_fmt)
             sheet.set_column(col, col, w)
@@ -211,18 +223,20 @@ class TuitionClassStatusWizard(models.TransientModel):
         totals = [0] * 6
         for row_idx, line in enumerate(self.line_ids, start=4):
             sheet.write(row_idx, 0, line.report_date, date_fmt)
+            sheet.write(row_idx, 1, line.tz_abbr or '', text_fmt)
             nums = [
                 line.total_scheduled_classes, line.pending_classes,
                 line.total_demos,
                 line.completed_classes, line.cancelled_classes, line.rescheduled_classes,
             ]
-            for col, val in enumerate(nums, start=1):
+            for col, val in enumerate(nums, start=2):
                 sheet.write(row_idx, col, val, num_fmt)
-                totals[col - 1] += val
+                totals[col - 2] += val
 
         total_row = 4 + len(self.line_ids)
         sheet.write(total_row, 0, 'Total', total_lbl_fmt)
-        for col, val in enumerate(totals, start=1):
+        sheet.write(total_row, 1, '', total_lbl_fmt)
+        for col, val in enumerate(totals, start=2):
             sheet.write(total_row, col, val, total_fmt)
 
         workbook.close()
@@ -250,6 +264,7 @@ class TuitionClassStatusWizardLine(models.TransientModel):
 
     wizard_id = fields.Many2one('tuition.class.status.wizard', required=True, ondelete='cascade')
     report_date = fields.Date(string='Date', readonly=True)
+    tz_abbr = fields.Char(string='TZ', readonly=True)
     total_scheduled_classes = fields.Integer(string='Scheduled', readonly=True)
     pending_classes = fields.Integer(string='Pending', readonly=True)
     total_demos = fields.Integer(string='Demos', readonly=True)
@@ -258,34 +273,33 @@ class TuitionClassStatusWizardLine(models.TransientModel):
     rescheduled_classes = fields.Integer(string='Rescheduled', readonly=True)
 
     def _get_date_range(self):
+        """UTC [start, end) bounds of this line's period in the wizard's timezone."""
         group_by = self.wizard_id.group_by or 'day'
         report_date = self.report_date
         if group_by == 'week':
-            from_dt = datetime.combine(report_date, time.min)
-            to_dt = datetime.combine(report_date + timedelta(days=6), time.max)
+            last_date = report_date + timedelta(days=6)
         elif group_by == 'month':
             last_day = calendar.monthrange(report_date.year, report_date.month)[1]
-            from_dt = datetime.combine(report_date, time.min)
-            to_dt = datetime.combine(report_date.replace(day=last_day), time.max)
+            last_date = report_date.replace(day=last_day)
         else:
-            from_dt = datetime.combine(report_date, time.min)
-            to_dt = datetime.combine(report_date, time.max)
-        return from_dt, to_dt
+            last_date = report_date
+        return self.wizard_id._local_dates_to_utc(report_date, last_date, self.wizard_id.report_tz)
 
     def _occurrence_action(self, label, extra_domain):
         self.ensure_one()
         from_dt, to_dt = self._get_date_range()
         domain = [
             ('start_datetime', '>=', from_dt),
-            ('start_datetime', '<=', to_dt),
+            ('start_datetime', '<', to_dt),
         ] + extra_domain
         return {
             'type': 'ir.actions.act_window',
             'name': label,
             'res_model': 'class.schedule.occurrence',
             'view_mode': 'list,form',
+            'views': self.wizard_id._drilldown_views()[:2],
             'domain': domain,
-            'context': {'create': False},
+            'context': {'create': False, 'tz': self.wizard_id._get_report_tz_name()},
             'target': 'current',
         }
 

@@ -125,17 +125,17 @@ class TuitionTutorWiseWizard(models.TransientModel):
         from_date = fields.Date.to_date(vals.get('from_date')) or fields.Date.context_today(self).replace(day=1)
         to_date = fields.Date.to_date(vals.get('to_date')) or fields.Date.context_today(self).replace(day=calendar.monthrange(fields.Date.context_today(self).year, fields.Date.context_today(self).month)[1])
         if 'line_ids' in fields_list:
-            vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(from_date, to_date)]
+            vals['line_ids'] = [(0, 0, line) for line in self._get_line_values(
+                from_date, to_date, tz_name=vals.get('report_tz') or self._default_report_tz(),
+            )]
         return vals
 
-    def _get_line_values(self, from_date, to_date, filter_tutor_id=None, filter_category_id=None, filter_subject_id=None, group_by='tutor_subject'):
+    def _get_line_values(self, from_date, to_date, filter_tutor_id=None, filter_category_id=None, filter_subject_id=None, group_by='tutor_subject', tz_name='UTC'):
         if from_date > to_date:
             return []
         extra_where = []
-        params = [
-            datetime.combine(from_date, time.min),
-            datetime.combine(to_date, time.max),
-        ]
+        # Local dates in tz_name -> UTC bounds, since start_datetime is stored in UTC.
+        params = list(self._local_dates_to_utc(from_date, to_date, tz_name))
         if filter_tutor_id:
             extra_where.append("AND occ.tutor_id = %s")
             params.append(filter_tutor_id)
@@ -188,7 +188,7 @@ class TuitionTutorWiseWizard(models.TransientModel):
             LEFT JOIN subject_master subject ON subject.id = course.subject_id
             LEFT JOIN subject_category category ON category.id = COALESCE(course.category_id, subject.category_id)
             WHERE occ.start_datetime >= %s
-              AND occ.start_datetime <= %s
+              AND occ.start_datetime < %s
               {extra_sql}
             GROUP BY {group_clause}
             ORDER BY {order_clause}
@@ -224,6 +224,7 @@ class TuitionTutorWiseWizard(models.TransientModel):
                 filter_category_id=rec.filter_category_id.id or None,
                 filter_subject_id=rec.filter_subject_id.id or None,
                 group_by=rec.group_by or 'tutor_subject',
+                tz_name=rec.report_tz,
             ):
                 line['wizard_id'] = rec.id
                 self.env['tuition.tutor.wise.wizard.line'].create(line)
@@ -243,6 +244,7 @@ class TuitionTutorWiseWizard(models.TransientModel):
             'filter_tutor_id': False,
             'filter_category_id': False,
             'filter_subject_id': False,
+            'report_tz': self._default_report_tz(),
             'group_by': 'tutor_subject',
         })
         return {
@@ -268,7 +270,7 @@ class TuitionTutorWiseWizard(models.TransientModel):
         total_lbl_fmt = workbook.add_format({'bold': True, 'bg_color': '#F0F0F0', 'border': 1})
 
         sheet.write(0, 0, 'Tutor-wise Report', title_fmt)
-        sheet.write(1, 0, f"Period: {self.from_date} to {self.to_date}")
+        sheet.write(1, 0, f"Period: {self.from_date} to {self.to_date} ({self._get_report_tz_name()})")
 
         headers = ['Tutor', 'Category + Subject', 'Classes', 'Demos', 'Completed', 'Cancelled', 'Rescheduled', 'Effective']
         col_widths = [25, 30, 10, 10, 12, 12, 12, 12]
