@@ -36,6 +36,17 @@
                         <field name="one_time_reason_note"
                                placeholder="Optional: any extra details about this session"/>
                     </group>
+                    <!-- One Time: who runs the session and whether the tutor is paid -->
+                    <group string="Session Staffing" invisible="schedule_type != 'one_time'">
+                        <group>
+                            <field name="tutor_required"/>
+                            <field name="coordinator_id" options="{'no_create': True}"
+                                   placeholder="Optional: coordinator managing this session"/>
+                        </group>
+                        <group>
+                            <field name="exclude_from_payroll"/>
+                        </group>
+                    </group>
                     <!-- One Time: reschedule linkage, shown only for the reason "Reschedule".
                          is_reschedule follows the reason (read-only, force_save so it is saved). -->
                     <group string="Reschedule" invisible="schedule_type != 'one_time' or one_time_reason != 'reschedule'">
@@ -70,7 +81,7 @@
                                    required="schedule_type == 'recurring'"/>
                         </div>
                     </group>
-                    <group string="Tutor Selection" invisible="not course_id">
+                    <group string="Tutor Selection" invisible="not course_id or (schedule_type == 'one_time' and not tutor_required)">
                         <!-- These fields drive the div visibility below.
                              Use style="display:none" (not invisible="1") so the
                              Odoo web client still includes them in fields_spec and
@@ -107,10 +118,12 @@
                         </div>
                         <field name="tutor_id" string="Assign Tutor"
                                domain="[('id', 'in', assignable_tutor_ids)]"
+                               required="tutor_required or schedule_type != 'one_time'"
                                help="Select any tutor configured for this course category and subject."/>
                     </group>
-                    <group string="Tutor Selection" invisible="course_id">
-                        <field name="tutor_id" string="Assign Tutor"/>
+                    <group string="Tutor Selection" invisible="course_id or (schedule_type == 'one_time' and not tutor_required)">
+                        <field name="tutor_id" string="Assign Tutor"
+                               required="tutor_required or schedule_type != 'one_time'"/>
                     </group>
                 </sheet>
             </form>
@@ -263,6 +276,7 @@
                             <field name="name" readonly="id"/>
                             <field name="course_id" readonly="id"/>
                             <field name="tutor_id" readonly="id"/>
+                            <field name="coordinator_id" invisible="not coordinator_id"/>
                         </group>
                         <group>
                             <field name="start_datetime" readonly="id"/>

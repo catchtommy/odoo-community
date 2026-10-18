@@ -17,7 +17,21 @@ class ClassSchedule(models.Model):
     _description = 'Class Schedule'
 
     course_id = fields.Many2one('course.master', string='Course', required=True, ondelete='cascade')
-    tutor_id = fields.Many2one('tutor.profile', string='Tutor', required=True)
+    # Required unless a one-time session is marked as not needing a tutor
+    # (see tutor_required and _check_tutor_required).
+    tutor_id = fields.Many2one('tutor.profile', string='Tutor')
+    tutor_required = fields.Boolean(
+        string='Tutor Required?', default=True,
+        help='Untick for one-time sessions run without a tutor, e.g. a mock test '
+             'handled by a coordinator (the tutor is then cleared). Recurring '
+             'schedules always need a tutor.')
+    coordinator_id = fields.Many2one(
+        'res.users', string='Coordinator', domain=[('share', '=', False)],
+        help='Coordinator managing this one-time session (optional).')
+    exclude_from_payroll = fields.Boolean(
+        string='Exclude from Tutor Payroll', default=False,
+        help='Lessons of this one-time session are left out of tutor payroll. '
+             'Turned on automatically when no tutor is required.')
     schedule_type = fields.Selection([('one_time', 'One Time'), ('recurring', 'Recurring')],
                                      string='Schedule Type', default='recurring')
     schedule_hour = fields.Integer(string='Hour', default=9)
@@ -538,6 +552,7 @@ class ClassSchedule(models.Model):
                     'stop_datetime': utc_start + timedelta(minutes=record.schedule_duration or 60),
                     'is_rescheduled': record.is_reschedule and bool(record.rescheduled_from_id),
                     'rescheduled_from_id': record.rescheduled_from_id.id if record.is_reschedule and record.rescheduled_from_id else False,
+                    'exclude_from_payroll': record.exclude_from_payroll,
                 }])
                 continue
             if not record.start_date or not record.end_date:
@@ -631,6 +646,38 @@ class ClassSchedule(models.Model):
                 return profile.timezone
         return self.env.user.tz or 'UTC'
 
+    @api.onchange('tutor_required')
+    def _onchange_tutor_required(self):
+        # No tutor involved -> the tutor box is hidden and cleared, and there is
+        # nobody to pay, so exclude from payroll by default (still editable).
+        self.exclude_from_payroll = not self.tutor_required
+        if not self.tutor_required:
+            self.tutor_id = False
+
+    @api.onchange('schedule_type')
+    def _onchange_schedule_type_tutor_required(self):
+        if self.schedule_type != 'one_time':
+            self.tutor_required = True
+
+    @api.onchange('course_id', 'schedule_type')
+    def _onchange_default_coordinator(self):
+        if self.schedule_type == 'one_time' and not self.coordinator_id and self.course_id.coordinator_id:
+            self.coordinator_id = self.course_id.coordinator_id
+
+    @api.constrains('tutor_id', 'tutor_required', 'schedule_type')
+    def _check_tutor_required(self):
+        for rec in self:
+            if rec.schedule_type != 'one_time' and not rec.tutor_required:
+                raise ValidationError('A recurring schedule always requires a tutor.')
+            if (rec.tutor_required or rec.schedule_type != 'one_time') and not rec.tutor_id:
+                raise ValidationError(
+                    'Please assign a tutor, or untick "Tutor Required?" for a one-time session '
+                    'run without a tutor.')
+            if not rec.tutor_required and rec.tutor_id:
+                raise ValidationError(
+                    'This session is marked as not requiring a tutor. Tick "Tutor Required?" '
+                    'to assign one.')
+
     @api.onchange('one_time_reason')
     def _onchange_one_time_reason(self):
         self.is_reschedule = self.one_time_reason == 'reschedule'
@@ -639,7 +686,12 @@ class ClassSchedule(models.Model):
 
     @api.model
     def _force_reschedule_flag(self, vals):
-        """Keep is_reschedule / rescheduled_from_id in line with the reason."""
+        """Keep is_reschedule / rescheduled_from_id in line with the reason, and
+        recurring schedules always tutor-led."""
+        if vals.get('schedule_type') == 'recurring':
+            vals['tutor_required'] = True
+        elif 'tutor_required' in vals and not vals['tutor_required']:
+            vals['tutor_id'] = False
         if 'one_time_reason' in vals:
             vals['is_reschedule'] = vals['one_time_reason'] == 'reschedule'
             if not vals['is_reschedule']:
@@ -752,6 +804,10 @@ class ClassSchedule(models.Model):
         if any(f in vals for f in trigger_fields):
             for record in self:
                 record._generate_occurrences()
+        if 'exclude_from_payroll' in vals:
+            # Apply to lessons not yet picked up by a payroll run.
+            self.occurrence_ids.filtered(lambda o: not o.tutor_payment_line_id).sudo().write(
+                {'exclude_from_payroll': vals['exclude_from_payroll']})
         if 'tutor_id' in vals:
             now = fields.Datetime.now()
             for record in self:
@@ -933,6 +989,7 @@ class ClassScheduleOccurrence(models.Model):
     )
     course_id = fields.Many2one('course.master', string='Course', store=True)
     tutor_id = fields.Many2one('tutor.profile', string='Tutor', store=True)
+    coordinator_id = fields.Many2one(related='schedule_id.coordinator_id', string='Coordinator')
     attendance_ids = fields.One2many('attendance.record', 'class_schedule_occurrence_id', string='Attendance')
     attendance_marked = fields.Boolean(string='Attendance Marked', compute='_compute_attendance_marked', store=True)
     attendance_present_count = fields.Integer(string='Present', compute='_compute_attendance_counts', store=True)

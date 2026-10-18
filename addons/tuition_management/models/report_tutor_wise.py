@@ -31,9 +31,7 @@ class TuitionTutorWiseReport(models.Model):
     effective_classes = fields.Integer(string='Effective', readonly=True)
 
     def _dimension_domain(self):
-        domain = []
-        if self.tutor_id:
-            domain.append(('tutor_id', '=', self.tutor_id.id))
+        domain = [('tutor_id', '=', self.tutor_id.id)]
         if self.category_id:
             domain += [
                 '|',
@@ -65,6 +63,7 @@ class TuitionTutorWiseReport(models.Model):
                     LEFT JOIN subject_master subject ON subject.id = course.subject_id
                     LEFT JOIN subject_category category ON category.id = COALESCE(course.category_id, subject.category_id)
                     WHERE occ.start_datetime IS NOT NULL
+                      AND occ.tutor_id IS NOT NULL  -- sessions run without a tutor are not tutor work
                 )
                 SELECT
                     (
@@ -189,6 +188,8 @@ class TuitionTutorWiseWizard(models.TransientModel):
             LEFT JOIN subject_category category ON category.id = COALESCE(course.category_id, subject.category_id)
             WHERE occ.start_datetime >= %s
               AND occ.start_datetime < %s
+              -- Sessions run without a tutor (e.g. coordinator-led) are not tutor work.
+              AND occ.tutor_id IS NOT NULL
               {extra_sql}
             GROUP BY {group_clause}
             ORDER BY {order_clause}
@@ -339,8 +340,7 @@ class TuitionTutorWiseWizardLine(models.TransientModel):
     def _dimension_domain(self):
         self.ensure_one()
         domain = self.wizard_id._subject_dimension_domain(self.category_id, self.subject_id)
-        if self.tutor_id:
-            domain.append(('tutor_id', '=', self.tutor_id.id))
+        domain.append(('tutor_id', '=', self.tutor_id.id))
         return domain
 
     def action_open_classes(self):
