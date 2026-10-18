@@ -3,7 +3,6 @@
 import { registry } from "@web/core/registry";
 import { _t } from "@web/core/l10n/translation";
 import { Dropdown } from "@web/core/dropdown/dropdown";
-import { CheckboxItem } from "@web/core/dropdown/checkbox_item";
 import {
     Many2ManyCheckboxesField,
     many2ManyCheckboxesField,
@@ -16,7 +15,7 @@ import {
  */
 export class M2MCheckboxDropdownField extends Many2ManyCheckboxesField {
     static template = "tuition_management.M2MCheckboxDropdownField";
-    static components = { ...Many2ManyCheckboxesField.components, Dropdown, CheckboxItem };
+    static components = { ...Many2ManyCheckboxesField.components, Dropdown };
 
     get toggleLabel() {
         const selected = (this.items || []).filter((item) => this.isSelected(item));

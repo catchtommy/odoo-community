@@ -17,7 +17,7 @@
                                 <field name="filter_category_id" context="{'active_test': False}"/>
                                 <field name="filter_subject_id" context="{'active_test': False}" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
                                 <field name="filter_tutor_id"/>
-                                <field name="filter_stage_ids" widget="tm_m2m_checkbox_dropdown" options="{'no_create': True}"/>
+                                <field name="filter_stage_ids" string="Cancellation Type" widget="tm_m2m_checkbox_dropdown" options="{'no_create': True}"/>
                             </group>
                         </group>
                         <div class="tm-rf-btn-row">
@@ -31,21 +31,23 @@
                                 <field name="cancelled_on_display" string="Cancelled On"/>
                                 <field name="cancellation_stage_id" options="{'no_open': True}"/>
                                 <field name="course_id"/>
+                                <button name="action_open_course" type="object" icon="fa-book" title="Open Course" class="btn-link"/>
                                 <field name="category_id" optional="hide"/>
-                                <field name="subject_id" optional="show"/>
-                                <field name="tutor_id" optional="show"/>
                                 <field name="student_name"/>
+                                <button name="action_open_student" type="object" icon="fa-user" title="Open Student"
+                                        class="btn-link" invisible="not student_id and not enquiry_id"/>
                                 <field name="student_email" optional="hide"/>
                                 <field name="student_phone" optional="hide"/>
                                 <field name="parent_name"/>
-                                <field name="parent_email" optional="show"/>
-                                <field name="parent_phone" optional="show"/>
+                                <button name="action_open_parent" type="object" icon="fa-users" title="Open Parent"
+                                        class="btn-link" invisible="not parent_id and not enquiry_id"/>
                                 <field name="cancellation_reason"/>
                                 <field name="cancelled_by_id" optional="show"/>
                                 <field name="resume_interest" optional="show"/>
-                                <field name="expected_restart_date" optional="show"/>
                                 <field name="cancelled_datetime" column_invisible="1"/>
-                                <button name="action_open_course" type="object" icon="fa-external-link" title="Open Course" class="btn-link"/>
+                                <field name="student_id" column_invisible="1"/>
+                                <field name="parent_id" column_invisible="1"/>
+                                <field name="enquiry_id" column_invisible="1"/>
                             </list>
                         </field>
                     </div>

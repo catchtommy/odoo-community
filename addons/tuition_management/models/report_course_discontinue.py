@@ -125,6 +125,7 @@ class TuitionCourseDiscontinueWizard(models.TransientModel):
         for enquiry in self.env['enquiry'].sudo().search([('course_id', '=', course.id)]):
             student, parent = enquiry.student_profile_id, enquiry.parent_profile_id
             contacts.append({
+                'enquiry_id': enquiry.id,
                 'student_id': student.id,
                 'student_name': student.name or enquiry.student_name or '',
                 'student_email': student.email or '',
@@ -193,11 +194,10 @@ class TuitionCourseDiscontinueWizard(models.TransientModel):
         sheet.write(1, 0, f"Period: {self.from_date} to {self.to_date} ({self._get_report_tz_name()})")
 
         headers = [
-            'Cancelled On', 'Cancelled', 'Course', 'Category', 'Subject', 'Tutor', 'Student', 'Student Email',
-            'Student Phone', 'Parent', 'Parent Email', 'Parent Phone', 'Cancellation Reason', 'Cancelled By',
-            'May Restart?', 'Expected Restart',
+            'Cancelled On', 'Cancelled', 'Course', 'Category', 'Student', 'Student Email',
+            'Student Phone', 'Parent', 'Cancellation Reason', 'Cancelled By', 'May Restart?',
         ]
-        col_widths = [22, 30, 28, 16, 18, 20, 22, 26, 16, 22, 26, 16, 45, 18, 12, 16]
+        col_widths = [22, 30, 28, 16, 22, 26, 16, 22, 45, 18, 12]
         for col, (h, w) in enumerate(zip(headers, col_widths)):
             sheet.write(3, col, h, header_fmt)
             sheet.set_column(col, col, w)
@@ -205,15 +205,14 @@ class TuitionCourseDiscontinueWizard(models.TransientModel):
         for row_idx, line in enumerate(self.line_ids, start=4):
             values = [
                 line.cancelled_on_display, line.cancellation_stage_id.name, line.course_id.name,
-                line.category_id.name, line.subject_id.name, line.tutor_id.name, line.student_name,
-                line.student_email, line.student_phone, line.parent_name, line.parent_email, line.parent_phone,
+                line.category_id.name, line.student_name, line.student_email, line.student_phone,
+                line.parent_name,
             ]
             for col, val in enumerate(values):
                 sheet.write(row_idx, col, val or '', cell_fmt)
-            sheet.write(row_idx, 12, line.cancellation_reason or '', wrap_fmt)
-            sheet.write(row_idx, 13, line.cancelled_by_id.name or '', cell_fmt)
-            sheet.write(row_idx, 14, dict(line._fields['resume_interest'].selection).get(line.resume_interest, ''), cell_fmt)
-            sheet.write(row_idx, 15, line.expected_restart_date.strftime('%d %b %Y') if line.expected_restart_date else '', cell_fmt)
+            sheet.write(row_idx, 8, line.cancellation_reason or '', wrap_fmt)
+            sheet.write(row_idx, 9, line.cancelled_by_id.name or '', cell_fmt)
+            sheet.write(row_idx, 10, dict(line._fields['resume_interest'].selection).get(line.resume_interest, ''), cell_fmt)
 
         summary_row = 4 + len(self.line_ids) + 1
         sheet.write(summary_row, 0, f"Courses cancelled: {len(self.line_ids.mapped('course_id'))}", title_fmt)
@@ -261,16 +260,31 @@ class TuitionCourseDiscontinueWizardLine(models.TransientModel):
     student_phone = fields.Char(string='Student Phone', readonly=True)
     parent_id = fields.Many2one('parent.profile', string='Parent Profile', readonly=True)
     parent_name = fields.Char(string='Parent', readonly=True)
+    # Set when the contact details come from the enquiry (course cancelled before enrolment).
+    enquiry_id = fields.Many2one('enquiry', string='Enquiry', readonly=True)
     parent_email = fields.Char(string='Parent Email', readonly=True)
     parent_phone = fields.Char(string='Parent Phone', readonly=True)
 
     def action_open_course(self):
         self.ensure_one()
+        return self._open_form(self.course_id)
+
+    def action_open_student(self):
+        """Student profile, or the enquiry when the student never got a profile."""
+        self.ensure_one()
+        return self._open_form(self.student_id or self.enquiry_id)
+
+    def action_open_parent(self):
+        """Parent profile, or the enquiry when the parent never got a profile."""
+        self.ensure_one()
+        return self._open_form(self.parent_id or self.enquiry_id)
+
+    def _open_form(self, record):
         return {
             'type': 'ir.actions.act_window',
-            'name': self.course_id.name,
-            'res_model': 'course.master',
+            'name': record.display_name,
+            'res_model': record._name,
             'view_mode': 'form',
-            'res_id': self.course_id.id,
+            'res_id': record.id,
             'target': 'current',
         }
