@@ -37,7 +37,7 @@
                                placeholder="Optional: any extra details about this session"/>
                     </group>
                     <!-- One Time: who runs the session and whether the tutor is paid -->
-                    <group string="Session Staffing" invisible="schedule_type != 'one_time'">
+                    <group string="Session Staffing" invisible="schedule_type != 'one_time' or one_time_reason == 'reschedule'">
                         <group>
                             <field name="tutor_required"/>
                             <field name="coordinator_id" options="{'no_create': True}"

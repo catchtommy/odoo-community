@@ -65,6 +65,7 @@ class ClassSchedule(models.Model):
         ('mock_test', 'Mock test'),
         ('review_session', 'Review sessions'),
         ('parent_meeting', 'Parent meeting'),
+        ('one_off_session', 'One-off session'),
         ('reschedule', 'Reschedule'),
     ], string='Reason for One-Time Session')
     # Optional extra detail for a one-time session. Also holds free-text reasons
@@ -669,6 +670,9 @@ class ClassSchedule(models.Model):
         for rec in self:
             if rec.schedule_type != 'one_time' and not rec.tutor_required:
                 raise ValidationError('A recurring schedule always requires a tutor.')
+            if rec.schedule_type == 'one_time' and rec.one_time_reason == 'reschedule' and not rec.tutor_id:
+                raise ValidationError(
+                    'A reschedule replaces a cancelled class, so it needs a tutor. Please assign one.')
             if (rec.tutor_required or rec.schedule_type != 'one_time') and not rec.tutor_id:
                 raise ValidationError(
                     'Please assign a tutor, or untick "Tutor Required?" for a one-time session '
@@ -681,7 +685,12 @@ class ClassSchedule(models.Model):
     @api.onchange('one_time_reason')
     def _onchange_one_time_reason(self):
         self.is_reschedule = self.one_time_reason == 'reschedule'
-        if not self.is_reschedule:
+        if self.is_reschedule:
+            # Session Staffing is hidden for a reschedule: it replaces a cancelled
+            # class, so it is always tutor-led and paid.
+            self.tutor_required = True
+            self.exclude_from_payroll = False
+        else:
             self.rescheduled_from_id = False
 
     @api.model
@@ -694,7 +703,12 @@ class ClassSchedule(models.Model):
             vals['tutor_id'] = False
         if 'one_time_reason' in vals:
             vals['is_reschedule'] = vals['one_time_reason'] == 'reschedule'
-            if not vals['is_reschedule']:
+            if vals['is_reschedule']:
+                # A reschedule replaces a cancelled class: tutor-led and paid
+                # (Session Staffing is hidden for it in the form).
+                vals['tutor_required'] = True
+                vals['exclude_from_payroll'] = False
+            else:
                 vals['rescheduled_from_id'] = False
         return vals
 
@@ -1027,6 +1041,7 @@ class ClassScheduleOccurrence(models.Model):
         ('mock_test', 'Mock test'),
         ('review_session', 'Review sessions'),
         ('parent_meeting', 'Parent meeting'),
+        ('one_off_session', 'One-off session'),
         ('reschedule', 'Reschedule'),
         ('one_time_other', 'One-time (no reason)'),
     ], string='Lesson Type', compute='_compute_lesson_type', store=True, index=True)
