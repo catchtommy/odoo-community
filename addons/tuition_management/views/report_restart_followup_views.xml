@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_tuition_restart_followup_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.restart.followup.wizard.form</field>
+        <field name="model">tuition.restart.followup.wizard</field>
+        <field name="arch" type="xml">
+            <form js_class="tm_report_form" string="Restart Follow-up Report" create="false" delete="false" duplicate="false">
+                <sheet>
+                    <div class="tm-rf-filters-card">
+                        <group>
+                            <group>
+                                <field name="from_date"/>
+                                <field name="to_date"/>
+                                <field name="include_overdue"/>
+                                <field name="hide_restarted"/>
+                            </group>
+                            <group>
+                                <field name="filter_category_id" context="{'active_test': False}"/>
+                                <field name="filter_subject_id" context="{'active_test': False}" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
+                                <field name="report_tz" string="Show Times In" required="1"/>
+                            </group>
+                        </group>
+                        <div class="tm-rf-btn-row">
+                            <button name="action_refresh" type="object" string="Apply" class="btn-primary tm-rf-btn-apply" icon="fa-filter"/>
+                            <button name="action_export_excel" type="object" string="Export to Excel" class="btn-secondary tm-rf-btn" icon="fa-file-excel-o"/>
+                        </div>
+                    </div>
+                    <div class="tm-rf-table-card">
+                        <field name="line_ids" nolabel="1">
+                            <list string="Restart Follow-up" create="false" edit="false" delete="false" no_open="1"
+                                  decoration-danger="days_to_restart &lt; 0"
+                                  decoration-warning="days_to_restart &gt;= 0 and days_to_restart &lt;= 30">
+                                <field name="expected_restart_date"/>
+                                <field name="days_to_restart"/>
+                                <field name="parent_name"/>
+                                <field name="parent_email"/>
+                                <field name="parent_phone"/>
+                                <field name="student_name"/>
+                                <field name="course_id"/>
+                                <field name="subject_id" optional="hide"/>
+                                <field name="tutor_id" optional="hide"/>
+                                <field name="restart_note"/>
+                                <field name="cancellation_reason" optional="show"/>
+                                <field name="cancellation_stage_id" optional="hide" options="{'no_open': True}"/>
+                                <field name="cancelled_on_display" optional="show"/>
+                                <field name="restarted_course_id" optional="hide"/>
+                                <button name="action_open_course" type="object" icon="fa-external-link" title="Open Course" class="btn-link"/>
+                            </list>
+                        </field>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

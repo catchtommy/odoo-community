@@ -59,11 +59,15 @@
                 </group>
                 <group string="Cancellation" invisible="status != 'cancelled'">
                     <group>
-                        <field name="cancelled_date"/>
+                        <field name="cancelled_datetime"/>
                         <field name="cancelled_by_id"/>
                     </group>
                     <group>
+                        <field name="cancellation_stage_id" options="{'no_open': True}"/>
                         <field name="cancellation_reason"/>
+                        <field name="resume_interest"/>
+                        <field name="expected_restart_date" invisible="resume_interest != 'yes'"/>
+                        <field name="restart_note" invisible="not restart_note"/>
                     </group>
                 </group>
                 <group>
@@ -255,8 +259,17 @@
                 </field>
             </group>
             <group>
+                <field name="enrolled_student_count" readonly="1"/>
+                <field name="cancellation_stage_id" required="1" widget="radio"
+                       options="{'no_create': True}"/>
                 <field name="reason" required="1"
                        placeholder="Why is this course being cancelled?"/>
+                <field name="resume_interest" required="1" widget="radio" options="{'horizontal': true}"/>
+                <field name="expected_restart_date" invisible="resume_interest != 'yes'"
+                       required="resume_interest == 'yes'"
+                       help="An approximate date is fine, e.g. the 1st of the month they plan to restart."/>
+                <field name="restart_note" invisible="resume_interest != 'yes'"
+                       placeholder="Optional: e.g. 'after exams', 'call in early January'"/>
             </group>
             <footer>
                 <button name="action_confirm_cancel" type="object" string="Confirm Cancellation" class="btn-danger"/>

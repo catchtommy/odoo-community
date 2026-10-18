@@ -24,7 +24,18 @@ class CourseMaster(models.Model):
         ('draft', 'Draft'), ('active', 'Active'), ('completed', 'Completed'),
     ], string='Course Status', compute='_compute_status_choice', inverse='_inverse_status_choice')
     cancellation_reason = fields.Text(string='Cancellation Reason', readonly=True, tracking=True)
-    cancelled_date = fields.Date(string='Cancelled On', readonly=True)
+    resume_interest = fields.Selection(
+        [('yes', 'Yes'), ('no', 'No')], string='Interested in Continuing Later?', readonly=True, tracking=True,
+        help='Whether the parent is interested in restarting this course in the future.')
+    expected_restart_date = fields.Date(
+        string='Expected Restart (approx.)', readonly=True, tracking=True,
+        help='Roughly when the parent plans to restart, for the Restart Follow-up Report.')
+    restart_note = fields.Text(string='Restart Notes', readonly=True)
+    cancellation_stage_id = fields.Many2one(
+        'course.cancellation.stage', string='Cancelled', readonly=True, tracking=True,
+        help='Whether the course was cancelled before the student enrolled (e.g. after '
+             'a demo) or after enrolment (a discontinued course).')
+    cancelled_datetime = fields.Datetime(string='Cancelled On', readonly=True)
     cancelled_by_id = fields.Many2one('res.users', string='Cancelled By', readonly=True)
     start_date = fields.Date(string='Start Date')
     end_date = fields.Date(string='End Date')
@@ -477,11 +488,17 @@ class CourseMaster(models.Model):
             'target': 'new',
         }
 
-    def _execute_cancellation(self, reason):
+    def _execute_cancellation(self, reason, stage, resume_interest=None, expected_restart_date=None, restart_note=None):
         """Execute all cascading cancellation updates."""
         self.ensure_one()
+        if resume_interest not in ('yes', 'no'):
+            raise UserError('Please select whether the parent is interested in continuing the course in future.')
+        if resume_interest == 'yes' and not expected_restart_date:
+            raise UserError('Please enter roughly when the parent plans to restart the course.')
         if not (reason or '').strip():
             raise UserError('Please enter the reason for cancelling the course.')
+        if not stage:
+            raise UserError('Please select whether the course is cancelled before or after enrolment.')
         tomorrow = fields.Date.today() + timedelta(days=1)
         now = fields.Datetime.now()
 
@@ -526,7 +543,11 @@ class CourseMaster(models.Model):
             'status': 'cancelled',
             'end_date': fields.Date.today(),
             'cancellation_reason': reason.strip(),
-            'cancelled_date': fields.Date.today(),
+            'cancellation_stage_id': stage.id,
+            'resume_interest': resume_interest,
+            'expected_restart_date': expected_restart_date if resume_interest == 'yes' else False,
+            'restart_note': (restart_note or '').strip() or False if resume_interest == 'yes' else False,
+            'cancelled_datetime': fields.Datetime.now(),
             'cancelled_by_id': self.env.user.id,
         })
 
@@ -584,6 +605,19 @@ class CourseEnrollment(models.Model):
         }
 
 
+class CourseCancellationStage(models.Model):
+    """When a course was cancelled relative to enrolment. Only "after enrolment"
+    cancellations are true discontinuations; "before enrolment" ones are e.g.
+    students who did not continue after a demo."""
+    _name = 'course.cancellation.stage'
+    _description = 'Course Cancellation Stage'
+    _order = 'sequence, id'
+
+    name = fields.Char(string='Name', required=True, translate=True)
+    code = fields.Char(string='Code', required=True)
+    sequence = fields.Integer(default=10)
+
+
 class CourseCancelWizard(models.TransientModel):
     _name = 'course.cancel.wizard'
     _description = 'Course Cancellation Confirmation'
@@ -592,10 +626,19 @@ class CourseCancelWizard(models.TransientModel):
     message = fields.Text(string='Warning', readonly=True)
     line_ids = fields.One2many('course.cancel.wizard.line', 'wizard_id', string='Unmarked Schedules')
     reason = fields.Text(string='Reason for Cancellation')
+    cancellation_stage_id = fields.Many2one('course.cancellation.stage', string='Cancelled')
+    enrolled_student_count = fields.Integer(related='course_id.student_count', string='Students Enrolled')
+    resume_interest = fields.Selection(
+        [('yes', 'Yes'), ('no', 'No')], string='Parent Interested in Continuing in Future?')
+    expected_restart_date = fields.Date(string='Expected Restart (approx.)')
+    restart_note = fields.Text(string='Restart Notes')
 
     def action_confirm_cancel(self):
         self.ensure_one()
-        self.course_id._execute_cancellation(self.reason)
+        self.course_id._execute_cancellation(
+            self.reason, self.cancellation_stage_id,
+            self.resume_interest, self.expected_restart_date, self.restart_note,
+        )
         return {
             'type': 'ir.actions.client',
             'tag': 'display_notification',

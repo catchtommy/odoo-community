@@ -84,6 +84,42 @@ action = {
         </field>
     </record>
 
+    <!-- Course Discontinue Report: pre-create wizard so form opens with a real res_id -->
+    <record id="action_open_course_discontinue_report" model="ir.actions.server">
+        <field name="name">Open Course Discontinue Report</field>
+        <field name="model_id" ref="model_tuition_course_discontinue_wizard"/>
+        <field name="state">code</field>
+        <field name="code">
+rec = env['tuition.course.discontinue.wizard'].create({})
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Course Discontinue Report',
+    'res_model': 'tuition.course.discontinue.wizard',
+    'view_mode': 'form',
+    'res_id': rec.id,
+    'target': 'current',
+}
+        </field>
+    </record>
+
+    <!-- Restart Follow-up Report: pre-create wizard so form opens with a real res_id -->
+    <record id="action_open_restart_followup_report" model="ir.actions.server">
+        <field name="name">Open Restart Follow-up Report</field>
+        <field name="model_id" ref="model_tuition_restart_followup_wizard"/>
+        <field name="state">code</field>
+        <field name="code">
+rec = env['tuition.restart.followup.wizard'].create({})
+action = {
+    'type': 'ir.actions.act_window',
+    'name': 'Restart Follow-up Report',
+    'res_model': 'tuition.restart.followup.wizard',
+    'view_mode': 'form',
+    'res_id': rec.id,
+    'target': 'current',
+}
+        </field>
+    </record>
+
     <!-- Reports menu — restricted to users with reports_access permission -->
     <menuitem id="menu_tuition_reports"             name="Reports"               parent="menu_tuition_root"    sequence="35"
               groups="tuition_management.group_tuition_reports_access,base.group_system"/>
@@ -94,5 +130,9 @@ action = {
     <menuitem id="menu_tuition_tutor_wise_report"   name="Tutor-wise Report"     parent="menu_tuition_reports" action="action_open_tutor_wise_report"   sequence="30"
               groups="tuition_management.group_tuition_reports_access,base.group_system"/>
     <menuitem id="menu_tuition_enquiry_report"      name="Enquiry Report"        parent="menu_tuition_reports" action="action_open_enquiry_report"      sequence="40"
+              groups="tuition_management.group_tuition_reports_access,base.group_system"/>
+    <menuitem id="menu_tuition_course_discontinue_report" name="Course Discontinue Report" parent="menu_tuition_reports" action="action_open_course_discontinue_report" sequence="50"
+              groups="tuition_management.group_tuition_reports_access,base.group_system"/>
+    <menuitem id="menu_tuition_restart_followup_report" name="Restart Follow-up Report" parent="menu_tuition_reports" action="action_open_restart_followup_report" sequence="55"
               groups="tuition_management.group_tuition_reports_access,base.group_system"/>
 </odoo>

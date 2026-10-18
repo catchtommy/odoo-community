@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo noupdate="1">
+    <record id="cancellation_stage_before_enrolment" model="course.cancellation.stage">
+        <field name="name">Before Enrolment (e.g. after a demo)</field>
+        <field name="code">before_enrolment</field>
+        <field name="sequence">10</field>
+    </record>
+    <record id="cancellation_stage_after_enrolment" model="course.cancellation.stage">
+        <field name="name">After Enrolment (Discontinued)</field>
+        <field name="code">after_enrolment</field>
+        <field name="sequence">20</field>
+    </record>
+</odoo>

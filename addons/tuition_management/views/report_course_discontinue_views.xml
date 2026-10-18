@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_tuition_course_discontinue_wizard_form" model="ir.ui.view">
+        <field name="name">tuition.course.discontinue.wizard.form</field>
+        <field name="model">tuition.course.discontinue.wizard</field>
+        <field name="arch" type="xml">
+            <form js_class="tm_report_form" string="Course Discontinue Report" create="false" delete="false" duplicate="false">
+                <sheet>
+                    <div class="tm-rf-filters-card">
+                        <group>
+                            <group>
+                                <field name="from_date" string="Cancelled From"/>
+                                <field name="to_date" string="Cancelled To"/>
+                                <field name="report_tz" required="1"/>
+                            </group>
+                            <group>
+                                <field name="filter_category_id" context="{'active_test': False}"/>
+                                <field name="filter_subject_id" context="{'active_test': False}" domain="[('category_id','=',filter_category_id)] if filter_category_id else []"/>
+                                <field name="filter_tutor_id"/>
+                                <field name="filter_stage_ids" widget="tm_m2m_checkbox_dropdown" options="{'no_create': True}"/>
+                            </group>
+                        </group>
+                        <div class="tm-rf-btn-row">
+                            <button name="action_refresh" type="object" string="Apply" class="btn-primary tm-rf-btn-apply" icon="fa-filter"/>
+                            <button name="action_export_excel" type="object" string="Export to Excel" class="btn-secondary tm-rf-btn" icon="fa-file-excel-o"/>
+                        </div>
+                    </div>
+                    <div class="tm-rf-table-card">
+                        <field name="line_ids" nolabel="1">
+                            <list string="Course Discontinue Report" create="false" edit="false" delete="false" no_open="1">
+                                <field name="cancelled_on_display" string="Cancelled On"/>
+                                <field name="cancellation_stage_id" options="{'no_open': True}"/>
+                                <field name="course_id"/>
+                                <field name="category_id" optional="hide"/>
+                                <field name="subject_id" optional="show"/>
+                                <field name="tutor_id" optional="show"/>
+                                <field name="student_name"/>
+                                <field name="student_email" optional="hide"/>
+                                <field name="student_phone" optional="hide"/>
+                                <field name="parent_name"/>
+                                <field name="parent_email" optional="show"/>
+                                <field name="parent_phone" optional="show"/>
+                                <field name="cancellation_reason"/>
+                                <field name="cancelled_by_id" optional="show"/>
+                                <field name="resume_interest" optional="show"/>
+                                <field name="expected_restart_date" optional="show"/>
+                                <field name="cancelled_datetime" column_invisible="1"/>
+                                <button name="action_open_course" type="object" icon="fa-external-link" title="Open Course" class="btn-link"/>
+                            </list>
+                        </field>
+                    </div>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

@@ -3,5 +3,5 @@ from . import tz_utils
 from . import phone_codes
 from . import tutor_profile, student_profile, parent_profile, portal_access, login_as, idle_logout
 from . import subjects, master, attendance, progress, subscription, course, enquiry, schedule, product, billing, parent_billing_run, tutor_payroll, virtual_classroom, virtual_classroom_zoom_account, virtual_classroom_google_account, res_config_settings, tutor_import_wizard, master_import_wizard, user_permission, company_config
-from . import report_mixin, report_class_status, report_subject_wise, report_tutor_wise, report_enquiry, pricing_report
+from . import report_mixin, report_class_status, report_subject_wise, report_tutor_wise, report_enquiry, report_course_discontinue, report_restart_followup, pricing_report
 from . import hr_employee_ext
