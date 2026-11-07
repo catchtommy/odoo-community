@@ -182,6 +182,7 @@
                 <field name="name"/>
                 <field name="payment_period_from"/>
                 <field name="payment_period_to"/>
+                <field name="payment_timezone"/>
                 <field name="run_status"/>
                 <field name="total_tutors"/>
                 <field name="total_hours"/>
@@ -214,6 +215,7 @@
                         <group string="Period">
                             <field name="payment_period_from" readonly="run_status not in ['draft', 'preview']"/>
                             <field name="payment_period_to" readonly="run_status not in ['draft', 'preview']"/>
+                            <field name="payment_timezone" readonly="run_status not in ['draft', 'preview']"/>
                             <field name="created_by"/>
                             <field name="created_date"/>
                         </group>

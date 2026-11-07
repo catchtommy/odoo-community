@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
-from datetime import datetime, time
+import pytz
 
 from odoo import api, fields, models
 from odoo.exceptions import UserError, ValidationError
+from .tz_utils import COMMON_TIMEZONES, DEFAULT_TIMEZONE, get_tz_selection
 from .user_permission import require_permission
 
 
@@ -288,7 +289,7 @@ class TutorPaymentEngine(models.AbstractModel):
         return (stop - start).total_seconds() / 3600.0
 
     @api.model
-    def calculate_lesson_payment(self, lesson):
+    def calculate_lesson_payment(self, lesson, rate_date=None):
         course = lesson.course_id
         category = course.category_id or course.subject_id.category_id
         if not lesson.tutor_id or not course or not category or not course.subject_id:
@@ -298,7 +299,7 @@ class TutorPaymentEngine(models.AbstractModel):
             category,
             course.subject_id,
             lesson.is_demo,
-            lesson.start_datetime.date() if lesson.start_datetime else fields.Date.today(),
+            rate_date or (lesson.start_datetime.date() if lesson.start_datetime else fields.Date.today()),
         )
         hours = self.get_lesson_hours(lesson)
         if hours <= 0:
@@ -322,6 +323,15 @@ class TutorPaymentRun(models.Model):
     name = fields.Char(string='Reference', required=True, copy=False, readonly=True, default='New')
     payment_period_from = fields.Date(string='Period From', required=True, tracking=True)
     payment_period_to = fields.Date(string='Period To', required=True, tracking=True)
+    payment_timezone = fields.Selection(
+        selection=get_tz_selection,
+        string='Timezone',
+        required=True,
+        tracking=True,
+        default=lambda self: self._default_payment_timezone(),
+        help='Period dates are measured in this timezone. Use the same timezone for '
+             'consecutive runs: changing it can leave lessons near the boundary out of both runs.',
+    )
     run_status = fields.Selection([
         ('draft', 'Draft'),
         ('preview', 'Preview'),
@@ -340,6 +350,14 @@ class TutorPaymentRun(models.Model):
     approved_date = fields.Datetime(string='Approved Date', readonly=True)
     paid_by = fields.Many2one('res.users', string='Paid By', readonly=True)
     paid_date = fields.Datetime(string='Paid Date', readonly=True)
+
+    def _default_payment_timezone(self):
+        # res.users.tz accepts names outside pytz.common_timezones (e.g. Asia/Calcutta),
+        # which this field's selection would reject.
+        user_tz = self.env.user.tz
+        if user_tz in {value for value, _label in COMMON_TIMEZONES}:
+            return user_tz
+        return DEFAULT_TIMEZONE
 
     @api.depends('summary_ids.gross_pay', 'summary_ids.regular_hours', 'summary_ids.demo_hours', 'summary_ids.tutor_id')
     def _compute_totals(self):
@@ -435,7 +453,7 @@ class TutorPaymentRun(models.Model):
                         'is_fixed_payroll': True,
                     })
                 else:
-                    calc = engine.calculate_lesson_payment(lesson)
+                    calc = engine.calculate_lesson_payment(lesson, rate_date=run._lesson_local_date(lesson))
                     self.env['tutor.payment.line'].create({
                         'payment_run_id': run.id,
                         'tutor_payment_summary_id': summary.id,
@@ -459,10 +477,19 @@ class TutorPaymentRun(models.Model):
             run.write({'run_status': 'preview'})
         return True
 
+    def _lesson_local_date(self, lesson):
+        """The lesson's calendar date in this run's timezone."""
+        self.ensure_one()
+        tz = pytz.timezone(self.payment_timezone)
+        return pytz.utc.localize(lesson.start_datetime).astimezone(tz).date()
+
     def _find_payable_lessons(self):
         self.ensure_one()
-        start_dt = datetime.combine(fields.Date.to_date(self.payment_period_from), time.min)
-        end_dt = datetime.combine(fields.Date.to_date(self.payment_period_to), time.max)
+        start_dt, end_dt = self.env['tuition.date.range.wizard.mixin']._local_dates_to_utc(
+            fields.Date.to_date(self.payment_period_from),
+            fields.Date.to_date(self.payment_period_to),
+            self.payment_timezone,
+        )
         paid_line_lessons = self.env['tutor.payment.line'].search([
             ('lesson_id', '!=', False),
             ('payment_run_id.run_status', 'in', ['approved', 'paid']),
@@ -478,7 +505,7 @@ class TutorPaymentRun(models.Model):
             ('tutor_id', '!=', False),
             ('course_id', '!=', False),
             ('start_datetime', '>=', start_dt),
-            ('start_datetime', '<=', end_dt),
+            ('start_datetime', '<', end_dt),
             ('exclude_from_payroll', '=', False),
         ]
         if excluded_ids:
@@ -532,11 +559,11 @@ class TutorPaymentRun(models.Model):
         return True
 
     def write(self, vals):
-        protected_fields = {'payment_period_from', 'payment_period_to'}
+        protected_fields = {'payment_period_from', 'payment_period_to', 'payment_timezone'}
         if protected_fields & set(vals):
             locked = self.filtered(lambda run: run.run_status in ('approved', 'paid'))
             if locked:
-                raise UserError("Approved or paid payroll run periods cannot be changed.")
+                raise UserError("The period and timezone of approved or paid payroll runs cannot be changed.")
         return super().write(vals)
 
     def unlink(self):
